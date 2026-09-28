@@ -23,7 +23,8 @@ public interface CardRepository extends JpaRepository<Card,Long> {
             join fetch c.envelop e
             join fetch e.sender s
             join fetch e.receiver r
-            where e.sender.id = :memberId
+            where ((:asSender = true and e.sender.id = :memberId)
+                   or (:asSender = false and e.receiver.id = :memberId))
               and (:startAt is null or c.createdAt >= :startAt)
               and (:endAt is null or c.createdAt < :endAt)
               and (:keyword is null
@@ -36,7 +37,8 @@ public interface CardRepository extends JpaRepository<Card,Long> {
                    or (coalesce(c.createdAt, :emptyCreatedAt) = :cursorCreatedAt and c.id < :cursorId))
             order by coalesce(c.createdAt, :emptyCreatedAt) desc, c.id desc
             """)
-    List<Card> findSentCards(
+    List<Card> findCards(
+            @Param("asSender") boolean asSender,
             @Param("memberId") Long memberId,
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt,
@@ -48,73 +50,27 @@ public interface CardRepository extends JpaRepository<Card,Long> {
     );
 
     @Query("""
-            select c from Card c
-            join fetch c.envelop e
-            join fetch e.sender s
-            join fetch e.receiver r
-            where e.receiver.id = :memberId
-              and (:startAt is null or c.createdAt >= :startAt)
-              and (:endAt is null or c.createdAt < :endAt)
-              and (:keyword is null
-                   or lower(c.title) like :keyword
-                   or lower(c.content) like :keyword
-                   or lower(s.nickname) like :keyword
-                   or lower(r.nickname) like :keyword)
-              and (:cursorCreatedAt is null
-                   or coalesce(c.createdAt, :emptyCreatedAt) < :cursorCreatedAt
-                   or (coalesce(c.createdAt, :emptyCreatedAt) = :cursorCreatedAt and c.id < :cursorId))
-            order by coalesce(c.createdAt, :emptyCreatedAt) desc, c.id desc
-            """)
-    List<Card> findReceivedCards(
-            @Param("memberId") Long memberId,
-            @Param("startAt") LocalDateTime startAt,
-            @Param("endAt") LocalDateTime endAt,
-            @Param("keyword") String keyword,
-            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
-            @Param("cursorId") Long cursorId,
-            @Param("emptyCreatedAt") LocalDateTime emptyCreatedAt,
-            Pageable pageable
-    );
-
-    @Query("""
-            select r.id as memberId,
-                   r.nickname as nickname,
-                   count(c) as cardCount,
-                   max(coalesce(c.createdAt, :emptyCreatedAt)) as latestCardCreatedAt
-            from Card c
-            join c.envelop e
-            join e.receiver r
-            where e.sender.id = :memberId
-            group by r.id, r.nickname
-            having (:cursorCreatedAt is null
-                    or max(coalesce(c.createdAt, :emptyCreatedAt)) < :cursorCreatedAt
-                    or (max(coalesce(c.createdAt, :emptyCreatedAt)) = :cursorCreatedAt and r.id < :cursorId))
-            order by max(coalesce(c.createdAt, :emptyCreatedAt)) desc, r.id desc
-            """)
-    List<FolderSummaryProjection> findSentFolderSummaries(
-            @Param("memberId") Long memberId,
-            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
-            @Param("cursorId") Long cursorId,
-            @Param("emptyCreatedAt") LocalDateTime emptyCreatedAt,
-            Pageable pageable
-    );
-
-    @Query("""
-            select s.id as memberId,
-                   s.nickname as nickname,
+            select (case when :asSender = true then r.id else s.id end) as memberId,
+                   (case when :asSender = true then r.nickname else s.nickname end) as nickname,
                    count(c) as cardCount,
                    max(coalesce(c.createdAt, :emptyCreatedAt)) as latestCardCreatedAt
             from Card c
             join c.envelop e
             join e.sender s
-            where e.receiver.id = :memberId
-            group by s.id, s.nickname
+            join e.receiver r
+            where (:asSender = true and e.sender.id = :memberId)
+               or (:asSender = false and e.receiver.id = :memberId)
+            group by case when :asSender = true then r.id else s.id end,
+                     case when :asSender = true then r.nickname else s.nickname end
             having (:cursorCreatedAt is null
                     or max(coalesce(c.createdAt, :emptyCreatedAt)) < :cursorCreatedAt
-                    or (max(coalesce(c.createdAt, :emptyCreatedAt)) = :cursorCreatedAt and s.id < :cursorId))
-            order by max(coalesce(c.createdAt, :emptyCreatedAt)) desc, s.id desc
+                    or (max(coalesce(c.createdAt, :emptyCreatedAt)) = :cursorCreatedAt
+                        and case when :asSender = true then r.id else s.id end < :cursorId))
+            order by max(coalesce(c.createdAt, :emptyCreatedAt)) desc,
+                     case when :asSender = true then r.id else s.id end desc
             """)
-    List<FolderSummaryProjection> findReceivedFolderSummaries(
+    List<FolderSummaryProjection> findFolderSummaries(
+            @Param("asSender") boolean asSender,
             @Param("memberId") Long memberId,
             @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
             @Param("cursorId") Long cursorId,
@@ -125,25 +81,12 @@ public interface CardRepository extends JpaRepository<Card,Long> {
     @Query("""
             select c.imageUrl from Card c
             join c.envelop e
-            where e.sender.id = :memberId
-              and e.receiver.id = :folderMemberId
+            where (:asSender = true and e.sender.id = :memberId and e.receiver.id = :folderMemberId)
+               or (:asSender = false and e.receiver.id = :memberId and e.sender.id = :folderMemberId)
             order by coalesce(c.createdAt, :emptyCreatedAt) desc, c.id desc
             """)
-    List<String> findLatestSentFolderImageUrl(
-            @Param("memberId") Long memberId,
-            @Param("folderMemberId") Long folderMemberId,
-            @Param("emptyCreatedAt") LocalDateTime emptyCreatedAt,
-            Pageable pageable
-    );
-
-    @Query("""
-            select c.imageUrl from Card c
-            join c.envelop e
-            where e.receiver.id = :memberId
-              and e.sender.id = :folderMemberId
-            order by coalesce(c.createdAt, :emptyCreatedAt) desc, c.id desc
-            """)
-    List<String> findLatestReceivedFolderImageUrl(
+    List<String> findLatestFolderImageUrl(
+            @Param("asSender") boolean asSender,
             @Param("memberId") Long memberId,
             @Param("folderMemberId") Long folderMemberId,
             @Param("emptyCreatedAt") LocalDateTime emptyCreatedAt,
@@ -155,28 +98,14 @@ public interface CardRepository extends JpaRepository<Card,Long> {
                    c.imageUrl as imageUrl
             from Card c
             join c.envelop e
-            where e.sender.id = :memberId
+            where ((:asSender = true and e.sender.id = :memberId)
+                   or (:asSender = false and e.receiver.id = :memberId))
               and c.createdAt >= :startAt
               and c.createdAt < :endAt
             order by c.createdAt asc, c.id asc
             """)
-    List<CalendarImageProjection> findSentCalendarImages(
-            @Param("memberId") Long memberId,
-            @Param("startAt") LocalDateTime startAt,
-            @Param("endAt") LocalDateTime endAt
-    );
-
-    @Query("""
-            select c.createdAt as createdAt,
-                   c.imageUrl as imageUrl
-            from Card c
-            join c.envelop e
-            where e.receiver.id = :memberId
-              and c.createdAt >= :startAt
-              and c.createdAt < :endAt
-            order by c.createdAt asc, c.id asc
-            """)
-    List<CalendarImageProjection> findReceivedCalendarImages(
+    List<CalendarImageProjection> findCalendarImages(
+            @Param("asSender") boolean asSender,
             @Param("memberId") Long memberId,
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt

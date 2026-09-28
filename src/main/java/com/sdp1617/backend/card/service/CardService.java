@@ -260,19 +260,8 @@ public class CardService {
             CursorKey cursorKey,
             Pageable pageable
     ) {
-        if (type == CardBoxType.RECEIVED) {
-            return cardRepository.findReceivedCards(
-                    memberId,
-                    startAt,
-                    endAt,
-                    keyword,
-                    cursorCreatedAt(cursorKey),
-                    cursorId(cursorKey),
-                    EMPTY_CREATED_AT,
-                    pageable
-            );
-        }
-        return cardRepository.findSentCards(
+        return cardRepository.findCards(
+                asSender(type),
                 memberId,
                 startAt,
                 endAt,
@@ -290,21 +279,14 @@ public class CardService {
             CursorKey cursorKey,
             Pageable pageable
     ) {
-        List<FolderSummaryProjection> summaries = type == CardBoxType.RECEIVED
-                ? cardRepository.findReceivedFolderSummaries(
-                        memberId,
-                        cursorCreatedAt(cursorKey),
-                        cursorId(cursorKey),
-                        EMPTY_CREATED_AT,
-                        pageable
-                )
-                : cardRepository.findSentFolderSummaries(
-                        memberId,
-                        cursorCreatedAt(cursorKey),
-                        cursorId(cursorKey),
-                        EMPTY_CREATED_AT,
-                        pageable
-                );
+        List<FolderSummaryProjection> summaries = cardRepository.findFolderSummaries(
+                asSender(type),
+                memberId,
+                cursorCreatedAt(cursorKey),
+                cursorId(cursorKey),
+                EMPTY_CREATED_AT,
+                pageable
+        );
 
         return summaries.stream()
                 .map(summary -> new CardFolderResponse(
@@ -318,19 +300,13 @@ public class CardService {
     }
 
     private String findLatestFolderImageUrl(Long memberId, CardBoxType type, Long folderMemberId) {
-        List<String> imageUrls = type == CardBoxType.RECEIVED
-                ? cardRepository.findLatestReceivedFolderImageUrl(
-                        memberId,
-                        folderMemberId,
-                        EMPTY_CREATED_AT,
-                        PageRequest.of(0, 1)
-                )
-                : cardRepository.findLatestSentFolderImageUrl(
-                        memberId,
-                        folderMemberId,
-                        EMPTY_CREATED_AT,
-                        PageRequest.of(0, 1)
-                );
+        List<String> imageUrls = cardRepository.findLatestFolderImageUrl(
+                asSender(type),
+                memberId,
+                folderMemberId,
+                EMPTY_CREATED_AT,
+                PageRequest.of(0, 1)
+        );
         return imageUrls.isEmpty() ? null : imageUrls.get(0);
     }
 
@@ -340,10 +316,11 @@ public class CardService {
             LocalDateTime startAt,
             LocalDateTime endAt
     ) {
-        if (type == CardBoxType.RECEIVED) {
-            return cardRepository.findReceivedCalendarImages(memberId, startAt, endAt);
-        }
-        return cardRepository.findSentCalendarImages(memberId, startAt, endAt);
+        return cardRepository.findCalendarImages(asSender(type), memberId, startAt, endAt);
+    }
+
+    private boolean asSender(CardBoxType type) {
+        return type == CardBoxType.SENT;
     }
 
     private LocalDateTime dateStartAt(LocalDate date) {
