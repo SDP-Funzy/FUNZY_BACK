@@ -5,10 +5,10 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.entity.SocialConnection;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
+import com.sdp1617.backend.global.error.ConstraintViolations;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -83,13 +83,9 @@ public class SocialConnectionBackfiller implements ApplicationRunner {
     }
 
     private boolean violatesUniqueConnectionConstraint(DataIntegrityViolationException exception) {
-        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-            if (cause instanceof ConstraintViolationException constraintViolationException) {
-                return "uk_social_connection_provider_provider_id"
-                        .equalsIgnoreCase(constraintViolationException.getConstraintName());
-            }
-        }
-        return false;
+        return ConstraintViolations.nameOf(exception)
+                .filter("uk_social_connection_provider_provider_id"::equalsIgnoreCase)
+                .isPresent();
     }
 
     private enum BackfillResult {
