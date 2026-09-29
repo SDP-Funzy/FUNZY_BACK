@@ -14,5 +14,9 @@ public interface SocialConnectionRepository extends JpaRepository<SocialConnecti
 
     boolean existsByMember_IdAndProvider(Long memberId, AuthProvider provider);
 
+    Optional<SocialConnection> findByMember_IdAndProvider(Long memberId, AuthProvider provider);
+
+    long countByMember_Id(Long memberId);
+
     List<SocialConnection> findByMember_Id(Long memberId);
 }
