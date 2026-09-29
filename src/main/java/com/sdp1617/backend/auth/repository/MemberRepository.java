@@ -2,12 +2,12 @@ package com.sdp1617.backend.auth.repository;
 
 import com.sdp1617.backend.auth.entity.AuthProvider;
 import com.sdp1617.backend.auth.entity.Member;
+import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -62,11 +62,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     }
 
     private boolean violatesNicknameConstraint(DataIntegrityViolationException exception) {
-        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-            if (cause instanceof ConstraintViolationException constraintViolationException) {
-                return "uk_member_nickname".equalsIgnoreCase(constraintViolationException.getConstraintName());
-            }
-        }
-        return false;
+        return ConstraintViolations.nameOf(exception)
+                .filter("uk_member_nickname"::equalsIgnoreCase)
+                .isPresent();
     }
 }
