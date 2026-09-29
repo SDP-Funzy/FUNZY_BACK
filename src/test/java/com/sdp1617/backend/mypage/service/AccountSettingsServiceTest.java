@@ -316,12 +316,13 @@ class AccountSettingsServiceTest {
         setId(member, 1L);
         when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         SocialConnection connection = SocialConnection.create(member, AuthProvider.KAKAO, "12345");
-        SocialConnection other = SocialConnection.create(member, AuthProvider.GOOGLE, "67890");
-        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of(connection, other));
+        when(socialConnectionRepository.findByMember_IdAndProvider(1L, AuthProvider.KAKAO))
+                .thenReturn(Optional.of(connection));
 
         accountSettingsService.disconnectSocialAccount(1L, AuthProvider.KAKAO);
 
         verify(socialConnectionRepository).delete(connection);
+        verify(socialConnectionRepository, never()).countByMember_Id(any());
     }
 
     @Test
@@ -330,11 +331,13 @@ class AccountSettingsServiceTest {
         setId(member, 1L);
         when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         SocialConnection connection = SocialConnection.create(member, AuthProvider.KAKAO, "12345");
-        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of(connection));
+        when(socialConnectionRepository.findByMember_IdAndProvider(1L, AuthProvider.KAKAO))
+                .thenReturn(Optional.of(connection));
 
         accountSettingsService.disconnectSocialAccount(1L, AuthProvider.KAKAO);
 
         verify(socialConnectionRepository).delete(connection);
+        verify(socialConnectionRepository, never()).countByMember_Id(any());
     }
 
     @Test
@@ -343,7 +346,9 @@ class AccountSettingsServiceTest {
         setId(member, 1L);
         when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         SocialConnection connection = SocialConnection.create(member, AuthProvider.KAKAO, "12345");
-        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of(connection));
+        when(socialConnectionRepository.findByMember_IdAndProvider(1L, AuthProvider.KAKAO))
+                .thenReturn(Optional.of(connection));
+        when(socialConnectionRepository.countByMember_Id(1L)).thenReturn(1L);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> accountSettingsService.disconnectSocialAccount(1L, AuthProvider.KAKAO));
@@ -357,7 +362,8 @@ class AccountSettingsServiceTest {
         Member member = localMember();
         setId(member, 1L);
         when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
-        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of());
+        when(socialConnectionRepository.findByMember_IdAndProvider(1L, AuthProvider.KAKAO))
+                .thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> accountSettingsService.disconnectSocialAccount(1L, AuthProvider.KAKAO));

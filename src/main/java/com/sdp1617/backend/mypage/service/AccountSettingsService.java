@@ -127,13 +127,10 @@ public class AccountSettingsService {
         Member member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
-        List<SocialConnection> connections = socialConnectionRepository.findByMember_Id(memberId);
-        SocialConnection connection = connections.stream()
-                .filter(c -> c.getProvider() == provider)
-                .findFirst()
+        SocialConnection connection = socialConnectionRepository.findByMember_IdAndProvider(memberId, provider)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_019));
 
-        if (!member.hasPassword() && connections.size() <= 1) {
+        if (!member.hasPassword() && socialConnectionRepository.countByMember_Id(memberId) <= 1) {
             throw new CustomException(ErrorCode.AUTH_020);
         }
 
