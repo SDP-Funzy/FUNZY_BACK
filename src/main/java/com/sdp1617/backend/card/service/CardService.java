@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -131,12 +132,11 @@ public class CardService {
         LocalDateTime endAt = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
         Map<LocalDate, List<String>> imageUrlsByDate = findCalendarImages(memberId, type, startAt, endAt)
                 .stream()
-                .collect(LinkedHashMap::new,
-                        (map, image) -> map.computeIfAbsent(
-                                image.getCreatedAt().toLocalDate(),
-                                key -> new java.util.ArrayList<>()
-                        ).add(image.getImageUrl()),
-                        LinkedHashMap::putAll);
+                .collect(Collectors.groupingBy(
+                        image -> image.getCreatedAt().toLocalDate(),
+                        LinkedHashMap::new,
+                        Collectors.mapping(CalendarImageProjection::getImageUrl, Collectors.toList())
+                ));
 
         List<CardCalendarDayResponse> days = imageUrlsByDate.entrySet()
                 .stream()
