@@ -11,7 +11,6 @@ import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,6 +21,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByNickname(String nickname);
 
     Optional<Member> findByEmail(String email);
+
+    Optional<Member> findByNickname(String nickname);
 
     List<Member> findByProviderNot(AuthProvider provider);
 
@@ -37,10 +38,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Member m where m.id = :id")
     Optional<Member> findByIdForUpdate(@Param("id") Long id);
-
-    @Modifying
-    @Query("update Member m set m.failedLoginCount = m.failedLoginCount + 1 where m.id = :id")
-    int incrementFailedLoginCount(@Param("id") Long id);
 
     /**
      * existsByNickname 체크 후 저장하는 방식은 동시 요청 사이에 경쟁 상태(race condition)가 있어
