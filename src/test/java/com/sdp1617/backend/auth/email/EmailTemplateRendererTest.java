@@ -48,4 +48,17 @@ class EmailTemplateRendererTest {
         assertTrue(html.contains("https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png"));
         assertTrue(html.contains("<!DOCTYPE html>"));
     }
+
+    @Test
+    void verification_code_템플릿에_인증번호와_유효시간을_렌더링한다() {
+        String html = renderer.render("verification-code", Map.of(
+                "code", "123456",
+                "ttlMinutes", 5L,
+                "logoUrl", "https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png"
+        ));
+
+        assertTrue(html.contains(">123456<"));
+        assertTrue(html.contains(">5<"));
+        assertTrue(html.contains("https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png"));
+    }
 }

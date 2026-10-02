@@ -175,21 +175,6 @@ class SocialAuthServiceTest {
     }
 
     @Test
-    void 소셜_회원가입은_이메일_인증_절차_없이_바로_인증된_상태로_생성된다() {
-        SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
-        when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(false);
-        when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
-        when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
-
-        socialAuthService.completeSignUp("signup-token", "닉네임", Consent.requiredOnly());
-
-        ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
-        verify(memberRepository).saveWithNicknameUniqueness(captor.capture());
-        assertTrue(captor.getValue().isEmailVerified());
-    }
-
-    @Test
     void 만료되거나_잘못된_signupToken이면_AUTH_011_예외를_던진다() {
         when(socialSignupSessionRepository.consume("bad-token")).thenReturn(Optional.empty());
 

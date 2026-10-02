@@ -8,6 +8,8 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.auth.repository.VerificationTokenRepository;
+import com.sdp1617.backend.global.common.AfterCommit;
+import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import java.time.Duration;
@@ -15,6 +17,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -28,7 +31,6 @@ public class AuthService {
 
     private static final String PASSWORD_RESET_PURPOSE = "password-reset";
     private static final String ACCOUNT_UNLOCK_PURPOSE = "account-unlock";
-    private static final String EMAIL_VERIFICATION_PURPOSE = "email-verification";
     private static final Duration VERIFICATION_TOKEN_TTL = Duration.ofMinutes(15);
 
     private final MemberRepository memberRepository;
@@ -47,9 +49,20 @@ public class AuthService {
     @Value("${app.mail.logo-url}")
     private String logoUrl;
 
+    /**
+     * 인증 완료 토큰을 이메일로 교환해 이미 인증된 계정으로 가입시킨다({@link EmailCodeService} 참고).
+     * 토큰은 가입이 성공한 뒤에만 폐기한다 — 먼저 폐기하면 닉네임 중복처럼 사용자가 고쳐서 다시 시도할 수 있는
+     * 실패에서도 이메일 인증을 처음부터 다시 해야 한다. 같은 토큰으로 동시에 가입을 시도하면(중복 제출 등)
+     * 둘 다 existsByEmail을 통과할 수 있는데, 이때는 이메일 유니크 제약이 막고 AUTH_006으로 응답한다.
+     * 폐기는 커밋 이후에 한다 — 커밋 전에 지웠다가 커밋이 실패하면 회원은 안 만들어졌는데 토큰만 사라진다.
+     */
     @Transactional
     public void signUp(SignUpRequest request) {
-        if (memberRepository.existsByEmail(request.email())) {
+        String email = verificationTokenRepository
+                .findValue(EmailCodeService.VERIFIED_EMAIL_PURPOSE, request.verificationToken())
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_026));
+
+        if (memberRepository.existsByEmail(email)) {
             throw new CustomException(ErrorCode.AUTH_006);
         }
         if (memberRepository.existsByNickname(request.nickname())) {
@@ -60,91 +73,53 @@ public class AuthService {
         }
 
         Member member = new Member(
-                request.email(),
+                email,
                 passwordEncoder.encode(request.password()),
                 request.nickname(),
                 request.toConsent()
         );
-        memberRepository.saveWithNicknameUniqueness(member);
-        sendVerificationEmail(member);
+        try {
+            memberRepository.saveWithNicknameUniqueness(member);
+        } catch (DataIntegrityViolationException exception) {
+            // 소셜 가입은 같은 위반을 AUTH_012로 다뤄야 해서 공용 저장 메서드가 아닌 여기서 매핑한다.
+            if (ConstraintViolations.nameOf(exception).filter("uk_member_email"::equalsIgnoreCase).isPresent()) {
+                throw new CustomException(ErrorCode.AUTH_006);
+            }
+            throw exception;
+        }
+        // 삭제에 실패해도 토큰은 30분 뒤 만료되고, 같은 이메일 재가입은 AUTH_006으로 막히므로 가입 성공을 뒤집지 않는다.
+        AfterCommit.runBestEffort("가입 인증 토큰 삭제", () -> verificationTokenRepository.delete(
+                EmailCodeService.VERIFIED_EMAIL_PURPOSE, request.verificationToken()));
     }
 
     public boolean isNicknameAvailable(String nickname) {
         return !memberRepository.existsByNickname(nickname);
     }
 
-    @Transactional
-    public TokenResponse login(LoginRequest request) {
-        Member member = memberRepository.findByEmail(request.email())
+    /**
+     * 시도 횟수는 비밀번호 검사 전에 예약해서 센다(동시 요청으로 한도를 넘기지 못하게). 잠금 단위와
+     * 이유는 {@link LoginAttemptRecorder} 참고. 트랜잭션 없이 실행한다 — DB 접근은 닉네임 조회 한 번뿐인데
+     * 트랜잭션을 잡으면 bcrypt 검사와 Redis 호출 동안 커넥션을 붙잡아, 대입 공격이 몰릴 때 커넥션 풀이 마른다.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public TokenResponse login(String clientIp, LoginRequest request) {
+        Member member = memberRepository.findByNickname(request.nickname())
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_001));
 
-        if (member.isLocked()) {
+        if (!loginAttemptRecorder.tryAcquire(member.getId(), clientIp)) {
             throw new CustomException(ErrorCode.AUTH_010);
         }
 
-        if (!member.hasPassword()) {
-            // 소셜 전용 계정 - 계정 존재 여부가 드러나지 않도록 일반 로그인 실패와 동일하게 처리
-            loginAttemptRecorder.recordFailure(member.getId());
+        // 소셜 전용 계정도 계정 존재 여부가 드러나지 않도록 비밀번호 불일치와 동일하게 처리 (시도는 이미 셈)
+        if (!member.hasPassword() || !passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new CustomException(ErrorCode.AUTH_001);
         }
 
-        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            loginAttemptRecorder.recordFailure(member.getId());
-            throw new CustomException(ErrorCode.AUTH_001);
-        }
-
-        if (!member.isEmailVerified()) {
-            throw new CustomException(ErrorCode.AUTH_016);
-        }
-
-        member.resetFailedLoginCount();
+        loginAttemptRecorder.recordSuccess(member.getId(), clientIp);
         return tokenService.issueTokens(member.getId());
     }
 
-    /**
-     * rate limit 체크를 트랜잭션 밖에서 먼저 끝낸다 — 클래스 기본값(readOnly 트랜잭션)을 그대로 두면
-     * 거부되는 요청도 메서드 진입과 동시에 DB 커넥션을 잡았다 놓게 되어, 정작 rate limiter가
-     * 필요한 부하 상황에서 "저렴하게 거부"라는 목적을 못 이룬다.
-     * (같은 클래스 내 @Transactional 메서드를 this로 호출하면 프록시를 안 타므로 TransactionTemplate을 사용)
-     */
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void resendEmailVerification(String clientIp, String email) {
-        // rate limit 초과 시에도 계정 존재 여부가 드러나지 않도록 예외 없이 조용히 무시
-        if (!rateLimiter.isAllowed(EMAIL_VERIFICATION_PURPOSE, clientIp, email)) {
-            return;
-        }
-        transactionTemplate.executeWithoutResult(status ->
-                // 존재하지 않는 이메일이거나 이미 인증된 계정(소셜 포함)이면 조용히 무시 (계정 존재 여부 비노출)
-                memberRepository.findByEmail(email)
-                        .filter(member -> !member.isEmailVerified())
-                        .ifPresent(this::sendVerificationEmail));
-    }
-
-    @Transactional
-    public void verifyEmail(String token) {
-        Long memberId = verificationTokenRepository.consume(EMAIL_VERIFICATION_PURPOSE, token)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_011));
-
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
-
-        member.verifyEmail();
-    }
-
-    private void sendVerificationEmail(Member member) {
-        String token = verificationTokenRepository.issue(EMAIL_VERIFICATION_PURPOSE, member.getId(), VERIFICATION_TOKEN_TTL);
-        String link = frontendUrl + "/verify-email?token=" + token;
-        publishVerificationLinkEmail(
-                member.getEmail(),
-                "이메일 인증 안내",
-                "이메일 인증",
-                "아래 버튼을 눌러 이메일 인증을 완료해주세요.",
-                link,
-                "이메일 인증하기"
-        );
-    }
-
-    /** 이메일 인증/비밀번호 재설정/계정 잠금 해제 세 메일이 공유하는 템플릿(verification-link.html) 렌더링 헬퍼. */
+    /** 비밀번호 재설정/계정 잠금 해제 메일이 공유하는 템플릿(verification-link.html) 렌더링 헬퍼. */
     private void publishVerificationLinkEmail(
             String to, String subject, String title, String message, String link, String buttonText
     ) {
@@ -161,7 +136,12 @@ public class AuthService {
         eventPublisher.publishEvent(new VerificationLinkIssuedEvent(to, subject, plainText, html));
     }
 
-    /** rate limit 체크를 트랜잭션 밖에서 먼저 끝내는 이유는 {@link #resendEmailVerification} 참고. */
+    /**
+     * rate limit 체크를 트랜잭션 밖에서 먼저 끝낸다 — 클래스 기본값(readOnly 트랜잭션)을 그대로 두면
+     * 거부되는 요청도 메서드 진입과 동시에 DB 커넥션을 잡았다 놓게 되어, 정작 rate limiter가
+     * 필요한 부하 상황에서 "저렴하게 거부"라는 목적을 못 이룬다.
+     * (같은 클래스 내 @Transactional 메서드를 this로 호출하면 프록시를 안 타므로 TransactionTemplate을 사용)
+     */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void requestPasswordReset(String clientIp, String email) {
         if (!rateLimiter.isAllowed(PASSWORD_RESET_PURPOSE, clientIp, email)) {
@@ -202,11 +182,12 @@ public class AuthService {
         }
 
         member.changePassword(passwordEncoder.encode(newPassword));
-        member.unlock();
+        // best-effort: 실패해도 뒤이은 세션 폐기(AllSessionsRevokedEvent)는 반드시 실행돼야 한다. 잠금은 15분 뒤 자연 해제.
+        AfterCommit.runBestEffort("로그인 실패 기록 삭제", () -> loginAttemptRecorder.clearAll(memberId));
         eventPublisher.publishEvent(new AllSessionsRevokedEvent(memberId));
     }
 
-    /** rate limit 체크를 트랜잭션 밖에서 먼저 끝내는 이유는 {@link #resendEmailVerification} 참고. */
+    /** rate limit 체크를 트랜잭션 밖에서 먼저 끝내는 이유는 {@link #requestPasswordReset} 참고. */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void requestAccountUnlock(String clientIp, String email) {
         if (!rateLimiter.isAllowed(ACCOUNT_UNLOCK_PURPOSE, clientIp, email)) {
@@ -232,10 +213,11 @@ public class AuthService {
         Long memberId = verificationTokenRepository.consume(ACCOUNT_UNLOCK_PURPOSE, token)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_011));
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
+        if (!memberRepository.existsById(memberId)) {
+            throw new CustomException(ErrorCode.AUTH_002);
+        }
 
-        member.unlock();
+        AfterCommit.runBestEffort("로그인 실패 기록 삭제", () -> loginAttemptRecorder.clearAll(memberId));
         eventPublisher.publishEvent(new AllSessionsRevokedEvent(memberId));
     }
 }

@@ -3,17 +3,14 @@ package com.sdp1617.backend.auth.dto;
 import com.sdp1617.backend.auth.entity.Consent;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.util.Locale;
 
 public record SignUpRequest(
-        @Schema(description = "가입 이메일 (로그인 아이디로 사용)", example = "test@sdp1617.com")
-        @NotBlank(message = "이메일을 입력해주세요.")
-        @Email(message = "이메일 형식이 올바르지 않습니다.")
-        String email,
+        @Schema(description = "인증번호 확인 API에서 받은 이메일 인증 완료 토큰", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        @NotBlank(message = "이메일 인증이 필요합니다.")
+        String verificationToken,
 
         @Schema(description = "비밀번호 (8자 이상, 영문+숫자+특수문자 조합)", example = "Password1!")
         @NotBlank(message = "비밀번호를 입력해주세요.")
@@ -25,7 +22,7 @@ public record SignUpRequest(
         @NotBlank(message = "비밀번호 확인을 입력해주세요.")
         String passwordConfirm,
 
-        @Schema(description = "닉네임 (2~20자, 중복 불가)", example = "닉네임")
+        @Schema(description = "아이디로 사용할 닉네임 (2~20자, 중복 불가)", example = "닉네임")
         @NotBlank(message = "닉네임을 입력해주세요.")
         @Size(min = 2, max = 20, message = "닉네임은 2~20자 이내여야 합니다.")
         String nickname,
@@ -45,7 +42,6 @@ public record SignUpRequest(
         boolean adConsent
 ) {
     public SignUpRequest {
-        email = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
         nickname = nickname == null ? null : nickname.trim();
     }
 
