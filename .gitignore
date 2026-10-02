@@ -45,3 +45,6 @@ application-local.yml
 
 ### Personal notes ###
 /docs/
+
+### macOS ###
+.DS_Store

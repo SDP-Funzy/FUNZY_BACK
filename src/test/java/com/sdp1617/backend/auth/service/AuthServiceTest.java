@@ -8,7 +8,10 @@ import com.sdp1617.backend.auth.email.VerificationLinkIssuedEvent;
 import com.sdp1617.backend.auth.entity.AuthProvider;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
+import com.sdp1617.backend.auth.entity.SocialConnection;
 import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
+import java.util.List;
 import com.sdp1617.backend.auth.repository.VerificationTokenRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
@@ -77,6 +80,9 @@ class AuthServiceTest {
 
     @Mock
     private TransactionTemplate transactionTemplate;
+
+    @Mock
+    private SocialConnectionRepository socialConnectionRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -426,6 +432,79 @@ class AuthServiceTest {
 
         verify(loginAttemptRecorder).clearAll(1L);
         verify(eventPublisher).publishEvent(new AllSessionsRevokedEvent(1L));
+    }
+
+    @Test
+    void 아이디_찾기_요청시_가입된_계정이면_아이디가_담긴_메일_이벤트를_발행한다() {
+        Member member = member("test@sdp1617.com", "encoded", "funzy_id");
+        when(memberRepository.findByEmail("test@sdp1617.com")).thenReturn(Optional.of(member));
+
+        authService.requestLoginIdReminder(IP, "test@sdp1617.com");
+
+        ArgumentCaptor<VerificationLinkIssuedEvent> captor = ArgumentCaptor.forClass(VerificationLinkIssuedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals("test@sdp1617.com", captor.getValue().to());
+        assertTrue(captor.getValue().plainText().contains("funzy_id"));
+        verify(emailTemplateRenderer).render(eq("login-id"), eq(Map.of(
+                "message", "요청하신 계정의 아이디입니다. 이 아이디와 비밀번호로 로그인해주세요.",
+                "loginId", "funzy_id",
+                "hasPassword", true,
+                "logoUrl", "https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png")));
+    }
+
+    @Test
+    void 아이디_찾기_요청시_소셜_전용_계정이면_아이디_대신_연결된_소셜_로그인을_안내한다() {
+        Member member = new Member("social@sdp1617.com", "소셜닉네임", Consent.requiredOnly(), AuthProvider.KAKAO, "12345");
+        setId(member, 1L);
+        when(memberRepository.findByEmail("social@sdp1617.com")).thenReturn(Optional.of(member));
+        // 조회 순서와 무관하게 provider enum 순서(카카오→구글)로 안내한다
+        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of(
+                SocialConnection.create(member, AuthProvider.GOOGLE, "g-1"),
+                SocialConnection.create(member, AuthProvider.KAKAO, "12345")));
+
+        authService.requestLoginIdReminder(IP, "social@sdp1617.com");
+
+        ArgumentCaptor<VerificationLinkIssuedEvent> captor = ArgumentCaptor.forClass(VerificationLinkIssuedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertFalse(captor.getValue().plainText().contains("소셜닉네임"));
+        assertTrue(captor.getValue().plainText().contains("카카오·구글 로그인으로 가입된 계정입니다"));
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> variables = ArgumentCaptor.forClass(Map.class);
+        verify(emailTemplateRenderer).render(eq("login-id"), variables.capture());
+        assertFalse(variables.getValue().containsKey("loginId"));
+    }
+
+    @Test
+    void 아이디_찾기_요청시_소셜_연결_정보가_없는_기존_소셜_회원은_가입_provider로_안내한다() {
+        Member member = new Member("social@sdp1617.com", "소셜닉네임", Consent.requiredOnly(), AuthProvider.NAVER, "n-1");
+        setId(member, 1L);
+        when(memberRepository.findByEmail("social@sdp1617.com")).thenReturn(Optional.of(member));
+        when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of());
+
+        authService.requestLoginIdReminder(IP, "social@sdp1617.com");
+
+        ArgumentCaptor<VerificationLinkIssuedEvent> captor = ArgumentCaptor.forClass(VerificationLinkIssuedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertTrue(captor.getValue().plainText().contains("네이버 로그인으로 가입된 계정입니다"));
+    }
+
+    @Test
+    void 아이디_찾기_요청시_가입되지_않은_이메일이면_조용히_무시한다() {
+        when(memberRepository.findByEmail("nobody@sdp1617.com")).thenReturn(Optional.empty());
+
+        authService.requestLoginIdReminder(IP, "nobody@sdp1617.com");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void 아이디_찾기_요청이_rate_limit에_걸리면_계정_조회_없이_조용히_무시한다() {
+        when(rateLimiter.isAllowed("login-id-find", IP, "test@sdp1617.com")).thenReturn(false);
+
+        authService.requestLoginIdReminder(IP, "test@sdp1617.com");
+
+        verify(memberRepository, never()).findByEmail(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
