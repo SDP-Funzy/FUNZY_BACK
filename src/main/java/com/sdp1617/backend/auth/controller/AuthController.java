@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 @Validated
-@Tag(name = "이메일 인증", description = "이메일 회원가입, 로그인, 비밀번호 찾기, 계정 잠금 해제 API")
+@Tag(name = "회원 인증", description = "회원가입(이메일 인증번호), 아이디 로그인, 아이디·비밀번호 찾기, 계정 잠금 해제 API")
 public class AuthController {
 
     private final AuthService authService;
@@ -160,7 +160,7 @@ public class AuthController {
         return ApiResponse.ok("이메일 인증이 완료되었습니다.", new EmailCodeVerifyResponse(token));
     }
 
-    @Operation(summary = "이메일 회원가입", description = """
+    @Operation(summary = "회원가입", description = """
             이메일 인증을 마친 뒤 아이디(닉네임)/비밀번호로 신규 가입합니다.
             - 이메일은 인증번호 확인 API에서 받은 verificationToken으로 결정되며, 가입 즉시 인증된 계정이 됩니다.
             - verificationToken이 만료(30분)되었거나 유효하지 않으면 AUTH_026으로 거부하며, 이메일 인증부터 다시 진행해야 합니다.
@@ -224,7 +224,7 @@ public class AuthController {
         return ApiResponse.created("회원가입이 완료되었습니다.", null);
     }
 
-    @Operation(summary = "닉네임 중복 확인", description = """
+    @Operation(summary = "아이디(닉네임) 중복 확인", description = """
             닉네임 사용 가능 여부를 실시간으로 확인합니다.
             - 회원가입, 소셜 회원가입, 닉네임 변경 화면에서 공통으로 사용합니다.
             """)
