@@ -10,12 +10,11 @@ import com.sdp1617.backend.mypage.dto.ProfileImagePresignedUrlRequest;
 import com.sdp1617.backend.mypage.dto.ProfileImagePresignedUrlResponse;
 import com.sdp1617.backend.mypage.dto.ProfileImageUploadCompleteRequest;
 import com.sdp1617.backend.mypage.dto.ProfileResponse;
+import com.sdp1617.backend.global.common.AfterCommit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -103,17 +102,10 @@ public class ProfileService {
         if (imageKey == null || imageKey.isBlank()) {
             return;
         }
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            s3ImageService.deleteImageQuietly(imageKey);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                // afterCommit()은 커밋 직후, 커넥션이 풀에 반납되기 전에 실행된다.
-                // 여기서 블로킹 S3 호출을 동기로 하면 그만큼 커넥션 반납이 늦어지므로 별도 스레드로 던진다.
-                s3ImageService.deleteImageQuietlyAsync(imageKey);
-            }
-        });
+        // afterCommit()은 커밋 직후, 커넥션이 풀에 반납되기 전에 실행된다.
+        // 여기서 블로킹 S3 호출을 동기로 하면 그만큼 커넥션 반납이 늦어지므로 별도 스레드로 던진다.
+        AfterCommit.run(
+                () -> s3ImageService.deleteImageQuietlyAsync(imageKey),
+                () -> s3ImageService.deleteImageQuietly(imageKey));
     }
 }
