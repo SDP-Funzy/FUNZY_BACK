@@ -5,6 +5,7 @@ import com.sdp1617.backend.auth.dto.AccountUnlockRequest;
 import com.sdp1617.backend.auth.dto.EmailCodeSendRequest;
 import com.sdp1617.backend.auth.dto.EmailCodeVerifyRequest;
 import com.sdp1617.backend.auth.dto.EmailCodeVerifyResponse;
+import com.sdp1617.backend.auth.dto.LoginIdFindRequest;
 import com.sdp1617.backend.auth.dto.LoginRequest;
 import com.sdp1617.backend.auth.dto.NicknameCheckResponse;
 import com.sdp1617.backend.auth.dto.PasswordResetConfirmRequest;
@@ -303,6 +304,31 @@ public class AuthController {
     public ApiResponse<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         TokenResponse response = authService.login(resolveClientIp(httpRequest), request);
         return ApiResponse.ok("로그인에 성공하였습니다.", response);
+    }
+
+    @Operation(summary = "아이디 찾기", description = """
+            가입할 때 인증한 이메일로 아이디(닉네임)를 메일로 보내줍니다.
+            - 가입되지 않은 이메일이어도 항상 동일하게 200을 반환합니다(계정 존재 여부 비노출). 실제 메일은 가입된 이메일에만 발송됩니다.
+            - 소셜 전용 계정은 아이디로 로그인할 수 없으므로, 아이디 대신 소셜 계정으로 로그인하라는 안내 메일이 발송됩니다.
+            - 남용 방지를 위해 IP/이메일 기준으로 rate limit이 적용됩니다. 제한을 초과해도 존재 여부가 드러나지 않도록 동일하게 200을 반환하고 메일만 조용히 보내지 않습니다.
+            """)
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "요청 접수 (실제 존재 여부와 무관하게 항상 200)",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "success": true,
+                              "code": "200",
+                              "message": "가입된 이메일이라면 아이디 안내 메일을 발송했습니다.",
+                              "data": null
+                            }
+                            """)))
+    })
+    @PostMapping("/login-id/find")
+    public ApiResponse<Void> findLoginId(
+            @Valid @RequestBody LoginIdFindRequest request, HttpServletRequest httpRequest
+    ) {
+        authService.requestLoginIdReminder(resolveClientIp(httpRequest), request.email());
+        return ApiResponse.ok("가입된 이메일이라면 아이디 안내 메일을 발송했습니다.", null);
     }
 
     @Operation(summary = "비밀번호 재설정 링크 발송", description = """

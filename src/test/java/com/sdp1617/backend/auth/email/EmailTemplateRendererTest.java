@@ -7,6 +7,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EmailTemplateRendererTest {
@@ -60,5 +61,33 @@ class EmailTemplateRendererTest {
         assertTrue(html.contains(">123456<"));
         assertTrue(html.contains(">5<"));
         assertTrue(html.contains("https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png"));
+    }
+
+    @Test
+    void login_id_템플릿은_비밀번호_계정이면_아이디와_비밀번호_찾기_안내를_보여준다() {
+        String html = renderer.render("login-id", Map.of(
+                "message", "요청하신 계정의 아이디입니다. 이 아이디와 비밀번호로 로그인해주세요.",
+                "loginId", "funzy_id",
+                "hasPassword", true,
+                "logoUrl", "https://example.com/logo.png"
+        ));
+
+        assertTrue(html.contains(">funzy_id<"));
+        assertTrue(html.contains("이 아이디와 비밀번호로 로그인해주세요."));
+        assertTrue(html.contains("비밀번호 찾기를 이용해주세요"));
+    }
+
+    @Test
+    void login_id_템플릿은_소셜_전용_계정이면_아이디와_비밀번호_찾기_안내를_숨긴다() {
+        String html = renderer.render("login-id", Map.of(
+                "message", "이 이메일은 카카오 로그인으로 가입된 계정입니다. 해당 소셜 계정으로 로그인해주세요.",
+                "hasPassword", false,
+                "logoUrl", "https://example.com/logo.png"
+        ));
+
+        assertFalse(html.contains("funzy_id"));
+        // 소셜 전용 계정은 비밀번호 재설정 메일이 발송되지 않으므로 안내하면 안 된다
+        assertFalse(html.contains("비밀번호 찾기"));
+        assertTrue(html.contains("카카오 로그인으로 가입된 계정입니다."));
     }
 }

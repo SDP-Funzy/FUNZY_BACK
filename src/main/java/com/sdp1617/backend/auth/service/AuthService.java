@@ -4,16 +4,22 @@ import com.sdp1617.backend.auth.dto.LoginRequest;
 import com.sdp1617.backend.auth.dto.SignUpRequest;
 import com.sdp1617.backend.auth.email.EmailTemplateRenderer;
 import com.sdp1617.backend.auth.email.VerificationLinkIssuedEvent;
+import com.sdp1617.backend.auth.entity.AuthProvider;
 import com.sdp1617.backend.auth.entity.Member;
+import com.sdp1617.backend.auth.entity.SocialConnection;
 import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
 import com.sdp1617.backend.auth.repository.VerificationTokenRepository;
 import com.sdp1617.backend.global.common.AfterCommit;
 import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,6 +37,7 @@ public class AuthService {
 
     private static final String PASSWORD_RESET_PURPOSE = "password-reset";
     private static final String ACCOUNT_UNLOCK_PURPOSE = "account-unlock";
+    private static final String LOGIN_ID_FIND_PURPOSE = "login-id-find";
     private static final Duration VERIFICATION_TOKEN_TTL = Duration.ofMinutes(15);
 
     private final MemberRepository memberRepository;
@@ -42,6 +49,7 @@ public class AuthService {
     private final EmailTemplateRenderer emailTemplateRenderer;
     private final VerificationRequestRateLimiter rateLimiter;
     private final TransactionTemplate transactionTemplate;
+    private final SocialConnectionRepository socialConnectionRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -185,6 +193,61 @@ public class AuthService {
         // best-effort: 실패해도 뒤이은 세션 폐기(AllSessionsRevokedEvent)는 반드시 실행돼야 한다. 잠금은 15분 뒤 자연 해제.
         AfterCommit.runBestEffort("로그인 실패 기록 삭제", () -> loginAttemptRecorder.clearAll(memberId));
         eventPublisher.publishEvent(new AllSessionsRevokedEvent(memberId));
+    }
+
+    /**
+     * 가입한 이메일로 아이디(닉네임)를 보내준다. 계정 존재 여부를 노출하지 않도록 결과와 무관하게 조용히 끝난다.
+     * 소셜 전용 계정은 아이디로 로그인할 수 없으므로 아이디 대신 소셜 로그인 안내를 보낸다.
+     * rate limit 체크를 트랜잭션 밖에서 먼저 끝내는 이유는 {@link #requestPasswordReset} 참고.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void requestLoginIdReminder(String clientIp, String email) {
+        // 이메일당 하루 한도는 두지 않는다 — 제3자가 남의 이메일로 한도를 채우면 그 사람이 하루 동안 아이디 안내를
+        // 못 받게 되어, 막으려던 메일 남용보다 피해가 크다. 비밀번호 재설정/잠금 해제와 같은 10분 한도만 적용.
+        if (!rateLimiter.isAllowed(LOGIN_ID_FIND_PURPOSE, clientIp, email)) {
+            return;
+        }
+        transactionTemplate.executeWithoutResult(status ->
+                memberRepository.findByEmail(email).ifPresent(this::publishLoginIdEmail));
+    }
+
+    private void publishLoginIdEmail(Member member) {
+        String message = loginIdMessage(member);
+        Map<String, Object> variables = new HashMap<>(Map.of(
+                "message", message,
+                "hasPassword", member.hasPassword(),
+                "logoUrl", logoUrl
+        ));
+        // 소셜 전용 계정의 닉네임은 로그인 아이디가 아니므로 템플릿에 아예 넘기지 않는다 (템플릿 조건에만 기대지 않도록)
+        if (member.hasPassword()) {
+            variables.put("loginId", member.getNickname());
+        }
+        String html = emailTemplateRenderer.render("login-id", variables);
+        String plainText = "아이디 안내\n\n" + message
+                + (member.hasPassword() ? "\n\n아이디: " + member.getNickname() : "");
+        eventPublisher.publishEvent(new VerificationLinkIssuedEvent(member.getEmail(), "아이디 안내", plainText, html));
+    }
+
+    /** 소셜 전용 계정은 아이디로 로그인할 수 없으므로, 실제로 연결된 소셜 로그인 수단을 알려준다. */
+    private String loginIdMessage(Member member) {
+        if (member.hasPassword()) {
+            return "요청하신 계정의 아이디입니다. 이 아이디와 비밀번호로 로그인해주세요.";
+        }
+        // LOCAL은 소셜 수단이 아니므로 걸러낸다. 예외로 처리하면 해당 계정만 500이 나 가입 여부가 드러난다.
+        List<AuthProvider> providers = socialConnectionRepository.findByMember_Id(member.getId()).stream()
+                .map(SocialConnection::getProvider)
+                .filter(provider -> provider != AuthProvider.LOCAL)
+                .sorted()
+                .toList();
+        if (providers.isEmpty() && member.getProvider() != AuthProvider.LOCAL) {
+            // SocialConnection 백필 전/실패한 기존 소셜 회원은 가입 시 provider로 안내한다
+            providers = List.of(member.getProvider());
+        }
+        if (providers.isEmpty()) {
+            return "이 이메일은 소셜 로그인으로 가입된 계정입니다. 가입하신 소셜 계정으로 로그인해주세요.";
+        }
+        String names = providers.stream().map(AuthProvider::getDisplayName).collect(Collectors.joining("·"));
+        return "이 이메일은 " + names + " 로그인으로 가입된 계정입니다. 해당 소셜 계정으로 로그인해주세요.";
     }
 
     /** rate limit 체크를 트랜잭션 밖에서 먼저 끝내는 이유는 {@link #requestPasswordReset} 참고. */
