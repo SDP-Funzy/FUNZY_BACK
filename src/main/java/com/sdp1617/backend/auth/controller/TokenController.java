@@ -1,6 +1,6 @@
 package com.sdp1617.backend.auth.controller;
 
-import com.sdp1617.backend.auth.dto.AccessTokenResponse;
+import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.dto.TokenReissueRequest;
 import com.sdp1617.backend.auth.service.TokenService;
 import com.sdp1617.backend.global.common.response.ApiResponse;
@@ -18,26 +18,32 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "인증 토큰", description = "access token 재발급 API")
+@Tag(name = "인증 토큰", description = "access/refresh token 재발급 API")
 public class TokenController {
 
     private final TokenService tokenService;
 
-    @Operation(summary = "access token 재발급", description = """
-            refresh token으로 새 access token을 발급합니다.
-            - refresh token 자체는 갱신되지 않으며, 기존 refresh token을 계속 사용합니다.
-            - refresh token이 로그아웃/비밀번호 변경/회원 탈퇴 등으로 이미 폐기된 세션이면 재발급에 실패합니다.
+    @Operation(summary = "토큰 재발급", description = """
+            refresh token으로 새 access token과 새 refresh token을 발급합니다 (refresh token rotation).
+            - 응답의 refreshToken을 저장해서 다음 재발급부터 사용해야 합니다. 사용한 refresh token은 즉시 폐기됩니다.
+            - 재발급할 때마다 refresh token 만료가 다시 30일로 시작되므로, 앱을 쓰는 동안은 로그인이 유지되고 30일 동안 사용하지 않으면 로그아웃됩니다.
+            - 동시에 여러 요청에서 같은 refresh token으로 재발급해도, 교체된 지 30초 안의 토큰이면 같은 세션의 최신 토큰을 돌려줍니다.
+            - 그보다 오래된(이미 교체된) refresh token을 다시 사용하면 탈취로 판단해 그 로그인 세션(해당 기기)을 종료합니다(AUTH_005). 다른 기기의 로그인은 유지됩니다.
+            - 로그아웃/비밀번호 변경/회원 탈퇴 등으로 폐기된 세션이면 재발급에 실패합니다(AUTH_005).
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재발급 성공",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = AccessTokenResponse.class),
+                            schema = @Schema(implementation = TokenResponse.class),
                             examples = @ExampleObject(value = """
                             {
                               "success": true,
                               "code": "200",
                               "message": "토큰이 재발급되었습니다.",
-                              "data": { "accessToken": "eyJhbGciOiJIUzM4NCJ9..." }
+                              "data": {
+                                "accessToken": "eyJhbGciOiJIUzM4NCJ9...",
+                                "refreshToken": "eyJhbGciOiJIUzM4NCJ9..."
+                              }
                             }
                             """))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "refreshToken 누락",
@@ -49,7 +55,7 @@ public class TokenController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 토큰, 또는 폐기된 세션",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 토큰, 폐기된 세션, 또는 교체된 토큰 재사용",
                     content = @Content(mediaType = "application/json", examples = {
                             @ExampleObject(name = "유효하지 않은 토큰", value = """
                                     {
@@ -78,8 +84,8 @@ public class TokenController {
                     }))
     })
     @PostMapping("/api/auth/token/reissue")
-    public ApiResponse<AccessTokenResponse> reissue(@Valid @RequestBody TokenReissueRequest request) {
-        AccessTokenResponse response = tokenService.reissue(request.refreshToken());
+    public ApiResponse<TokenResponse> reissue(@Valid @RequestBody TokenReissueRequest request) {
+        TokenResponse response = tokenService.reissue(request.refreshToken());
         return ApiResponse.ok("토큰이 재발급되었습니다.", response);
     }
 }

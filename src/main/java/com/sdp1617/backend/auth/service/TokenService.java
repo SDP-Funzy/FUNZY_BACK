@@ -1,41 +1,57 @@
 package com.sdp1617.backend.auth.service;
 
-import com.sdp1617.backend.auth.dto.AccessTokenResponse;
 import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.jwt.JwtClaims;
 import com.sdp1617.backend.auth.jwt.JwtProvider;
 import com.sdp1617.backend.auth.jwt.TokenType;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository;
+import com.sdp1617.backend.auth.repository.RefreshTokenRepository.RotationResult;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 public class TokenService {
 
+    /**
+     * 교체 직후 예전 토큰을 받아주는 시간. 앱이 access 만료 직후 여러 요청에서 동시에 재발급을 부르면
+     * 두 번째 요청은 이미 교체된 토큰을 보내게 되는데, 이걸 탈취로 처리하면 정상 사용자가 로그아웃된다.
+     */
+    static final Duration ROTATION_GRACE_PERIOD = Duration.ofSeconds(30);
+
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
     public TokenResponse issueTokens(Long memberId) {
-        String tokenId = UUID.randomUUID().toString();
+        String tokenId = RefreshTokenRepository.newChainTokenId();
         String accessToken = jwtProvider.createAccessToken(memberId);
         String refreshToken = jwtProvider.createRefreshToken(memberId, tokenId);
         refreshTokenRepository.save(memberId, tokenId);
         return new TokenResponse(accessToken, refreshToken);
     }
 
-    public AccessTokenResponse reissue(String refreshToken) {
+    /**
+     * refresh token rotation: 재발급할 때마다 refresh token도 새로 발급하고 기존 토큰은 폐기한다.
+     * 만료가 "마지막 사용 + 30일"로 밀려, 앱을 쓰는 동안은 로그인이 유지되고 30일 동안 안 쓰면 로그아웃된다.
+     * 교체된 예전 토큰이 다시 오면(유예 대상 제외) 탈취로 보고 그 로그인 체인만 폐기한다 — 다른 기기는 유지.
+     * 체인 단위 판단 규칙은 {@link RefreshTokenRepository} 참고.
+     */
+    public TokenResponse reissue(String refreshToken) {
         JwtClaims claims = jwtProvider.parse(refreshToken, TokenType.REFRESH);
 
-        if (!refreshTokenRepository.exists(claims.memberId(), claims.tokenId())) {
-            throw new CustomException(ErrorCode.AUTH_005);
-        }
+        RotationResult result = refreshTokenRepository.rotate(claims.memberId(), claims.tokenId(), ROTATION_GRACE_PERIOD);
 
-        return new AccessTokenResponse(jwtProvider.createAccessToken(claims.memberId()));
+        return switch (result.status()) {
+            case ROTATED, GRACE_RETRY -> new TokenResponse(
+                    jwtProvider.createAccessToken(claims.memberId()),
+                    jwtProvider.createRefreshToken(claims.memberId(), result.tokenId()));
+            // REUSED는 저장소에서 이미 그 체인을 폐기했다
+            case REUSED, NOT_FOUND -> throw new CustomException(ErrorCode.AUTH_005);
+        };
     }
 
     public void revokeAllSessions(Long memberId) {
