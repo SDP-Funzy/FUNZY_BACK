@@ -32,6 +32,12 @@ public enum ErrorCode {
     AUTH_018(HttpStatus.CONFLICT, "AUTH_018", "이미 연결된 소셜 계정입니다."),
     AUTH_019(HttpStatus.NOT_FOUND, "AUTH_019", "연결되지 않은 소셜 계정입니다."),
     AUTH_020(HttpStatus.BAD_REQUEST, "AUTH_020", "마지막 남은 로그인 수단은 연결 해제할 수 없습니다."),
+    AUTH_021(HttpStatus.BAD_REQUEST, "AUTH_021", "인증번호가 일치하지 않습니다."),
+    AUTH_022(HttpStatus.BAD_REQUEST, "AUTH_022", "인증번호가 만료되었습니다. 인증번호를 다시 받아주세요."),
+    AUTH_023(HttpStatus.BAD_REQUEST, "AUTH_023", "인증번호 입력 횟수를 초과했습니다. 인증번호를 다시 받아주세요."),
+    AUTH_024(HttpStatus.TOO_MANY_REQUESTS, "AUTH_024", "인증번호는 1분 후에 다시 요청할 수 있습니다."),
+    AUTH_025(HttpStatus.TOO_MANY_REQUESTS, "AUTH_025", "인증번호 요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
+    AUTH_026(HttpStatus.BAD_REQUEST, "AUTH_026", "이메일 인증이 만료되었거나 유효하지 않습니다. 이메일 인증을 다시 진행해주세요."),
 
     ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "이미 저장된 카드입니다."),
     ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "존재하지 않는 아카이브 카드입니다."),

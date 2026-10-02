@@ -87,4 +87,32 @@ class VerificationRequestRateLimiterTest {
 
         assertFalse(allowed);
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void IP_예약은_한도와_함께_스크립트에_넘기고_결과로_허용_여부를_판단한다() {
+        when(redisTemplate.execute(any(RedisScript.class), eq(List.of("rate-limit:email-code-verify:ip:127.0.0.1")),
+                eq("600"), eq("20"))).thenReturn(1L, 0L);
+
+        assertTrue(rateLimiter.tryReserveForIp("email-code-verify", "127.0.0.1"));
+        assertFalse(rateLimiter.tryReserveForIp("email-code-verify", "127.0.0.1"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void IP_예약_반환은_같은_키로_스크립트를_실행한다() {
+        rateLimiter.releaseForIp("email-code-verify", "127.0.0.1");
+
+        verify(redisTemplate).execute(any(RedisScript.class), eq(List.of("rate-limit:email-code-verify:ip:127.0.0.1")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void 이메일당_하루_한도는_하루_TTL로_별도_키에_센다() {
+        when(redisTemplate.execute(any(RedisScript.class), eq(List.of("rate-limit:email-code:email-daily:test@sdp1617.com")),
+                eq("86400"))).thenReturn(20L, 21L);
+
+        assertTrue(rateLimiter.isAllowedDaily("email-code", "test@sdp1617.com"));
+        assertFalse(rateLimiter.isAllowedDaily("email-code", "test@sdp1617.com"));
+    }
 }
