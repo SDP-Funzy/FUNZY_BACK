@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funzy 에러 코드</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: #f4f6fb;
+            color: #1c2434;
+        }
+
+        .container {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+        }
+
+        .summary {
+            margin: 0 0 8px;
+            color: #4b5566;
+        }
+
+        .format {
+            margin: 0 0 28px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #4b5566;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13px;
+        }
+
+        .domain-section {
+            margin-top: 28px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(18, 36, 76, 0.08);
+        }
+
+        .domain-title {
+            margin: 0 0 14px;
+            font-size: 20px;
+            color: #133377;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 560px;
+        }
+
+        thead th {
+            text-align: left;
+            background: #ebf0ff;
+            color: #1f3567;
+            font-weight: 600;
+            padding: 12px;
+            border-bottom: 1px solid #d6dff3;
+        }
+
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid #e9edf7;
+            vertical-align: top;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .empty {
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: #fff;
+            color: #4b5566;
+        }
+    </style>
+</head>
+<body>
+<main class="container">
+    <h1>Funzy 에러 코드</h1>
+    <p class="summary" th:text="|전체 ${totalCount}개|">전체 0개</p>
+    <p class="format">
+        모든 에러 응답 형식: <code>{ "success": false, "code": "AUTH_001", "message": "...", "data": null }</code>
+        — 분기는 <code>code</code>로 하고, <code>message</code>는 화면 표시용입니다.
+    </p>
+
+    <div th:if="${#maps.isEmpty(groupedErrorCodes)}" class="empty">
+        등록된 에러 코드가 없습니다.
+    </div>
+
+    <section class="domain-section" th:each="entry : ${groupedErrorCodes}">
+        <h2 class="domain-title" th:text="|${entry.key} (${#lists.size(entry.value)})|">DOMAIN (0)</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>HttpStatus</th>
+                    <th>code</th>
+                    <th>message</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="errorCode : ${entry.value}">
+                    <td th:text="${errorCode.httpStatus}">400 BAD_REQUEST</td>
+                    <td><code th:text="${errorCode.code}">AUTH_001</code></td>
+                    <td th:text="${errorCode.message}">Message</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

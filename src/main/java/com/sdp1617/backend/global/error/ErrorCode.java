@@ -33,9 +33,9 @@ public enum ErrorCode {
     AUTH_019(HttpStatus.NOT_FOUND, "AUTH_019", "연결되지 않은 소셜 계정입니다."),
     AUTH_020(HttpStatus.BAD_REQUEST, "AUTH_020", "마지막 남은 로그인 수단은 연결 해제할 수 없습니다."),
 
-    ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "Archive card already exists."),
-    ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "Archive card not found."),
-    ARCHIVE_003(HttpStatus.BAD_REQUEST, "ARCHIVE_003", "Cannot like own archive card."),
+    ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "이미 저장된 카드입니다."),
+    ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "존재하지 않는 아카이브 카드입니다."),
+    ARCHIVE_003(HttpStatus.BAD_REQUEST, "ARCHIVE_003", "내 카드에는 좋아요를 누를 수 없습니다."),
 
     CARD_001(HttpStatus.NOT_FOUND, "CARD_001", "존재하지 않는 마음카드입니다."),
     CARD_002(HttpStatus.BAD_REQUEST, "CARD_002", "이미지 업로드가 완료되지 않았습니다."),

@@ -44,4 +44,4 @@ application-local.yml
 .env
 
 ### Personal notes ###
-docs/
+/docs/
