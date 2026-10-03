@@ -30,3 +30,9 @@ cloud:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
+
+server:
+  # caddy(리버스 프록시)가 붙여준 X-Forwarded-For / X-Forwarded-Proto를 신뢰해 실제 사용자 IP와 https 여부를 인식한다.
+  # 이게 없으면 모든 요청 IP가 caddy 컨테이너 IP가 되어 IP 기준 로그인 잠금·rate limit이 전체 사용자 공용이 된다.
+  # (native = Tomcat RemoteIpValve: 사설 대역(10/8, 172.16/12, 192.168/16 등)의 프록시만 신뢰 → docker 네트워크의 caddy 포함)
+  forward-headers-strategy: native
