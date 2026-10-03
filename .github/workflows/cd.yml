@@ -95,6 +95,8 @@ jobs:
             cd ~/app
             docker compose --profile prod up -d --build
             # Caddyfile이 바뀌었어도 caddy 컨테이너는 재생성되지 않으므로 설정을 다시 읽게 한다 (문법 오류면 배포 실패)
+            # 컨테이너가 방금 새로 떴으면 reload가 받는 관리 API(2019)가 아직 안 열렸을 수 있어 몇 번 재시도한다
+            for i in $(seq 1 10); do docker compose --profile prod exec -T caddy caddy reload --config /etc/caddy/Caddyfile && break; sleep 2; done
             docker compose --profile prod exec -T caddy caddy reload --config /etc/caddy/Caddyfile
             docker image prune -f
             for i in $(seq 1 30); do curl -sf --connect-timeout 3 --max-time 5 http://localhost:8080/health && break; sleep 2; done
