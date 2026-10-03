@@ -62,6 +62,19 @@ class MemberEmailNormalizerTest {
     }
 
     @Test
+    void 정규화_안_된_회원끼리_겹쳐도_처리_순서로_한쪽이_이메일을_차지하지_않는다() {
+        // 소문자 계정은 없고 대소문자만 다른 두 계정만 있는 경우 — 둘 다 그대로 두고 사람이 판단한다
+        jdbcTemplate.update("INSERT INTO members (id, email) VALUES (1, 'Alice@Example.com'), (2, 'ALICE@EXAMPLE.COM'), (3, 'Solo@Example.com')");
+
+        normalizer.run(null);
+
+        assertEquals("Alice@Example.com", emailOf(1));
+        assertEquals("ALICE@EXAMPLE.COM", emailOf(2));
+        // 겹치지 않는 회원은 정상 정규화
+        assertEquals("solo@example.com", emailOf(3));
+    }
+
+    @Test
     void 다시_실행해도_결과가_같다() {
         jdbcTemplate.update("INSERT INTO members (id, email) VALUES (1, 'Again@Gmail.com')");
 
