@@ -422,9 +422,11 @@ public class AuthController {
     }
 
     /**
-     * X-Forwarded-For는 클라이언트가 임의로 지정할 수 있는 헤더라, 이를 신뢰하려면 앞단에 있는
-     * 리버스 프록시/로드밸런서가 이 값을 덮어쓴다는 보장이 필요하다(예: server.forward-headers-strategy 설정).
-     * 지금은 그런 신뢰 가능한 프록시 설정이 없으므로, 스푸핑 불가능한 소켓 주소만 사용한다.
+     * 운영에서는 caddy(리버스 프록시)를 거쳐 들어오므로, server.forward-headers-strategy=native 설정에 따라
+     * Tomcat이 X-Forwarded-For의 실제 사용자 IP로 remoteAddr를 바꿔준다. 이 값은 신뢰할 수 있다:
+     * - Tomcat은 사설 대역(docker 네트워크의 caddy 등)에서 온 요청의 X-Forwarded-For만 믿는다
+     * - caddy는 클라이언트가 보낸 X-Forwarded-For를 그대로 넘기지 않고 실제 접속 IP로 채운다
+     * - app 포트(8080)는 서버 내부(127.0.0.1)에만 열려 있어 외부에서 caddy를 우회할 수 없다
      */
     private String resolveClientIp(HttpServletRequest request) {
         return request.getRemoteAddr();

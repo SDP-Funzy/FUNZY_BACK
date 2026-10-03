@@ -4,8 +4,10 @@ services:
     build: .
     container_name: sdp1617-backend
     restart: unless-stopped
+    # 서버 내부(127.0.0.1)에만 연다. 외부 요청은 caddy(80/443)를 거쳐 들어오고,
+    # CD 헬스체크는 서버 안에서 localhost:8080으로 확인하므로 그대로 동작한다.
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/sdp1617
@@ -32,6 +34,28 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  # 리버스 프록시: 80/443으로 받은 요청을 app:8080으로 넘기고, HTTPS 인증서를 자동 발급·갱신한다 (caddy/Caddyfile)
+  # 운영 전용(prod 프로필): 로컬에서 `docker compose up`할 때 운영 도메인 인증서 발급을 시도하지 않도록 한다.
+  caddy:
+    image: caddy:2.11.6
+    container_name: sdp1617-caddy
+    profiles: ["prod"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # 파일 하나가 아니라 폴더째 연결한다. 파일 단위로 연결하면 배포로 Caddyfile이 교체돼도
+      # 컨테이너는 예전 파일을 계속 보고 있어서 reload해도 반영되지 않는다.
+      - ./caddy:/etc/caddy:ro
+      # 발급받은 인증서 보관. 볼륨이 없으면 배포(컨테이너 재생성)마다 인증서를 새로 받다가
+      # Let's Encrypt 발급 한도(같은 도메인 주당 5회)에 걸린다.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
 
   postgres:
     image: postgres:16
@@ -67,3 +91,5 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  caddy-data:
+  caddy-config:
