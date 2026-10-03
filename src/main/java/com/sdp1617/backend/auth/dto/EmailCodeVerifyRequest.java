@@ -1,10 +1,10 @@
 package com.sdp1617.backend.auth.dto;
 
+import com.sdp1617.backend.auth.util.Emails;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import java.util.Locale;
 
 public record EmailCodeVerifyRequest(
         @Schema(description = "인증번호를 받은 이메일", example = "test@sdp1617.com")
@@ -18,7 +18,7 @@ public record EmailCodeVerifyRequest(
         String code
 ) {
     public EmailCodeVerifyRequest {
-        email = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+        email = Emails.normalize(email);
         code = code == null ? null : code.trim();
     }
 }

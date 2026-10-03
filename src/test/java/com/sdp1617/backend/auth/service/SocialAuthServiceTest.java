@@ -126,6 +126,20 @@ class SocialAuthServiceTest {
     }
 
     @Test
+    void 소셜_이메일의_대소문자가_달라도_이미_가입된_이메일이면_AUTH_012_예외를_던진다() {
+        // 이메일 가입은 소문자로 저장되므로, provider가 대문자를 섞어 줘도 같은 이메일로 판단해야 한다
+        when(providerRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
+        when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", " Existing@SDP1617.com "));
+        when(socialConnectionRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "12345")).thenReturn(Optional.empty());
+        when(memberRepository.existsByEmail("existing@sdp1617.com")).thenReturn(true);
+
+        CustomException exception = assertThrows(
+                CustomException.class, () -> socialAuthService.login(AuthProvider.KAKAO, "token"));
+
+        assertEquals(ErrorCode.AUTH_012, exception.getErrorCode());
+    }
+
+    @Test
     void 소셜_회원가입을_완료하면_토큰을_발급한다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));

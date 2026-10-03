@@ -35,6 +35,7 @@ public class SocialSignupSessionRepository {
         }
 
         String[] parts = value.split(Pattern.quote(DELIMITER), -1);
+        // 저장할 때 null을 ""로 썼으므로 다시 null로 돌린다 (세션 생성자의 정규화에 기대지 않고 명시적으로)
         String email = parts[2].isEmpty() ? null : parts[2];
         return Optional.of(new SocialSignupSession(AuthProvider.valueOf(parts[0]), parts[1], email));
     }
