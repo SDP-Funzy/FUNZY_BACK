@@ -1,6 +1,7 @@
 package com.sdp1617.backend.card.service;
 
 import com.sdp1617.backend.auth.entity.Member;
+import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.card.dto.CardBoxType;
 import com.sdp1617.backend.card.dto.request.CardCreateRequest;
 import com.sdp1617.backend.card.dto.request.CardImagePresignedUrlRequest;
@@ -58,6 +59,7 @@ public class CardService {
 
     private final EnvelopRepository envelopRepository;
     private final CardRepository cardRepository;
+    private final MemberRepository memberRepository;
     private final EntityManager entityManager;
     private final S3ImageService s3ImageService;
     private final TransactionTemplate transactionTemplate;
@@ -190,17 +192,17 @@ public class CardService {
      * 이미 트랜잭션이 진행 중인 다른 @Transactional 메서드 안에서 이 메서드를 호출하면 안 된다(원자성이 깨짐).
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public CardResponse createCard(CardCreateRequest request){
-        validateEnvelopCreateFields(request);
+    public CardResponse createCard(Long senderId, CardCreateRequest request){
+        validateEnvelopCreateFields(senderId, request);
         String imageKey = normalizeImageKey(request.imageKey());
         if (imageKey != null) {
-            validateImageKeyOwner(request.senderId(), imageKey);
+            validateImageKeyOwner(senderId, imageKey);
             validateUploadedImage(imageKey);
         }
 
         return transactionTemplate.execute(status -> {
-            Envelop envelop = envelopRepository.findBySender_IdAndReceiver_Id(request.senderId(), request.receiverId())
-                    .orElseGet(() -> createEnvelop(request));
+            Envelop envelop = envelopRepository.findBySender_IdAndReceiver_Id(senderId, request.receiverId())
+                    .orElseGet(() -> createEnvelop(senderId, request));
 
             Card card = Card.create(
                     envelop,
@@ -223,20 +225,28 @@ public class CardService {
         return (imageKey == null || imageKey.isBlank()) ? null : imageKey;
     }
 
-    private Envelop createEnvelop(CardCreateRequest request) {
-        Member sender = entityManager.getReference(Member.class, request.senderId());
+    private Envelop createEnvelop(Long senderId, CardCreateRequest request) {
+        // 봉투가 이미 있으면 받는 사람이 존재하는 것이므로, 새 봉투를 만들 때만 확인한다
+        // (확인 없이 저장하면 없는 회원 ID가 FK 위반 500으로 드러난다)
+        if (!memberRepository.existsById(request.receiverId())) {
+            throw new CustomException(ErrorCode.CARD_006);
+        }
+        Member sender = entityManager.getReference(Member.class, senderId);
         Member receiver = entityManager.getReference(Member.class, request.receiverId());
 
         Envelop envelop = Envelop.create(sender, receiver, request.designType());
         return envelopRepository.save(envelop);
     }
 
-    private void validateEnvelopCreateFields(CardCreateRequest request) {
+    private void validateEnvelopCreateFields(Long senderId, CardCreateRequest request) {
         if (request.receiverId() == null || request.designType() == null) {
             throw new CustomException(
                     ErrorCode.COMMON_002,
                     "receiverId와 designType은 봉투 생성 시 필수입니다."
             );
+        }
+        if (request.receiverId().equals(senderId)) {
+            throw new CustomException(ErrorCode.CARD_005);
         }
     }
 
