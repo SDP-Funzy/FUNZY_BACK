@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 
 /**
  * 회원 1명이 여러 소셜 로그인 수단을 동시에 연결할 수 있도록, Member.provider/providerId
- * (회원당 하나만 표현 가능)와 별개로 소셜 연결만 다루는 테이블. LOCAL(이메일/비밀번호)은
+ * (회원당 하나만 표현 가능)와 별개로 소셜 연결만 다루는 테이블. LOCAL(아이디/비밀번호)은
  * Member.password 존재 여부로 이미 판별 가능하므로 여기엔 소셜 연결만 저장한다.
  * uk_social_connection_member_provider: 회원 한 명이 같은 provider를 두 개(예: 카카오 계정 2개)
  * 연결하는 걸 막는다 — 연결 추가 API의 "본인 계정에 이미 연결된 provider면 거부" 규칙을
