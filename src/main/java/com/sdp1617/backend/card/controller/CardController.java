@@ -118,8 +118,17 @@ public class CardController {
     }
 
     @PostMapping("/create")
-    @Operation(summary="마음카드 생성")
-    public ResponseEntity<CardResponse> createCard(@Valid @RequestBody CardCreateRequest request){
-        return ResponseEntity.ok(cardService.createCard(request));
+    @Operation(summary="마음카드 생성", description = """
+            로그인한 사용자가 보내는 사람이 되어 마음카드를 생성합니다.
+            - 받는 사람(receiverId)과 봉투 디자인(designType)은 필수입니다(COMMON_002).
+            - 본인에게는 보낼 수 없습니다(CARD_005).
+            - 존재하지 않는 회원에게는 보낼 수 없습니다(CARD_006).
+            - imageKey는 본인이 발급받은 presigned URL로 업로드를 마친 이미지만 사용할 수 있습니다.
+            """)
+    public ResponseEntity<CardResponse> createCard(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
+            @Valid @RequestBody CardCreateRequest request
+    ){
+        return ResponseEntity.ok(cardService.createCard(memberId, request));
     }
 }

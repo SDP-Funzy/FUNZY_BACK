@@ -46,6 +46,8 @@ public enum ErrorCode {
     CARD_002(HttpStatus.BAD_REQUEST, "CARD_002", "이미지 업로드가 완료되지 않았습니다."),
     CARD_003(HttpStatus.BAD_REQUEST, "CARD_003", "지원하지 않는 이미지 형식입니다."),
     CARD_004(HttpStatus.BAD_REQUEST, "CARD_004", "이미지 파일 크기가 허용 범위를 초과했습니다."),
+    CARD_005(HttpStatus.BAD_REQUEST, "CARD_005", "본인에게는 마음카드를 보낼 수 없습니다."),
+    CARD_006(HttpStatus.NOT_FOUND, "CARD_006", "존재하지 않는 수신자입니다."),
 
     SOCIAL_001(HttpStatus.NOT_FOUND, "SOCIAL_001", "존재하지 않는 친구 코드입니다."),
     SOCIAL_002(HttpStatus.BAD_REQUEST, "SOCIAL_002", "본인에게는 팔로우 요청을 보낼 수 없습니다."),
