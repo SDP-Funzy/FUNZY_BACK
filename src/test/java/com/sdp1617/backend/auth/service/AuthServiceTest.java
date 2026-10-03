@@ -218,6 +218,33 @@ class AuthServiceTest {
     }
 
     @Test
+    void 인증_토큰의_이메일은_정규화한_값으로_중복을_확인하고_저장한다() {
+        when(verificationTokenRepository.findValue(EmailCodeService.VERIFIED_EMAIL_PURPOSE, "mixed-token"))
+                .thenReturn(Optional.of(" Mixed@SDP1617.com "));
+        when(memberRepository.existsByEmail("mixed@sdp1617.com")).thenReturn(true);
+
+        SignUpRequest request = new SignUpRequest("mixed-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
+
+        CustomException exception = assertThrows(CustomException.class, () -> authService.signUp(request));
+
+        // 원래 값 그대로 확인하면 저장값(Member가 정규화)과 달라 중복을 놓친다
+        assertEquals(ErrorCode.AUTH_006, exception.getErrorCode());
+    }
+
+    @Test
+    void 인증_토큰의_이메일이_비어있으면_AUTH_026_예외를_던진다() {
+        when(verificationTokenRepository.findValue(EmailCodeService.VERIFIED_EMAIL_PURPOSE, "blank-token"))
+                .thenReturn(Optional.of("   "));
+
+        SignUpRequest request = new SignUpRequest("blank-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
+
+        CustomException exception = assertThrows(CustomException.class, () -> authService.signUp(request));
+
+        assertEquals(ErrorCode.AUTH_026, exception.getErrorCode());
+        verify(memberRepository, never()).saveWithNicknameUniqueness(any());
+    }
+
+    @Test
     void 가입이_실패하면_인증_토큰을_폐기하지_않는다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
         when(memberRepository.existsByNickname("닉네임")).thenReturn(true);

@@ -1,5 +1,6 @@
 package com.sdp1617.backend.auth.entity;
 
+import com.sdp1617.backend.auth.util.Emails;
 import com.sdp1617.backend.auth.util.FollowCodeGenerator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -72,7 +73,12 @@ public class Member {
     private LocalDateTime createdAt;
 
     public Member(String email, String password, String nickname, Consent consent) {
-        this.email = email;
+        // 아이디/비밀번호 계정은 이메일이 본인 확인·비밀번호 재설정·아이디 찾기의 유일한 수단이라 비어 있으면 안 된다
+        String normalizedEmail = Emails.normalize(email);
+        if (normalizedEmail == null) {
+            throw new IllegalArgumentException("아이디/비밀번호 회원은 이메일이 필요합니다.");
+        }
+        this.email = normalizedEmail;
         this.password = password;
         this.nickname = nickname;
         this.consent = consent;
@@ -85,7 +91,7 @@ public class Member {
         if (provider == AuthProvider.LOCAL || providerId == null || providerId.isBlank()) {
             throw new IllegalArgumentException("소셜 회원은 LOCAL이 아닌 provider와 providerId가 필요합니다.");
         }
-        this.email = email;
+        this.email = Emails.normalize(email);
         this.password = null;
         this.nickname = nickname;
         this.consent = consent;

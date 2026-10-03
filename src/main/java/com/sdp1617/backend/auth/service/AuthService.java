@@ -11,6 +11,7 @@ import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
 import com.sdp1617.backend.auth.repository.VerificationTokenRepository;
+import com.sdp1617.backend.auth.util.Emails;
 import com.sdp1617.backend.global.common.AfterCommit;
 import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
@@ -66,8 +67,10 @@ public class AuthService {
      */
     @Transactional
     public void signUp(SignUpRequest request) {
+        // 중복 확인과 저장(Member 생성자)이 같은 값을 쓰도록 여기서 정규화한다. 비어 있으면 유효하지 않은 토큰으로 본다.
         String email = verificationTokenRepository
                 .findValue(EmailCodeService.VERIFIED_EMAIL_PURPOSE, request.verificationToken())
+                .map(Emails::normalize)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_026));
 
         if (memberRepository.existsByEmail(email)) {
