@@ -20,12 +20,12 @@ public record ArchiveCardDetailResponse(
         ArchiveVisibilityResponse visibility,
         LocalDateTime archivedAt
 ) {
-    public static ArchiveCardDetailResponse from(ArchiveCard card, boolean friendView, boolean liked) {
-        boolean showSender = !friendView || card.getVisibility().isSenderVisible();
-        boolean showReceiver = !friendView || card.getVisibility().isReceiverVisible();
-        boolean showDate = !friendView || card.getVisibility().isDateVisible();
-        boolean showImage = !friendView || card.getVisibility().isImageVisible();
-        boolean showMessage = !friendView || card.getVisibility().isMessageVisible();
+    public static ArchiveCardDetailResponse from(ArchiveCard card, boolean maskPrivateFields, boolean liked) {
+        boolean showSender = !maskPrivateFields || card.getVisibility().isSenderVisible();
+        boolean showReceiver = !maskPrivateFields || card.getVisibility().isReceiverVisible();
+        boolean showDate = !maskPrivateFields || card.getVisibility().isDateVisible();
+        boolean showImage = !maskPrivateFields || card.getVisibility().isImageVisible();
+        boolean showMessage = !maskPrivateFields || card.getVisibility().isMessageVisible();
 
         return new ArchiveCardDetailResponse(
                 card.getId(),

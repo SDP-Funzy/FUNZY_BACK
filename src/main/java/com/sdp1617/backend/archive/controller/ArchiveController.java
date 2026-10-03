@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -56,15 +55,18 @@ public class ArchiveController {
     @GetMapping("/api/archive/cards/{archiveCardId}")
     @Operation(
             summary = "아카이브 카드 상세 조회",
-            description = "카드 발신자, 수신자, 날짜, 대표 이미지, 메시지를 포함한 상세 정보를 조회합니다. 친구 아카이브 조회인 경우 비공개로 설정된 항목은 null로 내려갑니다."
+            description = """
+                    카드 발신자, 수신자, 날짜, 대표 이미지, 메시지를 포함한 상세 정보를 조회합니다.
+                    - 내 카드는 모든 항목을 조회합니다.
+                    - 친구의 카드는 비공개로 설정된 항목이 null로 내려갑니다. 어떤 항목이 비공개인지는 visibility로 알 수 있습니다.
+                    - 내 카드도 친구의 카드도 아니면 존재하지 않는 카드와 같이 ARCHIVE_002입니다.
+                    """
     )
     public ApiResponse<ArchiveCardDetailResponse> getCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long viewerMemberId,
-            @Parameter(description = "조회할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId,
-            @Parameter(description = "친구 아카이브 조회 여부. true이면 공개 범위 설정을 적용합니다.", example = "false")
-            @RequestParam(defaultValue = "false") boolean friendView
+            @Parameter(description = "조회할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
     ) {
-        return ApiResponse.ok("Archive card loaded.", archiveService.getCard(viewerMemberId, archiveCardId, friendView));
+        return ApiResponse.ok("Archive card loaded.", archiveService.getCard(viewerMemberId, archiveCardId));
     }
 
     @DeleteMapping("/api/archive/cards/{archiveCardId}")
@@ -96,7 +98,11 @@ public class ArchiveController {
     @PostMapping("/api/archive/cards/{archiveCardId}/like")
     @Operation(
             summary = "친구 아카이브 카드 좋아요",
-            description = "친구의 아카이브 카드에 좋아요를 누릅니다. 본인 카드에는 좋아요를 누를 수 없습니다. 현재 골격에서는 좋아요 등록만 반영합니다."
+            description = """
+                    친구의 아카이브 카드 좋아요를 토글합니다. 누르지 않은 카드면 좋아요, 이미 누른 카드면 취소합니다.
+                    - 본인 카드에는 좋아요를 누를 수 없습니다(ARCHIVE_003).
+                    - 친구가 아니면 좋아요를 누를 수 없습니다(ARCHIVE_002). 이미 누른 좋아요는 친구를 끊은 뒤에도 취소할 수 있습니다.
+                    """
     )
     public ApiResponse<ArchiveLikeResponse> toggleLike(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
