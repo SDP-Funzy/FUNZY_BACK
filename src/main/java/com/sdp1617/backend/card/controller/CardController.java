@@ -35,13 +35,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/cards")
 @RequiredArgsConstructor
-@Tag(name = "마음카드 API")
+@Tag(name = "마음카드 작성·보관함", description = "마음카드 작성, 카드 이미지 업로드, 보낸/받은 마음카드 보관함 조회 API")
 public class CardController {
 
     private final CardService cardService;
 
     @PostMapping("/images/presigned-url")
-    @Operation(summary="마음카드 이미지 업로드용 Presigned URL 발급")
+    @Operation(summary="마음카드 이미지 업로드용 Presigned URL 발급", description = """
+            카드에 첨부할 이미지를 S3에 직접 업로드할 수 있는 presigned URL을 발급합니다.
+            - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003)
+            - 발급받은 uploadUrl로 PUT 업로드한 뒤, imageKey를 카드 생성 요청에 넣거나 이미지 업로드 완료 API로 카드에 연결합니다.
+            - imageKey는 본인에게 발급된 것만 사용할 수 있습니다.
+            """)
     public ApiResponse<CardImagePresignedUrlResponse> issueImagePresignedUrl(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody CardImagePresignedUrlRequest request
@@ -50,10 +55,15 @@ public class CardController {
     }
 
     @GetMapping
-    @Operation(summary="마음카드 보관함 목록 조회")
+    @Operation(summary="마음카드 보관함 목록 조회", description = """
+            보낸(SENT) 또는 받은(RECEIVED) 마음카드를 최신순으로 조회합니다.
+            - date를 주면 그날 작성된 카드만, keyword를 주면 제목·내용·보낸 사람·받은 사람 닉네임에 포함된 카드만 조회합니다.
+            - 커서 기반 페이지네이션: 응답의 nextCursor를 다음 요청의 cursor로 보내고, hasNext가 false면 마지막 페이지입니다.
+            - size는 기본 20, 최대 50입니다. 잘못된 cursor는 COMMON_002입니다.
+            """)
     public ApiResponse<CursorPageResponse<CardStorageResponse>> getCards(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "SENT") CardBoxType type,
+            @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
             @Parameter(description = "조회 날짜", example = "2026-08-14")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate date,
             @Parameter(description = "검색어. 제목, 내용, 발신자/수신자 닉네임 검색", example = "YESEUNG")
@@ -66,7 +76,11 @@ public class CardController {
     }
 
     @GetMapping("/folders")
-    @Operation(summary="마음카드 보관함 폴더 조회")
+    @Operation(summary="마음카드 보관함 폴더 조회", description = """
+            주고받은 상대방별로 묶은 폴더 목록을 최근 카드 순으로 조회합니다.
+            - 폴더마다 상대 회원 ID·닉네임, 카드 수, 최근 카드 이미지, 최근 카드 작성 시각을 반환합니다.
+            - 페이지네이션 방식은 보관함 목록 조회와 같습니다(size 기본 20, 최대 50).
+            """)
     public ApiResponse<CursorPageResponse<CardFolderResponse>> getFolders(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
@@ -78,7 +92,10 @@ public class CardController {
     }
 
     @GetMapping("/calendar")
-    @Operation(summary="마음카드 보관함 월별 캘린더 요약 조회")
+    @Operation(summary="마음카드 보관함 월별 캘린더 요약 조회", description = """
+            해당 월에 카드가 있는 날짜와, 날짜별 카드 이미지 URL 목록을 조회합니다.
+            - 카드가 없는 날짜는 days에 포함되지 않습니다. 이미지가 없는 카드는 이미지 목록에서 제외됩니다.
+            """)
     public ApiResponse<CardCalendarResponse> getCalendar(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
@@ -89,7 +106,10 @@ public class CardController {
     }
 
     @GetMapping("/{cardId}")
-    @Operation(summary="특정 마음카드 조회")
+    @Operation(summary="특정 마음카드 조회", description = """
+            내가 보냈거나 받은 마음카드 1장을 조회합니다.
+            - 존재하지 않거나 내가 보낸/받은 카드가 아니면 CARD_001입니다.
+            """)
     public ApiResponse<CardStorageResponse> getCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회할 마음카드 ID", example = "1") @PathVariable Long cardId
@@ -98,7 +118,11 @@ public class CardController {
     }
 
     @PostMapping("/{cardId}/image/complete")
-    @Operation(summary="마음카드 이미지 업로드 완료")
+    @Operation(summary="마음카드 이미지 업로드 완료", description = """
+            S3 업로드를 마친 이미지를 내가 작성한 카드에 연결합니다. 기존 이미지가 있으면 교체됩니다.
+            - 업로드가 끝나지 않았으면 CARD_002, 지원하지 않는 형식이면 CARD_003, 5MB 초과면 CARD_004입니다.
+            - 본인에게 발급된 imageKey가 아니면 COMMON_004, 내가 작성한 카드가 아니면 CARD_001입니다.
+            """)
     public ApiResponse<CardListResponse> completeImageUpload(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "이미지를 연결할 마음카드 ID", example = "1") @PathVariable Long cardId,
@@ -108,7 +132,10 @@ public class CardController {
     }
 
     @DeleteMapping("/{cardId}")
-    @Operation(summary="내가 작성한 마음카드 삭제")
+    @Operation(summary="내가 작성한 마음카드 삭제", description = """
+            내가 작성한 마음카드를 삭제합니다. 받은 카드는 삭제할 수 없습니다.
+            - 존재하지 않거나 내가 작성한 카드가 아니면 CARD_001입니다.
+            """)
     public ApiResponse<Void> deleteWrittenCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "삭제할 마음카드 ID", example = "1") @PathVariable Long cardId
