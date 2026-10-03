@@ -16,6 +16,7 @@ import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class ArchiveService {
 
     private final ArchiveCardRepository archiveCardRepository;
     private final ArchiveCardLikeRepository archiveCardLikeRepository;
+    private final FollowRelationRepository followRelationRepository;
 
     public ArchiveHomeResponse getHome(Long memberId) {
         List<ArchiveCategorySectionResponse> sections = Arrays.stream(ArchiveCategory.values())
@@ -58,9 +60,17 @@ public class ArchiveService {
         return ArchiveCardDetailResponse.from(card, false, false);
     }
 
-    public ArchiveCardDetailResponse getCard(Long viewerMemberId, Long archiveCardId, boolean friendView) {
+    /**
+     * 주인은 전체 항목을, 친구(맞팔)는 공개 항목만 본다. 마스킹 여부는 클라이언트가 고르지 않고 서버가 정한다.
+     * 친구가 아니면 카드가 없는 것과 같은 응답을 준다 — 순번 ID로 남의 카드 존재 여부를 알아낼 수 없게.
+     */
+    public ArchiveCardDetailResponse getCard(Long viewerMemberId, Long archiveCardId) {
         ArchiveCard card = findCard(archiveCardId);
-        boolean maskPrivateFields = friendView && !card.isOwnedBy(viewerMemberId);
+        boolean owner = card.isOwnedBy(viewerMemberId);
+        if (!owner && !isFriend(viewerMemberId, card)) {
+            throw new CustomException(ErrorCode.ARCHIVE_002);
+        }
+        boolean maskPrivateFields = !owner;
         boolean liked = archiveCardLikeRepository.existsByArchiveCardIdAndMemberId(archiveCardId, viewerMemberId);
         return ArchiveCardDetailResponse.from(card, maskPrivateFields, liked);
     }
@@ -98,9 +108,19 @@ public class ArchiveService {
             throw new CustomException(ErrorCode.ARCHIVE_003);
         }
 
+        // 이미 누른 좋아요는 친구를 끊은 뒤에도 취소할 수 있게 하고, 새 좋아요만 친구에게 허용한다
         return archiveCardLikeRepository.findByArchiveCardIdAndMemberId(archiveCardId, memberId)
                 .map(like -> unlike(card, like))
-                .orElseGet(() -> like(card, memberId));
+                .orElseGet(() -> {
+                    if (!isFriend(memberId, card)) {
+                        throw new CustomException(ErrorCode.ARCHIVE_002);
+                    }
+                    return like(card, memberId);
+                });
+    }
+
+    private boolean isFriend(Long memberId, ArchiveCard card) {
+        return followRelationRepository.findBetween(memberId, card.getOwnerMemberId()).isPresent();
     }
 
     private ArchiveLikeResponse like(ArchiveCard card, Long memberId) {
