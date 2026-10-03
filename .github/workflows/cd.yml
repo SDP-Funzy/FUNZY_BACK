@@ -64,7 +64,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "Dockerfile,docker-compose.yml,.dockerignore,build/libs/*.jar"
+          source: "Dockerfile,docker-compose.yml,caddy/Caddyfile,.dockerignore,build/libs/*.jar"
           target: "~/app"
 
       - name: Re-check freshness right before deploy
@@ -93,7 +93,13 @@ jobs:
           script: |
             set -e
             cd ~/app
-            docker compose up -d --build
+            docker compose --profile prod up -d --build
+            # Caddyfile이 바뀌었어도 caddy 컨테이너는 재생성되지 않으므로 설정을 다시 읽게 한다 (문법 오류면 배포 실패)
+            docker compose --profile prod exec -T caddy caddy reload --config /etc/caddy/Caddyfile
             docker image prune -f
             for i in $(seq 1 30); do curl -sf --connect-timeout 3 --max-time 5 http://localhost:8080/health && break; sleep 2; done
             curl -sf --connect-timeout 3 --max-time 5 http://localhost:8080/health || { echo "배포 후 헬스체크 실패"; exit 1; }
+            # 외부 경로(caddy + HTTPS 인증서)까지 확인. 첫 배포는 인증서 발급에 시간이 걸릴 수 있어 넉넉히 기다린다.
+            # --resolve로 서버 자신의 caddy(443)에 붙되, 인증서는 실제 도메인 기준으로 검증한다.
+            for i in $(seq 1 30); do curl -sf --connect-timeout 3 --max-time 5 --resolve api.funzy.kr:443:127.0.0.1 https://api.funzy.kr/health && break; sleep 2; done
+            curl -sf --connect-timeout 3 --max-time 5 --resolve api.funzy.kr:443:127.0.0.1 https://api.funzy.kr/health || { echo "HTTPS(caddy) 헬스체크 실패 — docker logs sdp1617-caddy 확인"; exit 1; }

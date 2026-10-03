@@ -42,6 +42,7 @@ CI는 실제 PostgreSQL(service container) 위에서 `prod` 프로필로 빌드/
 cp .env.example .env
 
 # 3. app + postgres + redis 기동
+#    (HTTPS 리버스 프록시 caddy는 운영 전용 prod 프로필이라 로컬에서는 뜨지 않음 — 운영 도메인 인증서 발급 시도 방지)
 docker compose up -d --build
 
 # 4. 확인 (기동 완료까지 기다렸다가 확인, 최대 60초)
