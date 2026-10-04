@@ -36,7 +36,7 @@ public class HeartCardPhraseCommentController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId
     ) {
-        return ApiResponse.ok("Heart card phrase comments loaded.", heartCardPhraseCommentService.getComments(memberId, heartCardId));
+        return ApiResponse.ok("문구 코멘트 목록을 조회했습니다.", heartCardPhraseCommentService.getComments(memberId, heartCardId));
     }
 
     @PostMapping("/api/heart-cards/{heartCardId}/phrase-comments")
@@ -49,7 +49,7 @@ public class HeartCardPhraseCommentController {
             @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardPhraseCommentCreateRequest request
     ) {
-        return ApiResponse.created("Heart card phrase comment created.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
+        return ApiResponse.created("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
     }
 
     @GetMapping("/api/heart-cards/{heartCardId}/phrase-comments/{commentId}")
@@ -62,7 +62,7 @@ public class HeartCardPhraseCommentController {
             @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId
     ) {
-        return ApiResponse.ok("Heart card phrase comment loaded.", heartCardPhraseCommentService.getComment(memberId, heartCardId, commentId));
+        return ApiResponse.ok("문구 코멘트를 조회했습니다.", heartCardPhraseCommentService.getComment(memberId, heartCardId, commentId));
     }
 
     @PatchMapping("/api/heart-cards/{heartCardId}/phrase-comments/{commentId}")
@@ -76,7 +76,7 @@ public class HeartCardPhraseCommentController {
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId,
             @Valid @RequestBody HeartCardPhraseCommentUpdateRequest request
     ) {
-        return ApiResponse.ok("Heart card phrase comment updated.", heartCardPhraseCommentService.updateComment(memberId, heartCardId, commentId, request));
+        return ApiResponse.ok("문구 코멘트를 수정했습니다.", heartCardPhraseCommentService.updateComment(memberId, heartCardId, commentId, request));
     }
 
     @DeleteMapping("/api/heart-cards/{heartCardId}/phrase-comments/{commentId}")
@@ -90,6 +90,6 @@ public class HeartCardPhraseCommentController {
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId
     ) {
         heartCardPhraseCommentService.deleteComment(memberId, heartCardId, commentId);
-        return ApiResponse.ok("Heart card phrase comment deleted.", null);
+        return ApiResponse.ok("문구 코멘트를 삭제했습니다.", null);
     }
 }

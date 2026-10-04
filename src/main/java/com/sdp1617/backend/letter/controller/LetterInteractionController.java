@@ -35,7 +35,7 @@ public class LetterInteractionController {
             @Parameter(description = "리액션 종류", example = "HEART") @RequestParam LetterReactionType reactionType
     ) {
         return ApiResponse.created(
-                "Letter reaction saved.",
+                "리액션을 저장했습니다.",
                 letterInteractionService.saveReaction(memberId, letterId, reactionType)
         );
     }
@@ -51,7 +51,7 @@ public class LetterInteractionController {
             @Valid @RequestBody LetterCommentRequest request
     ) {
         return ApiResponse.created(
-                "Letter comment saved.",
+                "댓글을 저장했습니다.",
                 letterInteractionService.saveComment(memberId, letterId, request)
         );
     }
@@ -66,7 +66,7 @@ public class LetterInteractionController {
             @Parameter(description = "찜할 편지 ID", example = "1") @PathVariable Long letterId
     ) {
         return ApiResponse.created(
-                "Letter favorite saved.",
+                "편지를 찜했습니다.",
                 letterInteractionService.saveFavorite(memberId, letterId)
         );
     }

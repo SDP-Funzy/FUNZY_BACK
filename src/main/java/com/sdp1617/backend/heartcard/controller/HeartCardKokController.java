@@ -31,19 +31,24 @@ public class HeartCardKokController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId
     ) {
-        return ApiResponse.ok("Heart card kok loaded.", heartCardKokService.getKok(memberId, heartCardId));
+        return ApiResponse.ok("콕 상태를 조회했습니다.", heartCardKokService.getKok(memberId, heartCardId));
     }
 
     @PutMapping("/api/heart-cards/{heartCardId}/kok")
     @Operation(
-            summary = "마음카드 콕 토글",
-            description = "콕하지 않은 카드면 아카이브에 저장하고, 이미 콕한 카드면 아카이브에서 즉시 제거합니다. category를 생략하면 ETC로 저장합니다."
+            summary = "마음카드 콕 상태 변경",
+            description = """
+                    요청한 kok 값으로 콕 상태를 맞춥니다. 같은 요청을 반복해도 결과가 같습니다.
+                    - kok=true(생략 시 기본값): 아카이브에 저장합니다. 이미 콕한 카드면 그대로 둡니다.
+                    - kok=false: 아카이브에서 즉시 제거합니다. 콕하지 않은 카드면 그대로 둡니다.
+                    - category를 생략하면 ETC로 저장합니다.
+                    """
     )
     public ApiResponse<HeartCardKokResponse> updateKok(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
             @RequestBody(required = false) HeartCardKokRequest request
     ) {
-        return ApiResponse.ok("Heart card kok updated.", heartCardKokService.updateKok(memberId, heartCardId, request));
+        return ApiResponse.ok("콕 상태를 변경했습니다.", heartCardKokService.updateKok(memberId, heartCardId, request));
     }
 }
