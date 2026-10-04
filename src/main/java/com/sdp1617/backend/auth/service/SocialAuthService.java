@@ -77,7 +77,7 @@ public class SocialAuthService {
         SocialSignupSession session = socialSignupSessionRepository.consume(signupToken)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_011));
 
-        if (memberRepository.existsByNickname(nickname)) {
+        if (memberRepository.isNicknameTaken(nickname)) {
             throw new CustomException(ErrorCode.AUTH_007);
         }
         if (session.email() != null && memberRepository.existsByEmail(session.email())) {

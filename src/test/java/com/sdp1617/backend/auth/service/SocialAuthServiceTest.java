@@ -143,7 +143,7 @@ class SocialAuthServiceTest {
     void 소셜_회원가입을_완료하면_토큰을_발급한다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
         when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
 
@@ -156,7 +156,7 @@ class SocialAuthServiceTest {
     void 소셜_회원가입을_완료하면_SocialConnection도_함께_생성된다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
         when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
 
@@ -176,7 +176,7 @@ class SocialAuthServiceTest {
     void 소셜_회원가입_완료시_전달받은_동의항목이_회원에_그대로_반영된다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
         when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
 
@@ -202,7 +202,7 @@ class SocialAuthServiceTest {
     void 같은_소셜계정으로_동시에_회원가입을_완료하면_먼저_생성된_계정으로_로그인시킨다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
         when(socialConnectionRepository.saveAndFlush(any()))
                 .thenThrow(providerConnectionConstraintViolation());
@@ -229,7 +229,7 @@ class SocialAuthServiceTest {
     void 회원가입_완료_시_닉네임이_중복되면_AUTH_007_예외를_던진다() {
         SocialSignupSession session = new SocialSignupSession(AuthProvider.KAKAO, "12345", "test@kakao.com");
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(true);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> socialAuthService.completeSignUp("signup-token", "닉네임", Consent.requiredOnly()));

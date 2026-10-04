@@ -85,7 +85,7 @@ class CardServiceTest {
     void 보내는_사람은_로그인_사용자로_정해진다() {
         Member sender = mock(Member.class);
         when(envelopRepository.findBySender_IdAndReceiver_Id(SENDER_ID, RECEIVER_ID)).thenReturn(Optional.empty());
-        when(memberRepository.existsById(RECEIVER_ID)).thenReturn(true);
+        when(memberRepository.existsActiveById(RECEIVER_ID)).thenReturn(true);
         when(entityManager.getReference(Member.class, SENDER_ID)).thenReturn(sender);
 
         cardService.createCard(SENDER_ID, request(RECEIVER_ID, null));
@@ -103,9 +103,8 @@ class CardServiceTest {
     }
 
     @Test
-    void 존재하지_않는_회원에게는_보낼_수_없다() {
-        when(envelopRepository.findBySender_IdAndReceiver_Id(SENDER_ID, RECEIVER_ID)).thenReturn(Optional.empty());
-        when(memberRepository.existsById(RECEIVER_ID)).thenReturn(false);
+    void 존재하지_않거나_탈퇴한_회원에게는_보낼_수_없다() {
+        when(memberRepository.existsActiveById(RECEIVER_ID)).thenReturn(false);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> cardService.createCard(SENDER_ID, request(RECEIVER_ID, null)));
@@ -116,14 +115,27 @@ class CardServiceTest {
     }
 
     @Test
-    void 이미_있는_봉투에는_수신자_확인_없이_카드를_추가한다() {
+    void 이미_있는_봉투에는_새_봉투_없이_카드를_추가한다() {
         Envelop envelop = mock(Envelop.class);
+        when(memberRepository.existsActiveById(RECEIVER_ID)).thenReturn(true);
         when(envelopRepository.findBySender_IdAndReceiver_Id(SENDER_ID, RECEIVER_ID)).thenReturn(Optional.of(envelop));
 
         cardService.createCard(SENDER_ID, request(RECEIVER_ID, null));
 
-        verify(memberRepository, never()).existsById(anyLong());
+        verify(envelopRepository, never()).save(any());
         verify(cardRepository).save(argThat(card -> card.getEnvelop() == envelop));
+    }
+
+    @Test
+    void 탈퇴한_회원에게는_기존_봉투가_있어도_보낼_수_없다() {
+        when(memberRepository.existsActiveById(RECEIVER_ID)).thenReturn(false);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> cardService.createCard(SENDER_ID, request(RECEIVER_ID, null)));
+
+        assertEquals(ErrorCode.CARD_006, exception.getErrorCode());
+        verify(envelopRepository, never()).findBySender_IdAndReceiver_Id(anyLong(), anyLong());
+        verify(cardRepository, never()).save(any());
     }
 
     @Test

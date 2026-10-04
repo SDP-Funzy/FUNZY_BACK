@@ -73,7 +73,7 @@ class FollowServiceTest {
     @Test
     void 내_팔로우코드를_조회한다() {
         Member member = member(1L, "닉네임");
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
 
         FollowCodeResponse response = followService.getMyFollowCode(1L);
 

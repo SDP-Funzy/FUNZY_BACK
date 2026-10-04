@@ -201,6 +201,10 @@ public class CardService {
         }
 
         return transactionTemplate.execute(status -> {
+            // 받는 사람이 없거나 탈퇴했으면 거절한다. 탈퇴해도 회원 행과 기존 봉투는 남으므로(익명화) 봉투가 있어도 확인한다.
+            if (!memberRepository.existsActiveById(request.receiverId())) {
+                throw new CustomException(ErrorCode.CARD_006);
+            }
             Envelop envelop = envelopRepository.findBySender_IdAndReceiver_Id(senderId, request.receiverId())
                     .orElseGet(() -> createEnvelop(senderId, request));
 
@@ -226,11 +230,6 @@ public class CardService {
     }
 
     private Envelop createEnvelop(Long senderId, CardCreateRequest request) {
-        // 봉투가 이미 있으면 받는 사람이 존재하는 것이므로, 새 봉투를 만들 때만 확인한다
-        // (확인 없이 저장하면 없는 회원 ID가 FK 위반 500으로 드러난다)
-        if (!memberRepository.existsById(request.receiverId())) {
-            throw new CustomException(ErrorCode.CARD_006);
-        }
         Member sender = entityManager.getReference(Member.class, senderId);
         Member receiver = entityManager.getReference(Member.class, request.receiverId());
 

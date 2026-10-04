@@ -19,4 +19,6 @@ public interface SocialConnectionRepository extends JpaRepository<SocialConnecti
     long countByMember_Id(Long memberId);
 
     List<SocialConnection> findByMember_Id(Long memberId);
+
+    void deleteByMember_Id(Long memberId);
 }

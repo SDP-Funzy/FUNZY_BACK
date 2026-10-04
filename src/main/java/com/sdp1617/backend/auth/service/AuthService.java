@@ -76,7 +76,7 @@ public class AuthService {
         if (memberRepository.existsByEmail(email)) {
             throw new CustomException(ErrorCode.AUTH_006);
         }
-        if (memberRepository.existsByNickname(request.nickname())) {
+        if (memberRepository.isNicknameTaken(request.nickname())) {
             throw new CustomException(ErrorCode.AUTH_007);
         }
         if (!request.password().equals(request.passwordConfirm())) {
@@ -104,7 +104,7 @@ public class AuthService {
     }
 
     public boolean isNicknameAvailable(String nickname) {
-        return !memberRepository.existsByNickname(nickname);
+        return !memberRepository.isNicknameTaken(nickname);
     }
 
     /**
@@ -114,7 +114,9 @@ public class AuthService {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public TokenResponse login(String clientIp, LoginRequest request) {
+        // 탈퇴한 회원은 닉네임이 "탈퇴한회원N"으로 바뀌어 있지만, 그 이름으로 시도해도 없는 아이디와 같이 응답한다
         Member member = memberRepository.findByNickname(request.nickname())
+                .filter(found -> !found.isWithdrawn())
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_001));
 
         if (!loginAttemptRecorder.tryAcquire(member.getId(), clientIp)) {
@@ -185,7 +187,7 @@ public class AuthService {
         Long memberId = verificationTokenRepository.consume(PASSWORD_RESET_PURPOSE, token)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_011));
 
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         if (!member.hasPassword()) {
@@ -279,7 +281,7 @@ public class AuthService {
         Long memberId = verificationTokenRepository.consume(ACCOUNT_UNLOCK_PURPOSE, token)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_011));
 
-        if (!memberRepository.existsById(memberId)) {
+        if (!memberRepository.existsActiveById(memberId)) {
             throw new CustomException(ErrorCode.AUTH_002);
         }
 

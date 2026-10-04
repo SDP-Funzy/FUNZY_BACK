@@ -1,6 +1,7 @@
 package com.sdp1617.backend.global.config;
 
 import com.sdp1617.backend.auth.jwt.JwtProvider;
+import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.security.JwtAuthenticationEntryPoint;
 import com.sdp1617.backend.global.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class SecurityConfig {
     };
 
     private final JwtProvider jwtProvider;
+    private final MemberRepository memberRepository;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
@@ -49,7 +51,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PERMIT_ALL_PATHS).permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, memberRepository), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

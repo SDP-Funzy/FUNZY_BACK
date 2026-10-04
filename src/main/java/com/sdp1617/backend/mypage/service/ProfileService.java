@@ -33,11 +33,11 @@ public class ProfileService {
 
     @Transactional
     public void updateNickname(Long memberId, NicknameUpdateRequest request) {
-        Member member = findMember(memberId);
+        Member member = findMemberForUpdate(memberId);
         if (request.nickname().equals(member.getNickname())) {
             return;
         }
-        if (memberRepository.existsByNickname(request.nickname())) {
+        if (memberRepository.isNicknameTaken(request.nickname())) {
             throw new CustomException(ErrorCode.AUTH_007);
         }
         member.updateNickname(request.nickname());
@@ -66,7 +66,7 @@ public class ProfileService {
                 request.imageKey(), ErrorCode.MYPAGE_001, ErrorCode.MYPAGE_002, ErrorCode.MYPAGE_003);
 
         return transactionTemplate.execute(status -> {
-            Member member = findMember(memberId);
+            Member member = findMemberForUpdate(memberId);
             String previousImageKey = member.getProfileImageKey();
             member.updateProfileImage(request.imageKey(), s3ImageService.buildImageUrl(request.imageKey()));
             if (previousImageKey != null && !previousImageKey.equals(request.imageKey())) {
@@ -78,14 +78,19 @@ public class ProfileService {
 
     @Transactional
     public void resetProfileImage(Long memberId) {
-        Member member = findMember(memberId);
+        Member member = findMemberForUpdate(memberId);
         String previousImageKey = member.getProfileImageKey();
         member.resetProfileImage();
         deleteAfterCommit(previousImageKey);
     }
 
+    private Member findMemberForUpdate(Long memberId) {
+        return memberRepository.findActiveByIdForUpdate(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
+    }
+
     private Member findMember(Long memberId) {
-        return memberRepository.findById(memberId)
+        return memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 

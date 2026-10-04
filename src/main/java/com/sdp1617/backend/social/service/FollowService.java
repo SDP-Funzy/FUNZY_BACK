@@ -43,7 +43,8 @@ public class FollowService {
 
     @Transactional
     public FollowCodeResponse reissueFollowCode(Long memberId) {
-        Member member = getMember(memberId);
+        Member member = memberRepository.findActiveByIdForUpdate(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
         member.reissueFollowCode();
         return new FollowCodeResponse(member.getFollowCode());
     }
@@ -183,7 +184,7 @@ public class FollowService {
     }
 
     private Member getMember(Long memberId) {
-        return memberRepository.findById(memberId)
+        return memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 }
