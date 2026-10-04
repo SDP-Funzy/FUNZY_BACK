@@ -41,7 +41,8 @@ public class LetterInteraction {
     @Column(nullable = false, length = 20)
     private LetterInteractionType type;
 
-    @Column(length = 500)
+    // value는 H2 예약어라 따옴표로 감싼다(#96). 운영 PostgreSQL의 컬럼명(value)은 그대로라 마이그레이션이 필요 없다.
+    @Column(name = "\"value\"", length = 500)
     private String value;
 
     @Column(name = "deduplication_key", nullable = false, length = 36)
