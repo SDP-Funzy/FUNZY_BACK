@@ -16,11 +16,15 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Entity
+// 바뀐 컬럼만 UPDATE한다. 전체 컬럼을 쓰면, 탈퇴와 동시에 처리되던 다른 수정(푸시 설정 등)이 예전 값으로
+// 이메일·닉네임·탈퇴 시각까지 덮어써 탈퇴한 계정이 되살아날 수 있다.
+@DynamicUpdate
 @Table(
         name = "members",
         uniqueConstraints = {
@@ -34,6 +38,12 @@ import java.time.LocalDateTime;
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
+
+    /**
+     * 탈퇴한 회원의 닉네임 접두사. 탈퇴 시 닉네임을 "접두사 + 회원 ID"로 바꿔, 주고받은 카드 등에 "탈퇴한회원12"처럼 표시된다.
+     * 일반 회원은 이 접두사로 시작하는 닉네임을 쓸 수 없다 ({@link #isReservedNickname}) — 탈퇴 시 닉네임 충돌 방지.
+     */
+    public static final String WITHDRAWN_NICKNAME_PREFIX = "탈퇴한회원";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,6 +82,10 @@ public class Member {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /** 탈퇴 시각. null이면 활성 회원. 탈퇴해도 행은 남기고 개인정보만 지운다 (주고받은 카드·편지가 참조하므로). */
+    @Column(name = "withdrawn_at")
+    private LocalDateTime withdrawnAt;
+
     public Member(String email, String password, String nickname, Consent consent) {
         // 아이디/비밀번호 계정은 이메일이 본인 확인·비밀번호 재설정·아이디 찾기의 유일한 수단이라 비어 있으면 안 된다
         String normalizedEmail = Emails.normalize(email);
@@ -99,6 +113,31 @@ public class Member {
         this.providerId = providerId;
         this.pushNotificationEnabled = true;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public static boolean isReservedNickname(String nickname) {
+        return nickname != null && nickname.startsWith(WITHDRAWN_NICKNAME_PREFIX);
+    }
+
+    public boolean isWithdrawn() {
+        return withdrawnAt != null;
+    }
+
+    /**
+     * 탈퇴: 로그인·본인 확인에 쓰이는 값과 개인정보를 지우고 닉네임을 익명값으로 바꾼다.
+     * 이메일·닉네임·소셜 계정이 비워지므로 같은 이메일/아이디/소셜 계정으로 다시 가입할 수 있다.
+     * 팔로우 코드도 새로 발급해 예전 코드로 친구 요청을 받을 수 없게 한다.
+     */
+    public void withdraw() {
+        this.email = null;
+        this.password = null;
+        this.providerId = null;
+        this.nickname = WITHDRAWN_NICKNAME_PREFIX + id;
+        this.profileImageKey = null;
+        this.profileImageUrl = null;
+        this.pushNotificationEnabled = false;
+        this.followCode = FollowCodeGenerator.generate();
+        this.withdrawnAt = LocalDateTime.now();
     }
 
     public boolean hasPassword() {

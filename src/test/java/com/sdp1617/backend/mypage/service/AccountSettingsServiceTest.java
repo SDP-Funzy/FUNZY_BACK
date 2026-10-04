@@ -13,6 +13,7 @@ import com.sdp1617.backend.auth.social.SocialUserInfoProvider;
 import com.sdp1617.backend.auth.social.SocialUserInfoProviderRegistry;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.s3.S3ImageService;
 import com.sdp1617.backend.mypage.dto.ConnectedAccountResponse;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
@@ -34,6 +35,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,6 +73,12 @@ class AccountSettingsServiceTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    @Mock
+    private MemberWithdrawalCleaner memberWithdrawalCleaner;
+
+    @Mock
+    private S3ImageService s3ImageService;
+
     @InjectMocks
     private AccountSettingsService accountSettingsService;
 
@@ -105,7 +114,7 @@ class AccountSettingsServiceTest {
     void 연결_계정을_조회한다() {
         Member member = socialMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
         SocialConnection connection = SocialConnection.create(member, AuthProvider.KAKAO, "12345");
         when(socialConnectionRepository.findByMember_Id(1L)).thenReturn(List.of(connection));
 
@@ -119,7 +128,7 @@ class AccountSettingsServiceTest {
     void 비밀번호_변경에_성공하면_모든_세션을_폐기한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("oldPw1!", "encoded")).thenReturn(true);
         when(passwordEncoder.encode("NewPassword1!")).thenReturn("new-encoded");
 
@@ -133,7 +142,7 @@ class AccountSettingsServiceTest {
     void 소셜_전용_계정은_비밀번호_변경시_AUTH_014_예외를_던진다() {
         Member member = socialMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> accountSettingsService.changePassword(1L, "oldPw1!", "NewPassword1!", "NewPassword1!"));
@@ -145,7 +154,7 @@ class AccountSettingsServiceTest {
     void 현재_비밀번호가_틀리면_AUTH_015_예외를_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("wrong", "encoded")).thenReturn(false);
 
         CustomException exception = assertThrows(CustomException.class,
@@ -158,7 +167,7 @@ class AccountSettingsServiceTest {
     void 새_비밀번호와_확인이_다르면_AUTH_008_예외를_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("oldPw1!", "encoded")).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
@@ -175,20 +184,38 @@ class AccountSettingsServiceTest {
     }
 
     @Test
-    void 회원_탈퇴시_계정을_삭제하고_모든_세션을_폐기한다() {
+    void 회원_탈퇴시_계정을_익명화하고_연관_데이터를_정리하고_모든_세션을_폐기한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         accountSettingsService.withdraw(1L);
 
-        verify(memberRepository).delete(member);
+        assertTrue(member.isWithdrawn());
+        assertEquals(Member.WITHDRAWN_NICKNAME_PREFIX + 1L, member.getNickname());
+        assertNull(member.getEmail());
+        verify(memberRepository, never()).delete(any());
+        verify(memberWithdrawalCleaner).clean(1L);
         verify(eventPublisher).publishEvent(new AllSessionsRevokedEvent(1L));
     }
 
     @Test
+    void 이미_탈퇴한_회원이면_AUTH_002_예외를_던진다() {
+        Member member = localMember();
+        setId(member, 1L);
+        member.withdraw();
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> accountSettingsService.withdraw(1L));
+
+        assertEquals(ErrorCode.AUTH_002, exception.getErrorCode());
+        verify(memberWithdrawalCleaner, never()).clean(any());
+    }
+
+    @Test
     void 존재하지_않는_회원이면_AUTH_002_예외를_던진다() {
-        when(memberRepository.findById(1L)).thenReturn(Optional.empty());
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> accountSettingsService.withdraw(1L));
@@ -200,7 +227,8 @@ class AccountSettingsServiceTest {
     void 소셜_계정을_정상적으로_연결한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
         when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
         when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "social@kakao.com"));
@@ -212,10 +240,31 @@ class AccountSettingsServiceTest {
     }
 
     @Test
+    void 소셜_인증_중에_탈퇴가_끝났으면_연결하지_않는다() {
+        Member member = localMember();
+        setId(member, 1L);
+        Member withdrawnMember = localMember();
+        setId(withdrawnMember, 1L);
+        withdrawnMember.withdraw();
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(withdrawnMember));
+        when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
+        when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
+        when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "social@kakao.com"));
+        when(socialConnectionRepository.existsByProviderAndProviderId(AuthProvider.KAKAO, "12345")).thenReturn(false);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> accountSettingsService.connectSocialAccount(1L, AuthProvider.KAKAO, "token"));
+
+        assertEquals(ErrorCode.AUTH_002, exception.getErrorCode());
+        verify(socialConnectionRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void 이미_본인_계정에_연결된_provider면_외부_인증_호출_없이_AUTH_018_예외를_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
@@ -229,7 +278,7 @@ class AccountSettingsServiceTest {
     void 다른_계정에_이미_연결된_소셜계정이면_AUTH_017_예외를_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
         when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
         when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "other@kakao.com"));
@@ -246,7 +295,8 @@ class AccountSettingsServiceTest {
     void 저장_시점에_다른_회원이_먼저_연결해서_경쟁에_지면_AUTH_017을_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
         when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
         when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "social@kakao.com"));
@@ -273,7 +323,8 @@ class AccountSettingsServiceTest {
         // "이미 연결됨"으로 정확히 매핑돼야 한다.
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
         when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
         when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "social@kakao.com"));
@@ -295,7 +346,8 @@ class AccountSettingsServiceTest {
     void member_provider_제약_위반이면_조회_없이_바로_AUTH_018을_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(socialConnectionRepository.existsByMember_IdAndProvider(1L, AuthProvider.KAKAO)).thenReturn(false);
         when(socialUserInfoProviderRegistry.get(AuthProvider.KAKAO)).thenReturn(kakaoProvider);
         when(kakaoProvider.fetchUserInfo("token")).thenReturn(new SocialUserInfo("12345", "social@kakao.com"));

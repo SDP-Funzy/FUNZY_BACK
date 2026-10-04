@@ -54,7 +54,7 @@ class NotificationServiceTest {
     @Test
     void 푸시_알림_설정을_조회한다() {
         Member member = member();
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
 
         PushSettingResponse response = notificationService.getPushSetting(1L);
 
@@ -64,7 +64,7 @@ class NotificationServiceTest {
     @Test
     void 푸시_알림_설정을_변경한다() {
         Member member = member();
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         notificationService.updatePushSetting(1L, false);
 
@@ -73,7 +73,7 @@ class NotificationServiceTest {
 
     @Test
     void 존재하지_않는_회원의_설정_조회시_AUTH_002_예외를_던진다() {
-        when(memberRepository.findById(1L)).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> notificationService.getPushSetting(1L));

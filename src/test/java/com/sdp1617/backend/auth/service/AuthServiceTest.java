@@ -138,7 +138,7 @@ class AuthServiceTest {
     @Test
     void 닉네임이_중복되면_AUTH_007_예외를_던진다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(true);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(true);
 
         SignUpRequest request = new SignUpRequest("verified-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
 
@@ -150,7 +150,7 @@ class AuthServiceTest {
     @Test
     void 비밀번호와_비밀번호확인이_다르면_AUTH_008_예외를_던진다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        when(memberRepository.isNicknameTaken(anyString())).thenReturn(false);
 
         SignUpRequest request = new SignUpRequest("verified-token", "Password1!", "Password2!", "닉네임", true, true, false, false);
 
@@ -162,7 +162,7 @@ class AuthServiceTest {
     @Test
     void 정상_회원가입시_비밀번호를_암호화해서_저장한다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        when(memberRepository.isNicknameTaken(anyString())).thenReturn(false);
         when(passwordEncoder.encode("Password1!")).thenReturn("encoded-password");
 
         SignUpRequest request = new SignUpRequest("verified-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
@@ -176,7 +176,7 @@ class AuthServiceTest {
     @Test
     void 정상_회원가입시_요청의_동의항목이_회원에_그대로_반영된다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        when(memberRepository.isNicknameTaken(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
 
         SignUpRequest request = new SignUpRequest(
@@ -191,7 +191,7 @@ class AuthServiceTest {
     @Test
     void 정상_회원가입시_인증_토큰의_이메일로_계정을_만들고_토큰을_폐기한다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        when(memberRepository.isNicknameTaken(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
 
         SignUpRequest request = new SignUpRequest("verified-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
@@ -247,7 +247,7 @@ class AuthServiceTest {
     @Test
     void 가입이_실패하면_인증_토큰을_폐기하지_않는다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname("닉네임")).thenReturn(true);
+        when(memberRepository.isNicknameTaken("닉네임")).thenReturn(true);
 
         SignUpRequest request = new SignUpRequest("verified-token", "Password1!", "Password1!", "닉네임", true, true, false, false);
 
@@ -259,7 +259,7 @@ class AuthServiceTest {
     @Test
     void 같은_토큰으로_동시에_가입해_이메일_유니크_제약에_걸리면_AUTH_006_예외를_던진다() {
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
-        when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        when(memberRepository.isNicknameTaken(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
         when(memberRepository.saveWithNicknameUniqueness(any())).thenThrow(new DataIntegrityViolationException(
                 "unique constraint", new ConstraintViolationException(
@@ -282,6 +282,21 @@ class AuthServiceTest {
         CustomException exception = assertThrows(CustomException.class, () -> authService.login(IP, request));
 
         assertEquals(ErrorCode.AUTH_001, exception.getErrorCode());
+    }
+
+    @Test
+    void 탈퇴한_회원의_익명_닉네임으로_로그인하면_없는_아이디와_같이_AUTH_001_예외를_던진다() {
+        Member member = member("test@sdp1617.com", "encoded", "닉네임");
+        setId(member, 1L);
+        member.withdraw();
+        when(memberRepository.findByNickname(member.getNickname())).thenReturn(Optional.of(member));
+
+        LoginRequest request = new LoginRequest(member.getNickname(), "Password1!");
+
+        CustomException exception = assertThrows(CustomException.class, () -> authService.login(IP, request));
+
+        assertEquals(ErrorCode.AUTH_001, exception.getErrorCode());
+        verify(loginAttemptRecorder, never()).tryAcquire(any(), any());
     }
 
     @Test
@@ -350,7 +365,7 @@ class AuthServiceTest {
     void 유효한_토큰으로_비밀번호를_재설정하면_잠금도_풀리고_모든_세션이_폐기된다() {
         Member member = member("test@sdp1617.com", "old-encoded", "닉네임");
         when(verificationTokenRepository.consume("password-reset", "token-value")).thenReturn(Optional.of(1L));
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         when(passwordEncoder.encode("NewPassword1!")).thenReturn("new-encoded");
 
         authService.resetPassword("token-value", "NewPassword1!", "NewPassword1!");
@@ -402,7 +417,7 @@ class AuthServiceTest {
         Member member = new Member("social@sdp1617.com", "닉네임", Consent.requiredOnly(), AuthProvider.KAKAO, "12345");
         setId(member, 1L);
         when(verificationTokenRepository.consume("password-reset", "token-value")).thenReturn(Optional.of(1L));
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> authService.resetPassword("token-value", "NewPassword1!", "NewPassword1!"));
@@ -453,7 +468,7 @@ class AuthServiceTest {
     @Test
     void 계정_잠금_해제시_모든_IP의_실패기록을_지우고_모든_세션을_폐기한다() {
         when(verificationTokenRepository.consume("account-unlock", "token-value")).thenReturn(Optional.of(1L));
-        when(memberRepository.existsById(1L)).thenReturn(true);
+        when(memberRepository.existsActiveById(1L)).thenReturn(true);
 
         authService.unlockAccount("token-value");
 
@@ -536,7 +551,7 @@ class AuthServiceTest {
 
     @Test
     void 사용_가능한_닉네임이면_true를_반환한다() {
-        when(memberRepository.existsByNickname("새닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTaken("새닉네임")).thenReturn(false);
 
         assertTrue(authService.isNicknameAvailable("새닉네임"));
     }

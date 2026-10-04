@@ -25,14 +25,14 @@ public interface CardRepository extends JpaRepository<Card,Long> {
             join fetch e.receiver r
             where ((:asSender = true and e.sender.id = :memberId)
                    or (:asSender = false and e.receiver.id = :memberId))
-              and (:startAt is null or c.createdAt >= :startAt)
-              and (:endAt is null or c.createdAt < :endAt)
-              and (:keyword is null
+              and (cast(:startAt as LocalDateTime) is null or c.createdAt >= :startAt)
+              and (cast(:endAt as LocalDateTime) is null or c.createdAt < :endAt)
+              and (cast(:keyword as String) is null
                    or lower(c.title) like :keyword
                    or lower(c.content) like :keyword
                    or lower(s.nickname) like :keyword
                    or lower(r.nickname) like :keyword)
-              and (:cursorCreatedAt is null
+              and (cast(:cursorCreatedAt as LocalDateTime) is null
                    or coalesce(c.createdAt, :emptyCreatedAt) < :cursorCreatedAt
                    or (coalesce(c.createdAt, :emptyCreatedAt) = :cursorCreatedAt and c.id < :cursorId))
             order by coalesce(c.createdAt, :emptyCreatedAt) desc, c.id desc
@@ -49,6 +49,10 @@ public interface CardRepository extends JpaRepository<Card,Long> {
             Pageable pageable
     );
 
+    /**
+     * 상대방별 폴더. 한쪽(보낸함이면 보낸 사람, 받은함이면 받은 사람)은 항상 나라서, 양쪽 회원으로 묶으면 상대방별로 묶인다.
+     * GROUP BY에 파라미터가 들어간 CASE 식을 쓰면 PostgreSQL이 SELECT의 같은 식과 같다고 보지 않아 오류가 나므로 쓰지 않는다.
+     */
     @Query("""
             select (case when :asSender = true then r.id else s.id end) as memberId,
                    (case when :asSender = true then r.nickname else s.nickname end) as nickname,
@@ -60,9 +64,8 @@ public interface CardRepository extends JpaRepository<Card,Long> {
             join e.receiver r
             where (:asSender = true and e.sender.id = :memberId)
                or (:asSender = false and e.receiver.id = :memberId)
-            group by case when :asSender = true then r.id else s.id end,
-                     case when :asSender = true then r.nickname else s.nickname end
-            having (:cursorCreatedAt is null
+            group by s.id, s.nickname, r.id, r.nickname
+            having (cast(:cursorCreatedAt as LocalDateTime) is null
                     or max(coalesce(c.createdAt, :emptyCreatedAt)) < :cursorCreatedAt
                     or (max(coalesce(c.createdAt, :emptyCreatedAt)) = :cursorCreatedAt
                         and case when :asSender = true then r.id else s.id end < :cursorId))

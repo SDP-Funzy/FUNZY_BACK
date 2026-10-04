@@ -1,0 +1,85 @@
+package com.sdp1617.backend.mypage.service;
+
+import com.sdp1617.backend.archive.entity.ArchiveCard;
+import com.sdp1617.backend.archive.entity.ArchiveCardLike;
+import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
+import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
+import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
+import com.sdp1617.backend.funzypack.service.FunzyPackService;
+import com.sdp1617.backend.letter.entity.LetterInteractionType;
+import com.sdp1617.backend.letter.entity.ReceivedLetter;
+import com.sdp1617.backend.letter.repository.LetterInteractionRepository;
+import com.sdp1617.backend.letter.repository.ReceivedLetterRepository;
+import com.sdp1617.backend.notification.repository.NotificationRepository;
+import com.sdp1617.backend.social.repository.FollowRelationRepository;
+import com.sdp1617.backend.social.repository.FollowRequestRepository;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 탈퇴 시 회원의 연관 데이터를 정리한다. 회원 행은 지우지 않고 익명화하므로({@code Member.withdraw}),
+ * 여기서는 "본인만 쓰던 데이터"와 "다른 회원에게 영향을 주는 관계"만 지운다.
+ *
+ * - 삭제: 소셜 연결(재가입 가능하게), 친구 관계·팔로우 요청(상대의 친구 수·목록에서 빠지게),
+ *         내 아카이브와 거기 달린 좋아요, 내가 누른 좋아요(좋아요 수도 감소), 내 알림, 내 찜, 내가 받은 편지함
+ * - 유지("탈퇴한회원N"으로 표시): 주고받은 마음카드·봉투, 다른 사람 카드에 남긴 이모지·문구 코멘트·편지 리액션·댓글
+ */
+@Component
+@RequiredArgsConstructor
+public class MemberWithdrawalCleaner {
+
+    private final SocialConnectionRepository socialConnectionRepository;
+    private final FollowRelationRepository followRelationRepository;
+    private final FollowRequestRepository followRequestRepository;
+    private final ArchiveCardRepository archiveCardRepository;
+    private final ArchiveCardLikeRepository archiveCardLikeRepository;
+    private final NotificationRepository notificationRepository;
+    private final LetterInteractionRepository letterInteractionRepository;
+    private final ReceivedLetterRepository receivedLetterRepository;
+    private final FunzyPackService funzyPackService;
+
+    /** 탈퇴 트랜잭션 안에서만 호출한다 — 회원 익명화와 함께 커밋되거나 함께 롤백돼야 한다. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void clean(Long memberId) {
+        socialConnectionRepository.deleteByMember_Id(memberId);
+        followRelationRepository.deleteAllByMember(memberId);
+        followRequestRepository.deleteAllByMember(memberId);
+
+        // 아카이브를 펀지팩보다 먼저 지운다 — 펀지팩 삭제는 아카이브 카드만 지우고 거기 달린 좋아요는 남기기 때문
+        deleteMyLikes(memberId);
+        deleteMyArchive(memberId);
+
+        // 받은 편지함: 편지(펀지팩)를 지울 때 함께 정리할 것(반응·코멘트 등)이 있어 펀지팩 삭제 로직을 그대로 쓴다
+        for (ReceivedLetter letter : receivedLetterRepository.findByReceiverMemberId(memberId)) {
+            funzyPackService.deletePack(memberId, letter.getId());
+        }
+        notificationRepository.deleteByMemberId(memberId);
+        letterInteractionRepository.deleteByMemberIdAndType(memberId, LetterInteractionType.FAVORITE);
+    }
+
+    /** 내가 다른 사람 아카이브 카드에 누른 좋아요. 좋아요 수도 함께 줄인다. */
+    private void deleteMyLikes(Long memberId) {
+        List<ArchiveCardLike> likes = archiveCardLikeRepository.findByMemberId(memberId);
+        if (likes.isEmpty()) {
+            return;
+        }
+        archiveCardRepository.findAllById(likes.stream().map(ArchiveCardLike::getArchiveCardId).toList())
+                .forEach(ArchiveCard::decreaseLikeCount);
+        archiveCardLikeRepository.deleteAll(likes);
+    }
+
+    /** 내 아카이브 카드와 거기 달린(다른 사람이 누른) 좋아요. */
+    private void deleteMyArchive(Long memberId) {
+        List<Long> myArchiveCardIds = archiveCardRepository.findByOwnerMemberIdOrderByCreatedAtDesc(memberId).stream()
+                .map(ArchiveCard::getId)
+                .toList();
+        if (myArchiveCardIds.isEmpty()) {
+            return;
+        }
+        archiveCardLikeRepository.deleteByArchiveCardIdIn(myArchiveCardIds);
+        archiveCardRepository.deleteByOwnerMemberId(memberId);
+    }
+}

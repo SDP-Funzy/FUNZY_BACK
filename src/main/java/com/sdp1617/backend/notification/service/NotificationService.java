@@ -22,7 +22,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     public PushSettingResponse getPushSetting(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         return new PushSettingResponse(member.isPushNotificationEnabled());
@@ -30,7 +30,7 @@ public class NotificationService {
 
     @Transactional
     public void updatePushSetting(Long memberId, boolean pushNotificationEnabled) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         member.updatePushNotificationEnabled(pushNotificationEnabled);

@@ -18,11 +18,33 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByNickname(String nickname);
 
+    /** 닉네임을 새로 쓸 수 없는지: 이미 사용 중이거나, 탈퇴 회원용으로 예약된 닉네임. */
+    default boolean isNicknameTaken(String nickname) {
+        return Member.isReservedNickname(nickname) || existsByNickname(nickname);
+    }
+
     Optional<Member> findByEmail(String email);
 
     Optional<Member> findByNickname(String nickname);
 
     Optional<Member> findByFollowCode(String followCode);
+
+    /** 탈퇴하지 않은 회원. 탈퇴해도 회원 행은 남으므로(익명화) 회원 정보를 읽거나 바꿀 때는 findById 대신 이걸 쓴다. */
+    default Optional<Member> findActiveById(Long id) {
+        return findById(id).filter(member -> !member.isWithdrawn());
+    }
+
+    /**
+     * 회원 정보를 바꿀 때 쓴다. 행을 잠가 탈퇴({@code withdraw})와 직렬화한 뒤 탈퇴 여부를 확인한다.
+     * 잠그지 않고 읽으면, 진행 중인 탈퇴가 커밋된 뒤에 이 수정이 적용돼 탈퇴한 회원에 사진·닉네임 등이 다시 붙는다.
+     */
+    default Optional<Member> findActiveByIdForUpdate(Long id) {
+        return findByIdForUpdate(id).filter(member -> !member.isWithdrawn());
+    }
+
+    /** 탈퇴하지 않은 회원인지. 탈퇴해도 회원 행은 남으므로(익명화) existsById 대신 이걸 쓴다. */
+    @Query("select count(m) > 0 from Member m where m.id = :id and m.withdrawnAt is null")
+    boolean existsActiveById(@Param("id") Long id);
 
     /**
      * 같은 회원에 대한 소셜 연결 해제 요청 두 개가 동시에 들어오면(예: KAKAO/GOOGLE 동시 해제),

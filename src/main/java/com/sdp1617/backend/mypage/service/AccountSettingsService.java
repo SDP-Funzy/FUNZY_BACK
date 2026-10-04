@@ -9,9 +9,11 @@ import com.sdp1617.backend.auth.service.AllSessionsRevokedEvent;
 import com.sdp1617.backend.auth.service.TokenService;
 import com.sdp1617.backend.auth.social.SocialUserInfo;
 import com.sdp1617.backend.auth.social.SocialUserInfoProviderRegistry;
+import com.sdp1617.backend.global.common.AfterCommit;
 import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.s3.S3ImageService;
 import com.sdp1617.backend.mypage.dto.ConnectedAccountResponse;
 import java.util.List;
 import java.util.Optional;
@@ -36,9 +38,11 @@ public class AccountSettingsService {
     private final TokenService tokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final MemberWithdrawalCleaner memberWithdrawalCleaner;
+    private final S3ImageService s3ImageService;
 
     public ConnectedAccountResponse getConnectedAccount(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         List<AuthProvider> connectedProviders = socialConnectionRepository.findByMember_Id(memberId).stream()
@@ -50,7 +54,7 @@ public class AccountSettingsService {
 
     @Transactional
     public void changePassword(Long memberId, String currentPassword, String newPassword, String newPasswordConfirm) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveByIdForUpdate(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         if (!member.hasPassword()) {
@@ -72,13 +76,34 @@ public class AccountSettingsService {
         tokenService.revokeSession(memberId, refreshToken);
     }
 
+    /**
+     * 탈퇴: 회원 행을 지우지 않고 익명화한다. 주고받은 마음카드·봉투 등이 회원을 외래키로 참조하고 있어
+     * 행을 지우면 탈퇴 자체가 실패하고, 상대방 보관함의 카드도 사라지기 때문이다.
+     * 본인만 쓰던 데이터와 다른 회원에게 영향을 주는 관계는 {@link MemberWithdrawalCleaner}가 지운다.
+     */
     @Transactional
     public void withdraw(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        // 같은 회원의 탈퇴 요청이 동시에 오면 직렬화하고, 이미 탈퇴했으면 없는 회원으로 본다
+        Member member = memberRepository.findByIdForUpdate(memberId)
+                .filter(found -> !found.isWithdrawn())
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
+        String profileImageKey = member.getProfileImageKey();
 
-        memberRepository.delete(member);
+        memberWithdrawalCleaner.clean(memberId);
+        member.withdraw();
+
+        deleteProfileImageAfterCommit(profileImageKey);
         eventPublisher.publishEvent(new AllSessionsRevokedEvent(memberId));
+    }
+
+    /** 커밋된 뒤에만 S3 이미지를 지운다 (탈퇴가 롤백되면 이미지가 남아 있어야 하므로). */
+    private void deleteProfileImageAfterCommit(String imageKey) {
+        if (imageKey == null || imageKey.isBlank()) {
+            return;
+        }
+        AfterCommit.run(
+                () -> s3ImageService.deleteImageQuietlyAsync(imageKey),
+                () -> s3ImageService.deleteImageQuietly(imageKey));
     }
 
     /**
@@ -91,7 +116,7 @@ public class AccountSettingsService {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void connectSocialAccount(Long memberId, AuthProvider provider, String token) {
-        Member member = memberRepository.findById(memberId)
+        Member member = memberRepository.findActiveById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
 
         if (socialConnectionRepository.existsByMember_IdAndProvider(memberId, provider)) {
@@ -107,8 +132,15 @@ public class AccountSettingsService {
         try {
             // saveAndFlush로 커밋을 기다리지 않고 바로 제약 위반을 드러낸다 — 위 두 exists 체크와
             // 실제 저장 사이의 경쟁(같은 소셜 계정을 동시에 연결 시도)에 대한 최종 방어선.
-            transactionTemplate.executeWithoutResult(status ->
-                    socialConnectionRepository.saveAndFlush(SocialConnection.create(member, provider, userInfo.externalId())));
+            transactionTemplate.executeWithoutResult(status -> {
+                // 소셜 제공자 호출 중에 탈퇴가 커밋됐을 수 있다. 회원 행을 잠가 탈퇴와 직렬화하고 다시 확인한다
+                // (확인 없이 저장하면 탈퇴 정리 뒤에 연결이 남아 그 소셜 계정으로 다시 가입할 수 없게 된다).
+                Member lockedMember = memberRepository.findByIdForUpdate(memberId)
+                        .filter(found -> !found.isWithdrawn())
+                        .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
+                socialConnectionRepository.saveAndFlush(
+                        SocialConnection.create(lockedMember, provider, userInfo.externalId()));
+            });
         } catch (DataIntegrityViolationException exception) {
             throw new CustomException(
                     resolveConnectionConflict(exception, memberId, provider, userInfo.externalId())

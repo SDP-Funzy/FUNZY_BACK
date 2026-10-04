@@ -116,7 +116,7 @@ class ProfileServiceTest {
     void 프로필을_조회한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
 
         ProfileResponse response = profileService.getProfile(1L);
 
@@ -127,7 +127,7 @@ class ProfileServiceTest {
 
     @Test
     void 존재하지_않는_회원_조회시_AUTH_002_예외를_던진다() {
-        when(memberRepository.findById(1L)).thenReturn(Optional.empty());
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> profileService.getProfile(1L));
@@ -139,8 +139,8 @@ class ProfileServiceTest {
     void 닉네임을_변경한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(memberRepository.existsByNickname("새닉네임")).thenReturn(false);
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.isNicknameTaken("새닉네임")).thenReturn(false);
 
         profileService.updateNickname(1L, new NicknameUpdateRequest("새닉네임"));
 
@@ -152,7 +152,7 @@ class ProfileServiceTest {
     void 기존_닉네임과_동일하면_중복_검사_없이_통과한다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         profileService.updateNickname(1L, new NicknameUpdateRequest("닉네임"));
 
@@ -163,8 +163,8 @@ class ProfileServiceTest {
     void 다른_회원이_사용중인_닉네임이면_AUTH_007_예외를_던진다() {
         Member member = localMember();
         setId(member, 1L);
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
-        when(memberRepository.existsByNickname("중복닉네임")).thenReturn(true);
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.isNicknameTaken("중복닉네임")).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> profileService.updateNickname(1L, new NicknameUpdateRequest("중복닉네임")));
@@ -177,7 +177,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         member.updateProfileImage("profiles/1/a.png", "https://example.com/profiles/1/a.png");
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         stubValidPngUpload();
 
         profileService.completeProfileImageUpload(1L, new ProfileImageUploadCompleteRequest("profiles/1/a.png"));
@@ -190,7 +190,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         member.updateProfileImage("profiles/1/old.png", "https://example.com/profiles/1/old.png");
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         stubValidPngUpload();
 
         profileService.completeProfileImageUpload(1L, new ProfileImageUploadCompleteRequest("profiles/1/new.png"));
@@ -203,7 +203,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         member.updateProfileImage("profiles/1/old.png", "https://example.com/profiles/1/old.png");
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
         stubValidPngUpload();
 
         CountDownLatch deleteStarted = new CountDownLatch(1);
@@ -257,7 +257,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         member.updateProfileImage("profiles/1/old.png", "https://example.com/profiles/1/old.png");
-        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
 
         profileService.resetProfileImage(1L);
 

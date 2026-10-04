@@ -55,7 +55,11 @@ public class CardService {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final LocalDateTime EMPTY_CREATED_AT = LocalDateTime.MIN;
+    /**
+     * 작성 시각이 없는 카드를 정렬·커서에서 가장 오래된 것으로 취급하기 위한 값.
+     * LocalDateTime.MIN은 PostgreSQL timestamp 범위를 벗어나 쿼리 파라미터로 쓰면 오류가 나므로, DB가 받는 범위의 과거 시각을 쓴다.
+     */
+    private static final LocalDateTime EMPTY_CREATED_AT = LocalDateTime.of(1970, 1, 1, 0, 0);
 
     private final EnvelopRepository envelopRepository;
     private final CardRepository cardRepository;
@@ -201,6 +205,10 @@ public class CardService {
         }
 
         return transactionTemplate.execute(status -> {
+            // 받는 사람이 없거나 탈퇴했으면 거절한다. 탈퇴해도 회원 행과 기존 봉투는 남으므로(익명화) 봉투가 있어도 확인한다.
+            if (!memberRepository.existsActiveById(request.receiverId())) {
+                throw new CustomException(ErrorCode.CARD_006);
+            }
             Envelop envelop = envelopRepository.findBySender_IdAndReceiver_Id(senderId, request.receiverId())
                     .orElseGet(() -> createEnvelop(senderId, request));
 
@@ -226,11 +234,6 @@ public class CardService {
     }
 
     private Envelop createEnvelop(Long senderId, CardCreateRequest request) {
-        // 봉투가 이미 있으면 받는 사람이 존재하는 것이므로, 새 봉투를 만들 때만 확인한다
-        // (확인 없이 저장하면 없는 회원 ID가 FK 위반 500으로 드러난다)
-        if (!memberRepository.existsById(request.receiverId())) {
-            throw new CustomException(ErrorCode.CARD_006);
-        }
         Member sender = entityManager.getReference(Member.class, senderId);
         Member receiver = entityManager.getReference(Member.class, request.receiverId());
 
