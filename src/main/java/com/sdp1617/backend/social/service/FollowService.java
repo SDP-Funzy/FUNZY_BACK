@@ -7,10 +7,13 @@ import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
+import com.sdp1617.backend.social.dto.FriendResponse;
+import com.sdp1617.backend.social.dto.SentFollowRequestResponse;
 import com.sdp1617.backend.social.entity.FollowRelation;
 import com.sdp1617.backend.social.entity.FollowRequest;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import com.sdp1617.backend.social.repository.FollowRequestRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,16 +82,44 @@ public class FollowService {
 
     public List<FollowRequestResponse> getReceivedRequests(Long memberId) {
         List<FollowRequest> requests = followRequestRepository.findByReceiverIdOrderByCreatedAtDesc(memberId);
-
-        List<Long> requesterIds = requests.stream().map(FollowRequest::getRequesterId).toList();
-        Map<Long, Member> requesterById = memberRepository.findAllById(requesterIds).stream()
-                .collect(Collectors.toMap(Member::getId, Function.identity()));
+        Map<Long, Member> requesterById = membersById(requests.stream().map(FollowRequest::getRequesterId).toList());
 
         return requests.stream()
+                .filter(request -> requesterById.containsKey(request.getRequesterId()))
                 .map(request -> {
                     Member requester = requesterById.get(request.getRequesterId());
                     return new FollowRequestResponse(
                             request.getId(), requester.getId(), requester.getNickname(), request.getCreatedAt());
+                })
+                .toList();
+    }
+
+    /** 내가 보낸, 아직 상대가 수락/거절하지 않은 요청 ("요청 중" 표시용). 최신순. */
+    public List<SentFollowRequestResponse> getSentRequests(Long memberId) {
+        List<FollowRequest> requests = followRequestRepository.findByRequesterIdOrderByCreatedAtDesc(memberId);
+        Map<Long, Member> receiverById = membersById(requests.stream().map(FollowRequest::getReceiverId).toList());
+
+        return requests.stream()
+                .filter(request -> receiverById.containsKey(request.getReceiverId()))
+                .map(request -> {
+                    Member receiver = receiverById.get(request.getReceiverId());
+                    return new SentFollowRequestResponse(request.getId(), receiver.getId(), receiver.getNickname(),
+                            receiver.getProfileImageUrl(), request.getCreatedAt());
+                })
+                .toList();
+    }
+
+    /** 친구(맞팔) 목록. 최근에 친구가 된 순. 친구 수 상한이 있어 페이지네이션 없이 전부 반환한다. */
+    public List<FriendResponse> getFriends(Long memberId) {
+        List<FollowRelation> relations = followRelationRepository.findAllByMemberOrderByNewest(memberId);
+        Map<Long, Member> friendById = membersById(relations.stream().map(r -> r.otherMemberId(memberId)).toList());
+
+        return relations.stream()
+                .filter(relation -> friendById.containsKey(relation.otherMemberId(memberId)))
+                .map(relation -> {
+                    Member friend = friendById.get(relation.otherMemberId(memberId));
+                    return new FriendResponse(friend.getId(), friend.getNickname(), friend.getProfileImageUrl(),
+                            relation.getCreatedAt());
                 })
                 .toList();
     }
@@ -103,6 +134,15 @@ public class FollowService {
 
         followRequestRepository.delete(request);
         followRelationRepository.save(FollowRelation.of(request.getRequesterId(), memberId));
+    }
+
+    @Transactional
+    public void cancelFollowRequest(Long memberId, Long requestId) {
+        FollowRequest request = followRequestRepository.findById(requestId)
+                .filter(r -> r.isSentBy(memberId))
+                .orElseThrow(() -> new CustomException(ErrorCode.SOCIAL_006));
+
+        followRequestRepository.delete(request);
     }
 
     @Transactional
@@ -131,6 +171,15 @@ public class FollowService {
                 || followRelationRepository.countByMember(memberId2) >= maxFollowCount) {
             throw new CustomException(ErrorCode.SOCIAL_005);
         }
+    }
+
+    /**
+     * 회원 ID → 회원. 탈퇴로 회원이 사라졌는데 팔로우 요청/관계가 남은 경우(#93)는 맵에 없으므로,
+     * 호출하는 쪽에서 걸러 목록 전체가 실패하지 않게 한다.
+     */
+    private Map<Long, Member> membersById(Collection<Long> memberIds) {
+        return memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(Member::getId, Function.identity()));
     }
 
     private Member getMember(Long memberId) {

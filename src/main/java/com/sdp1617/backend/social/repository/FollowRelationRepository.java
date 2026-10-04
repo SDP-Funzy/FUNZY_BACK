@@ -12,6 +12,10 @@ public interface FollowRelationRepository extends JpaRepository<FollowRelation, 
     @Query("select f from FollowRelation f where f.memberIdA = :memberId or f.memberIdB = :memberId")
     List<FollowRelation> findAllByMember(@Param("memberId") Long memberId);
 
+    @Query("select f from FollowRelation f where f.memberIdA = :memberId or f.memberIdB = :memberId "
+            + "order by f.createdAt desc, f.id desc")
+    List<FollowRelation> findAllByMemberOrderByNewest(@Param("memberId") Long memberId);
+
     @Query("select count(f) from FollowRelation f where f.memberIdA = :memberId or f.memberIdB = :memberId")
     long countByMember(@Param("memberId") Long memberId);
 

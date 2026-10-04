@@ -12,4 +12,6 @@ public interface FollowRequestRepository extends JpaRepository<FollowRequest, Lo
     Optional<FollowRequest> findByRequesterIdAndReceiverId(Long requesterId, Long receiverId);
 
     List<FollowRequest> findByReceiverIdOrderByCreatedAtDesc(Long receiverId);
+
+    List<FollowRequest> findByRequesterIdOrderByCreatedAtDesc(Long requesterId);
 }

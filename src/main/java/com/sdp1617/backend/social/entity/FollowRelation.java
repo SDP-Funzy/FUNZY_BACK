@@ -44,6 +44,11 @@ public class FollowRelation {
         this.createdAt = LocalDateTime.now();
     }
 
+    /** 이 관계에서 memberId가 아닌 쪽(친구)의 회원 ID. */
+    public Long otherMemberId(Long memberId) {
+        return memberIdA.equals(memberId) ? memberIdB : memberIdA;
+    }
+
     public static FollowRelation of(Long memberId1, Long memberId2) {
         long a = Math.min(memberId1, memberId2);
         long b = Math.max(memberId1, memberId2);

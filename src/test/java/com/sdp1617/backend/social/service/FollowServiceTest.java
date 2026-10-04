@@ -8,6 +8,8 @@ import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
+import com.sdp1617.backend.social.dto.FriendResponse;
+import com.sdp1617.backend.social.dto.SentFollowRequestResponse;
 import com.sdp1617.backend.social.entity.FollowRelation;
 import com.sdp1617.backend.social.entity.FollowRequest;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
@@ -260,5 +262,77 @@ class FollowServiceTest {
 
         assertEquals(1L, response.currentCount());
         assertEquals(2, response.maxCount());
+    }
+
+    @Test
+    void 친구_목록은_관계의_어느_쪽이든_상대_회원으로_조회한다() {
+        // 1번 회원 기준: (1,3)에서는 3번이, (1,2)에서는 2번이 친구다. 저장소가 최신순으로 준 순서를 유지한다.
+        FollowRelation newer = FollowRelation.of(3L, 1L);
+        FollowRelation older = FollowRelation.of(1L, 2L);
+        when(followRelationRepository.findAllByMemberOrderByNewest(1L)).thenReturn(List.of(newer, older));
+        when(memberRepository.findAllById(List.of(3L, 2L))).thenReturn(List.of(member(2L, "친구2"), member(3L, "친구3")));
+
+        List<FriendResponse> friends = followService.getFriends(1L);
+
+        assertEquals(List.of(3L, 2L), friends.stream().map(FriendResponse::memberId).toList());
+        assertEquals("친구3", friends.get(0).nickname());
+    }
+
+    @Test
+    void 탈퇴해_회원이_없는_친구는_목록에서_빠진다() {
+        when(followRelationRepository.findAllByMemberOrderByNewest(1L))
+                .thenReturn(List.of(FollowRelation.of(1L, 2L), FollowRelation.of(1L, 9L)));
+        when(memberRepository.findAllById(List.of(2L, 9L))).thenReturn(List.of(member(2L, "친구2")));
+
+        List<FriendResponse> friends = followService.getFriends(1L);
+
+        assertEquals(List.of(2L), friends.stream().map(FriendResponse::memberId).toList());
+    }
+
+    @Test
+    void 탈퇴한_회원이_보낸_요청은_받은_요청_목록에서_빠진다() {
+        FollowRequest fromWithdrawn = new FollowRequest(9L, 1L);
+        setId(fromWithdrawn, FollowRequest.class, 100L);
+        when(followRequestRepository.findByReceiverIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(fromWithdrawn));
+        when(memberRepository.findAllById(List.of(9L))).thenReturn(List.of());
+
+        assertEquals(0, followService.getReceivedRequests(1L).size());
+    }
+
+    @Test
+    void 보낸_요청_목록을_조회한다() {
+        FollowRequest request = new FollowRequest(1L, 2L);
+        setId(request, FollowRequest.class, 100L);
+        when(followRequestRepository.findByRequesterIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(request));
+        when(memberRepository.findAllById(List.of(2L))).thenReturn(List.of(member(2L, "받는사람")));
+
+        List<SentFollowRequestResponse> responses = followService.getSentRequests(1L);
+
+        assertEquals(1, responses.size());
+        assertEquals(100L, responses.get(0).requestId());
+        assertEquals("받는사람", responses.get(0).receiverNickname());
+    }
+
+    @Test
+    void 내가_보낸_요청을_취소한다() {
+        FollowRequest request = new FollowRequest(1L, 2L);
+        when(followRequestRepository.findById(100L)).thenReturn(Optional.of(request));
+
+        followService.cancelFollowRequest(1L, 100L);
+
+        verify(followRequestRepository).delete(request);
+    }
+
+    @Test
+    void 내가_보내지_않은_요청을_취소하면_SOCIAL_006_예외를_던진다() {
+        // 나에게 온 요청(받은 요청)은 취소가 아니라 거절해야 한다
+        FollowRequest request = new FollowRequest(2L, 1L);
+        when(followRequestRepository.findById(100L)).thenReturn(Optional.of(request));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> followService.cancelFollowRequest(1L, 100L));
+
+        assertEquals(ErrorCode.SOCIAL_006, exception.getErrorCode());
+        verify(followRequestRepository, never()).delete(any());
     }
 }

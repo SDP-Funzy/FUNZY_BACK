@@ -47,4 +47,8 @@ public class FollowRequest {
     public boolean isReceivedBy(Long memberId) {
         return this.receiverId.equals(memberId);
     }
+
+    public boolean isSentBy(Long memberId) {
+        return this.requesterId.equals(memberId);
+    }
 }

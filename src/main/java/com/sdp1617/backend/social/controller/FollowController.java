@@ -5,6 +5,8 @@ import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestCreateRequest;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
+import com.sdp1617.backend.social.dto.FriendResponse;
+import com.sdp1617.backend.social.dto.SentFollowRequestResponse;
 import com.sdp1617.backend.social.service.FollowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/social/follow")
-@Tag(name = "소셜 - 팔로우", description = "고유 코드 발급/재발급, 팔로우 요청/수락/거절/끊기, 친구 수 조회 API")
+@Tag(name = "소셜 - 팔로우", description = "고유 코드 발급/재발급, 팔로우 요청/취소/수락/거절/끊기, 친구 목록·보낸 요청·친구 수 조회 API")
 public class FollowController {
 
     private final FollowService followService;
@@ -196,6 +198,72 @@ public class FollowController {
         return ApiResponse.ok("받은 팔로우 요청 목록을 조회했습니다.", followService.getReceivedRequests(memberId));
     }
 
+    @Operation(summary = "보낸 팔로우 요청 목록 조회", description = """
+            내가 보낸, 상대가 아직 수락/거절하지 않은 팔로우 요청 목록을 최신순으로 조회합니다.
+            - 친구 찾기 화면의 "요청 중" 상태 표시에 사용합니다.
+            - 상대가 거절한 요청은 목록에서 사라집니다(거절 사실은 알리지 않음).
+            """)
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = SentFollowRequestResponse.class)),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "success": true,
+                                      "code": "200",
+                                      "message": "보낸 팔로우 요청 목록을 조회했습니다.",
+                                      "data": [
+                                        {
+                                          "requestId": 1,
+                                          "receiverId": 2,
+                                          "receiverNickname": "유저B",
+                                          "receiverProfileImageUrl": null,
+                                          "createdAt": "2026-08-14T05:18:16.856342"
+                                        }
+                                      ]
+                                    }
+                                    """)))
+    })
+    @GetMapping("/requests/sent")
+    public ApiResponse<List<SentFollowRequestResponse>> getSentRequests(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
+    ) {
+        return ApiResponse.ok("보낸 팔로우 요청 목록을 조회했습니다.", followService.getSentRequests(memberId));
+    }
+
+    @Operation(summary = "보낸 팔로우 요청 취소", description = """
+            내가 보낸 팔로우 요청을 취소합니다. 상대방에게 알림은 발송되지 않습니다.
+            - 이미 상대가 수락/거절했거나 내가 보낸 요청이 아니면 SOCIAL_006입니다.
+            """)
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "취소 성공",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "success": true,
+                              "code": "200",
+                              "message": "팔로우 요청을 취소했습니다.",
+                              "data": null
+                            }
+                            """))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않거나 내가 보낸 요청이 아님",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "success": false,
+                              "code": "SOCIAL_006",
+                              "message": "존재하지 않는 팔로우 요청입니다.",
+                              "data": null
+                            }
+                            """)))
+    })
+    @DeleteMapping("/requests/{requestId}")
+    public ApiResponse<Void> cancelFollowRequest(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
+            @PathVariable Long requestId
+    ) {
+        followService.cancelFollowRequest(memberId, requestId);
+        return ApiResponse.ok("팔로우 요청을 취소했습니다.", null);
+    }
+
     @Operation(summary = "팔로우 요청 수락", description = """
             받은 팔로우 요청을 수락하여 맞팔 관계를 형성합니다.
             - 수락 시점에 나 또는 상대방이 친구 수 상한에 도달해 있으면 수락할 수 없습니다.
@@ -302,6 +370,38 @@ public class FollowController {
     ) {
         followService.unfollow(memberId, followMemberId);
         return ApiResponse.ok("팔로우를 끊었습니다.", null);
+    }
+
+    @Operation(summary = "친구 목록 조회", description = """
+            친구(맞팔) 목록을 최근에 친구가 된 순으로 조회합니다.
+            - 친구 수 상한이 있어 페이지네이션 없이 전체를 반환합니다.
+            - memberId는 팔로우 끊기(DELETE /api/social/follow/{followMemberId})에 사용합니다.
+            """)
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = FriendResponse.class)),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "success": true,
+                                      "code": "200",
+                                      "message": "친구 목록을 조회했습니다.",
+                                      "data": [
+                                        {
+                                          "memberId": 2,
+                                          "nickname": "유저B",
+                                          "profileImageUrl": null,
+                                          "friendSince": "2026-08-14T05:18:16.856342"
+                                        }
+                                      ]
+                                    }
+                                    """)))
+    })
+    @GetMapping("/friends")
+    public ApiResponse<List<FriendResponse>> getFriends(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
+    ) {
+        return ApiResponse.ok("친구 목록을 조회했습니다.", followService.getFriends(memberId));
     }
 
     @Operation(summary = "친구 수 조회", description = """
