@@ -55,7 +55,11 @@ public class CardService {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final LocalDateTime EMPTY_CREATED_AT = LocalDateTime.MIN;
+    /**
+     * 작성 시각이 없는 카드를 정렬·커서에서 가장 오래된 것으로 취급하기 위한 값.
+     * LocalDateTime.MIN은 PostgreSQL timestamp 범위를 벗어나 쿼리 파라미터로 쓰면 오류가 나므로, DB가 받는 범위의 과거 시각을 쓴다.
+     */
+    private static final LocalDateTime EMPTY_CREATED_AT = LocalDateTime.of(1970, 1, 1, 0, 0);
 
     private final EnvelopRepository envelopRepository;
     private final CardRepository cardRepository;
