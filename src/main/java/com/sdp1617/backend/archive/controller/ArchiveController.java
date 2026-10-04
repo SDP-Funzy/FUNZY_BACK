@@ -37,7 +37,7 @@ public class ArchiveController {
     public ApiResponse<ArchiveHomeResponse> getHome(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
     ) {
-        return ApiResponse.ok("Archive home loaded.", archiveService.getHome(memberId));
+        return ApiResponse.ok("아카이브 홈을 조회했습니다.", archiveService.getHome(memberId));
     }
 
     @PostMapping("/api/archive/cards")
@@ -49,7 +49,7 @@ public class ArchiveController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody ArchiveCardCreateRequest request
     ) {
-        return ApiResponse.created("Archive card saved.", archiveService.saveCard(memberId, request));
+        return ApiResponse.created("아카이브에 카드를 저장했습니다.", archiveService.saveCard(memberId, request));
     }
 
     @GetMapping("/api/archive/cards/{archiveCardId}")
@@ -66,7 +66,7 @@ public class ArchiveController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long viewerMemberId,
             @Parameter(description = "조회할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
     ) {
-        return ApiResponse.ok("Archive card loaded.", archiveService.getCard(viewerMemberId, archiveCardId));
+        return ApiResponse.ok("아카이브 카드를 조회했습니다.", archiveService.getCard(viewerMemberId, archiveCardId));
     }
 
     @DeleteMapping("/api/archive/cards/{archiveCardId}")
@@ -79,7 +79,7 @@ public class ArchiveController {
             @Parameter(description = "삭제할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
     ) {
         archiveService.deleteCard(memberId, archiveCardId);
-        return ApiResponse.ok("Archive card deleted.", null);
+        return ApiResponse.ok("아카이브 카드를 삭제했습니다.", null);
     }
 
     @PatchMapping("/api/archive/cards/{archiveCardId}/visibility")
@@ -92,7 +92,7 @@ public class ArchiveController {
             @Parameter(description = "공개 범위를 수정할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId,
             @Valid @RequestBody ArchiveVisibilityUpdateRequest request
     ) {
-        return ApiResponse.ok("Archive visibility updated.", archiveService.updateVisibility(memberId, archiveCardId, request));
+        return ApiResponse.ok("카드 공개 범위를 수정했습니다.", archiveService.updateVisibility(memberId, archiveCardId, request));
     }
 
     @PostMapping("/api/archive/cards/{archiveCardId}/like")
@@ -108,6 +108,6 @@ public class ArchiveController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "좋아요를 누를 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
     ) {
-        return ApiResponse.ok("Archive card like toggled.", archiveService.toggleLike(memberId, archiveCardId));
+        return ApiResponse.ok("좋아요 상태를 변경했습니다.", archiveService.toggleLike(memberId, archiveCardId));
     }
 }

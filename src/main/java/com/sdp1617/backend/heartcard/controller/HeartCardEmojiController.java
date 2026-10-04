@@ -30,7 +30,7 @@ public class HeartCardEmojiController {
             description = "이모지 선택 팝업에 표시할 기본 이모지 6개를 조회합니다."
     )
     public ApiResponse<HeartCardEmojiOptionListResponse> getEmojiOptions() {
-        return ApiResponse.ok("Heart card emoji options loaded.", heartCardEmojiService.getEmojiOptions());
+        return ApiResponse.ok("이모지 선택지를 조회했습니다.", heartCardEmojiService.getEmojiOptions());
     }
 
     @GetMapping("/api/heart-cards/{heartCardId}/emoji")
@@ -42,7 +42,7 @@ public class HeartCardEmojiController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "마음카드 ID", example = "1") @PathVariable Long heartCardId
     ) {
-        return ApiResponse.ok("Heart card emoji loaded.", heartCardEmojiService.getMyEmoji(memberId, heartCardId));
+        return ApiResponse.ok("마음카드 이모지를 조회했습니다.", heartCardEmojiService.getMyEmoji(memberId, heartCardId));
     }
 
     @PutMapping("/api/heart-cards/{heartCardId}/emoji")
@@ -55,6 +55,6 @@ public class HeartCardEmojiController {
             @Parameter(description = "마음카드 ID", example = "1") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardEmojiRequest request
     ) {
-        return ApiResponse.ok("Heart card emoji updated.", heartCardEmojiService.updateEmoji(memberId, heartCardId, request));
+        return ApiResponse.ok("마음카드 이모지를 변경했습니다.", heartCardEmojiService.updateEmoji(memberId, heartCardId, request));
     }
 }

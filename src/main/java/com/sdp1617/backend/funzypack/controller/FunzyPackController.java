@@ -29,7 +29,7 @@ public class FunzyPackController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "펀지팩 ID. 현재 받은 편지 ID와 동일하게 사용합니다.", example = "6") @PathVariable Long packId
     ) {
-        return ApiResponse.ok("Funzy pack cards loaded.", funzyPackService.getCards(memberId, packId));
+        return ApiResponse.ok("펀지팩 카드 목록을 조회했습니다.", funzyPackService.getCards(memberId, packId));
     }
 
     @DeleteMapping("/api/funzy-packs/{packId}")
@@ -42,6 +42,6 @@ public class FunzyPackController {
             @Parameter(description = "삭제할 펀지팩 ID. 현재 받은 편지 ID와 동일하게 사용합니다.", example = "6") @PathVariable Long packId
     ) {
         funzyPackService.deletePack(memberId, packId);
-        return ApiResponse.ok("Funzy pack deleted.", null);
+        return ApiResponse.ok("펀지팩을 삭제했습니다.", null);
     }
 }

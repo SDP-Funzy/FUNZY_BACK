@@ -32,7 +32,7 @@ public class GiftItemEmojiController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "선물 항목 ID", example = "200") @PathVariable Long giftItemId
     ) {
-        return ApiResponse.ok("Gift item emoji loaded.", giftItemEmojiService.getMyEmoji(memberId, giftItemId));
+        return ApiResponse.ok("선물 항목 이모지를 조회했습니다.", giftItemEmojiService.getMyEmoji(memberId, giftItemId));
     }
 
     @PutMapping("/api/gift-items/{giftItemId}/emoji")
@@ -45,6 +45,6 @@ public class GiftItemEmojiController {
             @Parameter(description = "선물 항목 ID", example = "200") @PathVariable Long giftItemId,
             @Valid @RequestBody GiftItemEmojiRequest request
     ) {
-        return ApiResponse.ok("Gift item emoji updated.", giftItemEmojiService.updateEmoji(memberId, giftItemId, request));
+        return ApiResponse.ok("선물 항목 이모지를 변경했습니다.", giftItemEmojiService.updateEmoji(memberId, giftItemId, request));
     }
 }
