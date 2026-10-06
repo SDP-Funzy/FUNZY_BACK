@@ -70,8 +70,9 @@ class ArchiveServiceTest {
         ReflectionTestUtils.setField(card, "id", CARD_ID);
         ReflectionTestUtils.setField(card, "message", "비밀 메시지");
         ReflectionTestUtils.setField(card, "senderName", "보낸 사람");
-        // 메시지만 비공개
-        card.updateVisibility(new ArchiveVisibility(true, true, true, true, false));
+        ReflectionTestUtils.setField(card, "imageUrl", "https://example.test/private-image.jpg");
+        // 이미지와 메시지 비공개
+        card.updateVisibility(new ArchiveVisibility(true, true, true, false, false));
         lenient().when(archiveCardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
         lenient().when(followRelationRepository.findBetween(FRIEND_ID, OWNER_ID))
                 .thenReturn(Optional.of(FollowRelation.of(FRIEND_ID, OWNER_ID)));
@@ -84,6 +85,7 @@ class ArchiveServiceTest {
 
         assertEquals("비밀 메시지", response.message());
         assertEquals("보낸 사람", response.senderName());
+        assertEquals("https://example.test/private-image.jpg", response.imageUrl());
     }
 
     @Test
@@ -91,6 +93,7 @@ class ArchiveServiceTest {
         ArchiveCardDetailResponse response = archiveService.getCard(FRIEND_ID, CARD_ID);
 
         assertNull(response.message());
+        assertNull(response.imageUrl());
         assertEquals("보낸 사람", response.senderName());
     }
 
@@ -172,6 +175,7 @@ class ArchiveServiceTest {
 
         assertEquals("카드주인", home.nickname());
         assertEquals("비밀 메시지", onlyCard(home).messagePreview());
+        assertEquals("https://example.test/private-image.jpg", onlyCard(home).imageUrl());
     }
 
     @Test
@@ -182,6 +186,7 @@ class ArchiveServiceTest {
 
         assertEquals(OWNER_ID, home.memberId());
         assertNull(onlyCard(home).messagePreview());
+        assertNull(onlyCard(home).imageUrl());
     }
 
     @Test
