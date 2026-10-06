@@ -13,13 +13,21 @@ public record ArchiveCardResponse(
         String messagePreview,
         LocalDateTime archivedAt
 ) {
+    /** 주인이 보는 카드. 비공개 항목도 모두 보인다. */
     public static ArchiveCardResponse from(ArchiveCard card) {
+        return from(card, false);
+    }
+
+    /** maskPrivateFields가 true면(친구가 보는 경우) 주인이 비공개로 설정한 이미지·메시지를 null로 내린다. */
+    public static ArchiveCardResponse from(ArchiveCard card, boolean maskPrivateFields) {
+        boolean showImage = !maskPrivateFields || card.getVisibility().isImageVisible();
+        boolean showMessage = !maskPrivateFields || card.getVisibility().isMessageVisible();
         return new ArchiveCardResponse(
                 card.getId(),
                 card.getLetterCardId(),
                 card.getCategory(),
-                card.getImageUrl(),
-                preview(card.getMessage()),
+                showImage ? card.getImageUrl() : null,
+                showMessage ? preview(card.getMessage()) : null,
                 card.getCreatedAt()
         );
     }

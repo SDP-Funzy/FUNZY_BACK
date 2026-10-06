@@ -14,6 +14,8 @@ import com.sdp1617.backend.archive.entity.ArchiveVisibility;
 import com.sdp1617.backend.archive.entity.ArchiveCardLike;
 import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
+import com.sdp1617.backend.auth.entity.Member;
+import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
@@ -34,20 +36,42 @@ public class ArchiveService {
     private final ArchiveCardRepository archiveCardRepository;
     private final ArchiveCardLikeRepository archiveCardLikeRepository;
     private final FollowRelationRepository followRelationRepository;
+    private final MemberRepository memberRepository;
 
     public ArchiveHomeResponse getHome(Long memberId) {
+        return buildHome(findActiveMember(memberId), false);
+    }
+
+    /**
+     * 친구(맞팔)의 아카이브 홈. 탭 구조는 내 아카이브와 같고, 친구가 비공개로 설정한 이미지·메시지는 가려서 내린다.
+     * 친구가 아니면(탈퇴로 관계가 정리된 경우 포함) SOCIAL_007.
+     */
+    public ArchiveHomeResponse getFriendHome(Long viewerMemberId, Long friendMemberId) {
+        if (followRelationRepository.findBetween(viewerMemberId, friendMemberId).isEmpty()) {
+            throw new CustomException(ErrorCode.SOCIAL_007);
+        }
+        return buildHome(findActiveMember(friendMemberId), true);
+    }
+
+    private ArchiveHomeResponse buildHome(Member owner, boolean maskPrivateFields) {
         List<ArchiveCategorySectionResponse> sections = Arrays.stream(ArchiveCategory.values())
                 .map(category -> ArchiveCategorySectionResponse.of(
                         category,
-                        archiveCardRepository.findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(memberId, category)
+                        archiveCardRepository.findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(owner.getId(), category)
                                 .stream()
-                                .map(ArchiveCardResponse::from)
+                                .map(card -> ArchiveCardResponse.from(card, maskPrivateFields))
                                 .toList()
                 ))
                 .toList();
         boolean empty = sections.stream().allMatch(ArchiveCategorySectionResponse::empty);
 
-        return new ArchiveHomeResponse(memberId, ARCHIVE_TITLE, null, empty, sections);
+        return new ArchiveHomeResponse(
+                owner.getId(), owner.getNickname(), ARCHIVE_TITLE, owner.getProfileImageUrl(), empty, sections);
+    }
+
+    private Member findActiveMember(Long memberId) {
+        return memberRepository.findActiveById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 
     @Transactional
