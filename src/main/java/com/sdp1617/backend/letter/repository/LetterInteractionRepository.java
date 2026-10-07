@@ -16,4 +16,6 @@ public interface LetterInteractionRepository extends JpaRepository<LetterInterac
     void deleteByLetterId(Long letterId);
 
     void deleteByMemberIdAndType(Long memberId, LetterInteractionType type);
+
+    void deleteByLetterIdAndMemberId(Long letterId, Long memberId);
 }

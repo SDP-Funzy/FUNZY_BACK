@@ -13,6 +13,7 @@ import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.social.entity.FollowRelation;
@@ -58,6 +59,9 @@ class ArchiveServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private ReceivedLetterAccess receivedLetterAccess;
 
     @InjectMocks
     private ArchiveService archiveService;

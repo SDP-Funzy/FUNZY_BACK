@@ -1,15 +1,14 @@
 package com.sdp1617.backend.giftitem.service;
 
-import com.sdp1617.backend.funzypack.entity.FunzyPackCard;
-import com.sdp1617.backend.funzypack.repository.FunzyPackCardRepository;
 import com.sdp1617.backend.giftitem.dto.GiftItemEmojiRequest;
 import com.sdp1617.backend.giftitem.dto.GiftItemEmojiResponse;
 import com.sdp1617.backend.giftitem.entity.GiftItemEmojiReaction;
 import com.sdp1617.backend.giftitem.repository.GiftItemEmojiReactionRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.letter.entity.GiftItem;
+import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import com.sdp1617.backend.heartcard.entity.HeartCardEmojiAction;
-import com.sdp1617.backend.letter.repository.ReceivedLetterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,12 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class GiftItemEmojiService {
 
     private final GiftItemEmojiReactionRepository giftItemEmojiReactionRepository;
-    private final FunzyPackCardRepository funzyPackCardRepository;
-    private final ReceivedLetterRepository receivedLetterRepository;
+    private final ReceivedLetterAccess receivedLetterAccess;
 
     public GiftItemEmojiResponse getMyEmoji(Long memberId, Long giftItemId) {
         requireLogin(memberId);
-        validateGiftItemAccess(memberId, giftItemId);
+        receivedLetterAccess.requireReceivedGiftItem(memberId, giftItemId);
         return giftItemEmojiReactionRepository.findByGiftItemIdAndMemberId(giftItemId, memberId)
                 .map(GiftItemEmojiResponse::from)
                 .orElseGet(() -> GiftItemEmojiResponse.empty(giftItemId));
@@ -34,7 +32,7 @@ public class GiftItemEmojiService {
     @Transactional
     public GiftItemEmojiResponse updateEmoji(Long memberId, Long giftItemId, GiftItemEmojiRequest request) {
         requireLogin(memberId);
-        FunzyPackCard giftItem = findGiftItemForUpdate(memberId, giftItemId);
+        GiftItem giftItem = receivedLetterAccess.lockReceivedGiftItem(memberId, giftItemId);
         return giftItemEmojiReactionRepository.findByGiftItemIdAndMemberId(giftItemId, memberId)
                 .map(reaction -> updateOrDelete(giftItem.getId(), reaction, request))
                 .orElseGet(() -> create(memberId, giftItem.getId(), request));
@@ -65,25 +63,6 @@ public class GiftItemEmojiService {
     private void requireLogin(Long memberId) {
         if (memberId == null) {
             throw new CustomException(ErrorCode.COMMON_003);
-        }
-    }
-
-    private void validateGiftItemAccess(Long memberId, Long giftItemId) {
-        FunzyPackCard giftItem = funzyPackCardRepository.findById(giftItemId)
-                .orElseThrow(() -> new CustomException(ErrorCode.COMMON_001));
-        validateOwner(memberId, giftItem);
-    }
-
-    private FunzyPackCard findGiftItemForUpdate(Long memberId, Long giftItemId) {
-        FunzyPackCard giftItem = funzyPackCardRepository.findByIdForUpdate(giftItemId)
-                .orElseThrow(() -> new CustomException(ErrorCode.COMMON_001));
-        validateOwner(memberId, giftItem);
-        return giftItem;
-    }
-
-    private void validateOwner(Long memberId, FunzyPackCard giftItem) {
-        if (!receivedLetterRepository.existsByIdAndReceiverMemberId(giftItem.getPackId(), memberId)) {
-            throw new CustomException(ErrorCode.COMMON_004);
         }
     }
 }

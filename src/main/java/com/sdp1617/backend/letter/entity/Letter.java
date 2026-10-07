@@ -246,6 +246,14 @@ public class Letter {
         }
     }
 
+    /** 받는 사람이 두들픽 선물 후보 중 하나를 고른다 (LR-022). 다시 고르면 바뀌고, null이면 선택을 취소한다. */
+    public void selectGift(Long giftItemId) {
+        if (giftItemId != null && giftItems.stream().noneMatch(item -> Objects.equals(item.getId(), giftItemId))) {
+            throw new CustomException(ErrorCode.LETTER_010);
+        }
+        this.selectedGiftItemId = giftItemId;
+    }
+
     /** 받는 사람이 받은 편지함에서 지운다. 보낸 사람의 보낸 편지함에는 남는다. */
     public void hideForRecipient() {
         recipientHiddenAt = LocalDateTime.now();

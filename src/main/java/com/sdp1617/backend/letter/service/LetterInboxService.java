@@ -39,6 +39,8 @@ public class LetterInboxService {
 
     private final LetterRepository letterRepository;
     private final MemberRepository memberRepository;
+    private final ReceivedLetterAccess receivedLetterAccess;
+    private final ReceivedLetterReactionCleaner receivedLetterReactionCleaner;
 
     /** 완료한 편지를 회원에게 보낸다. 탈퇴하지 않은 회원이면 누구에게나 보낼 수 있고, 본인에게는 보낼 수 없다. */
     @Transactional
@@ -73,7 +75,8 @@ public class LetterInboxService {
     }
 
     /**
-     * 편지 지우기. 보낸 사람은 보내기 전 편지를 삭제(작성 취소)하고, 받는 사람은 받은 편지함에서 숨긴다.
+     * 편지 지우기. 보낸 사람은 보내기 전 편지를 삭제(작성 취소)하고, 받는 사람은 받은 편지함에서 숨기며
+     * 그 편지에 남긴 내 반응(아카이브·이모지·코멘트 등)도 함께 지운다 (LR-512).
      * 보낸 편지는 보낸 사람이 지울 수 없다(LETTER_003) — 받는 사람의 편지함에 있는 편지이기 때문이다.
      */
     @Transactional
@@ -81,6 +84,7 @@ public class LetterInboxService {
         Letter letter = letterRepository.findByIdForUpdate(letterId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LETTER_001));
         if (letter.isVisibleToRecipient(memberId)) {
+            receivedLetterReactionCleaner.cleanMyReactions(memberId, letter);
             letter.hideForRecipient();
             return;
         }
@@ -91,6 +95,14 @@ public class LetterInboxService {
             throw new CustomException(ErrorCode.LETTER_003);
         }
         letterRepository.delete(letter);
+    }
+
+    /** 받는 사람이 두들픽 선물을 고른다 (LR-022). 다시 고르면 바뀌고, null이면 선택 취소. */
+    @Transactional
+    public LetterResponse selectGift(Long memberId, Long letterId, Long giftItemId) {
+        Letter letter = receivedLetterAccess.lockReceivedLetter(memberId, letterId);
+        letter.selectGift(giftItemId);
+        return LetterResponse.from(letter);
     }
 
     /** 받은 편지함 (LR-011/012): 보낸 사람(봉투 이름·닉네임) 검색, 받은 날짜 범위, 정렬. */

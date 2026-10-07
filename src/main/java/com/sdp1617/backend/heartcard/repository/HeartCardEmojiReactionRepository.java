@@ -11,4 +11,6 @@ public interface HeartCardEmojiReactionRepository extends JpaRepository<HeartCar
     Optional<HeartCardEmojiReaction> findByHeartCardIdAndMemberId(Long heartCardId, Long memberId);
 
     void deleteByHeartCardIdIn(Collection<Long> heartCardIds);
+
+    void deleteByMemberIdAndHeartCardIdIn(Long memberId, Collection<Long> heartCardIds);
 }

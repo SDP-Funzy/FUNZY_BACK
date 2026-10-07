@@ -1,6 +1,5 @@
 package com.sdp1617.backend.heartcard.service;
 
-import com.sdp1617.backend.funzypack.repository.FunzyPackCardRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.heartcard.dto.HeartCardEmojiOptionListResponse;
@@ -9,6 +8,7 @@ import com.sdp1617.backend.heartcard.dto.HeartCardEmojiResponse;
 import com.sdp1617.backend.heartcard.entity.HeartCardEmojiAction;
 import com.sdp1617.backend.heartcard.entity.HeartCardEmojiReaction;
 import com.sdp1617.backend.heartcard.repository.HeartCardEmojiReactionRepository;
+import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class HeartCardEmojiService {
 
     private final HeartCardEmojiReactionRepository heartCardEmojiReactionRepository;
-    private final FunzyPackCardRepository funzyPackCardRepository;
+    private final ReceivedLetterAccess receivedLetterAccess;
 
     public HeartCardEmojiOptionListResponse getEmojiOptions() {
         return HeartCardEmojiOptionListResponse.fromDefaultOptions();
@@ -27,6 +27,7 @@ public class HeartCardEmojiService {
 
     public HeartCardEmojiResponse getMyEmoji(Long memberId, Long heartCardId) {
         requireLogin(memberId);
+        receivedLetterAccess.requireReceivedCard(memberId, heartCardId);
         return heartCardEmojiReactionRepository.findByHeartCardIdAndMemberId(heartCardId, memberId)
                 .map(HeartCardEmojiResponse::from)
                 .orElseGet(() -> HeartCardEmojiResponse.empty(heartCardId));
@@ -35,7 +36,7 @@ public class HeartCardEmojiService {
     @Transactional
     public HeartCardEmojiResponse updateEmoji(Long memberId, Long heartCardId, HeartCardEmojiRequest request) {
         requireLogin(memberId);
-        lockHeartCard(heartCardId);
+        receivedLetterAccess.lockReceivedCard(memberId, heartCardId);
         return heartCardEmojiReactionRepository.findByHeartCardIdAndMemberId(heartCardId, memberId)
                 .map(reaction -> updateOrDelete(heartCardId, reaction, request))
                 .orElseGet(() -> create(memberId, heartCardId, request));
@@ -67,10 +68,5 @@ public class HeartCardEmojiService {
         if (memberId == null) {
             throw new CustomException(ErrorCode.COMMON_003);
         }
-    }
-
-    private void lockHeartCard(Long heartCardId) {
-        funzyPackCardRepository.findByHeartCardIdForUpdate(heartCardId)
-                .orElseThrow(() -> new CustomException(ErrorCode.COMMON_001));
     }
 }

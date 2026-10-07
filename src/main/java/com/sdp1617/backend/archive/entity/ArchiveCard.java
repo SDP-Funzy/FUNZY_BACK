@@ -1,5 +1,8 @@
 package com.sdp1617.backend.archive.entity;
 
+import com.sdp1617.backend.letter.entity.Letter;
+import com.sdp1617.backend.letter.entity.LetterCard;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -71,6 +74,21 @@ public class ArchiveCard {
         this.letterCardId = letterCardId;
         this.category = category;
         this.createdAt = LocalDateTime.now();
+    }
+
+    /**
+     * 받은 편지 카드를 아카이브에 담는다 (콕, LR-310). 보여줄 내용(보낸·받는 사람 이름, 날짜, 사진, 메시지)을 저장 시점에 복사해 둔다.
+     * 아카이브는 내 보드라, 원본 편지를 받은 편지함에서 지워도 담아 둔 카드 내용은 따로 관리한다(편지 삭제 시 함께 정리 #82).
+     */
+    public static ArchiveCard ofLetterCard(Long ownerMemberId, LetterCard card, ArchiveCategory category) {
+        ArchiveCard archiveCard = new ArchiveCard(ownerMemberId, card.getId(), category);
+        Letter letter = card.getLetter();
+        archiveCard.senderName = letter.getFromName();
+        archiveCard.receiverName = letter.getToName();
+        archiveCard.letterDate = letter.getSentAt() == null ? null : letter.getSentAt().toLocalDate();
+        archiveCard.imageUrl = card.getImageUrl();
+        archiveCard.message = card.getContent();
+        return archiveCard;
     }
 
     public boolean isOwnedBy(Long memberId) {

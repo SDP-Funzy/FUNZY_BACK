@@ -1,6 +1,7 @@
 package com.sdp1617.backend.letter.controller;
 
 import com.sdp1617.backend.global.common.response.ApiResponse;
+import com.sdp1617.backend.letter.dto.GiftSelectRequest;
 import com.sdp1617.backend.letter.dto.LetterPageResponse;
 import com.sdp1617.backend.letter.dto.LetterResponse;
 import com.sdp1617.backend.letter.dto.LetterSendRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -99,10 +101,23 @@ public class LetterInboxController {
         return ApiResponse.ok("편지를 조회했습니다.", letterInboxService.getLetter(memberId, letterId));
     }
 
+    @PutMapping("/{letterId}/gift")
+    @Operation(summary = "선물 고르기", description = """
+            받은 편지의 두들픽 선물 후보 중 하나를 고릅니다 (LR-022). 다시 고르면 바뀌고, giftItemId를 비우면 선택을 취소합니다.
+            - 편지에 없는 선물 후보면 LETTER_010, 내가 받은 편지가 아니면 COMMON_001입니다.
+            """)
+    public ApiResponse<LetterResponse> selectGift(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
+            @RequestBody GiftSelectRequest request
+    ) {
+        return ApiResponse.ok("선물을 골랐습니다.", letterInboxService.selectGift(memberId, letterId, request.giftItemId()));
+    }
+
     @DeleteMapping("/{letterId}")
     @Operation(summary = "편지 삭제", description = """
             - 보낸 사람: 아직 보내지 않은 편지를 카드·두들픽과 함께 삭제합니다 (작성 취소). 보낸 편지는 삭제할 수 없습니다(LETTER_003).
-            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 보낸 사람의 보낸 편지함에는 남습니다.
+            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 복구할 수 없고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)도 함께 지워집니다. 보낸 사람의 보낸 편지함에는 남습니다.
             """)
     public ApiResponse<Void> deleteOrHide(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
