@@ -28,6 +28,9 @@ public interface LetterRepository extends JpaRepository<Letter, Long>, JpaSpecif
     @EntityGraph(attributePaths = "recipient")
     Page<Letter> findBySender_IdAndStatus(Long senderId, LetterStatus status, Pageable pageable);
 
+    /** 미읽음 편지 수: 받은 편지함에서 지우지 않았고 아직 열지 않은 편지. */
+    long countByRecipient_IdAndStatusAndRecipientHiddenAtIsNullAndReadAtIsNull(Long recipientId, LetterStatus status);
+
     /** 편지를 수정할 때 행을 잠가, 동시에 카드를 추가해 5장을 넘기는 등의 경쟁을 막는다. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select l from Letter l where l.id = :id")

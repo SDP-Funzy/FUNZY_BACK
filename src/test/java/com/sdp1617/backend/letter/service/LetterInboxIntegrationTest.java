@@ -158,6 +158,30 @@ class LetterInboxIntegrationTest {
     }
 
     @Test
+    void 미읽음_편지_수는_받은_편지함에_남아_있고_아직_열지_않은_편지만_센다() {
+        Long unopened = completedLetter("티키");
+        Long opened = completedLetter("티키");
+        Long hidden = completedLetter("티키");
+        Long toStranger = completedLetter("티키");
+        completedLetter("티키"); // 보내지 않은 편지
+        letterInboxService.send(sender.getId(), unopened, recipient.getId());
+        letterInboxService.send(sender.getId(), opened, recipient.getId());
+        letterInboxService.send(sender.getId(), hidden, recipient.getId());
+        letterInboxService.send(sender.getId(), toStranger, stranger.getId());
+        em.flush();
+        assertEquals(3, letterInboxService.getUnreadCount(recipient.getId()).unreadCount());
+
+        letterInboxService.getLetter(recipient.getId(), opened);
+        letterInboxService.deleteOrHide(recipient.getId(), hidden);
+        letterInboxService.getLetter(sender.getId(), unopened); // 보낸 사람이 열어도 읽음이 아니다
+        em.flush();
+
+        assertEquals(1, letterInboxService.getUnreadCount(recipient.getId()).unreadCount());
+        assertEquals(1, letterInboxService.getUnreadCount(stranger.getId()).unreadCount());
+        assertEquals(0, letterInboxService.getUnreadCount(sender.getId()).unreadCount());
+    }
+
+    @Test
     void 보낸_편지는_보낸_사람이_지울_수_없고_다른_사람은_볼_수_없다() {
         Long letterId = completedLetter("티키");
         letterInboxService.send(sender.getId(), letterId, recipient.getId());

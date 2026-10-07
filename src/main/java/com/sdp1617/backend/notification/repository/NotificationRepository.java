@@ -8,5 +8,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByMemberIdOrderByCreatedAtDesc(Long memberId);
 
+    long countByMemberIdAndReadFalse(Long memberId);
+
     void deleteByMemberId(Long memberId);
 }

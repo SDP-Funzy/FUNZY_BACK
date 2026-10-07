@@ -4,6 +4,7 @@ import com.sdp1617.backend.global.common.response.ApiResponse;
 import com.sdp1617.backend.notification.dto.NotificationResponse;
 import com.sdp1617.backend.notification.dto.PushSettingResponse;
 import com.sdp1617.backend.notification.dto.PushSettingUpdateRequest;
+import com.sdp1617.backend.notification.dto.UnreadNotificationCountResponse;
 import com.sdp1617.backend.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -129,6 +130,30 @@ public class NotificationController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
     ) {
         return ApiResponse.ok("알림 목록을 조회했습니다.", notificationService.getNotifications(memberId));
+    }
+
+    @Operation(summary = "읽지 않은 알림 수", description = """
+            읽지 않은 알림 수를 조회합니다 (LB-222, MY-321). 0보다 크면 알림 점·뱃지를 표시합니다.
+            - 알림 읽음 처리 후 다시 조회하면 바로 줄어든 개수가 내려옵니다.
+            """)
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UnreadNotificationCountResponse.class),
+                            examples = @ExampleObject(value = """
+                            {
+                              "success": true,
+                              "code": "200",
+                              "message": "읽지 않은 알림 수를 조회했습니다.",
+                              "data": { "unreadCount": 3 }
+                            }
+                            """)))
+    })
+    @GetMapping("/unread-count")
+    public ApiResponse<UnreadNotificationCountResponse> getUnreadCount(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
+    ) {
+        return ApiResponse.ok("읽지 않은 알림 수를 조회했습니다.", notificationService.getUnreadCount(memberId));
     }
 
     @Operation(summary = "알림 읽음 처리", description = """

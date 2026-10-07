@@ -6,6 +6,7 @@ import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.notification.dto.NotificationResponse;
 import com.sdp1617.backend.notification.dto.PushSettingResponse;
+import com.sdp1617.backend.notification.dto.UnreadNotificationCountResponse;
 import com.sdp1617.backend.notification.entity.Notification;
 import com.sdp1617.backend.notification.repository.NotificationRepository;
 import java.util.List;
@@ -40,6 +41,10 @@ public class NotificationService {
         return notificationRepository.findByMemberIdOrderByCreatedAtDesc(memberId).stream()
                 .map(NotificationResponse::from)
                 .toList();
+    }
+
+    public UnreadNotificationCountResponse getUnreadCount(Long memberId) {
+        return new UnreadNotificationCountResponse(notificationRepository.countByMemberIdAndReadFalse(memberId));
     }
 
     @Transactional

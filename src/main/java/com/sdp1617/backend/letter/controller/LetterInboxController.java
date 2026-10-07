@@ -7,6 +7,7 @@ import com.sdp1617.backend.letter.dto.LetterResponse;
 import com.sdp1617.backend.letter.dto.LetterSendRequest;
 import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
 import com.sdp1617.backend.letter.dto.SentLetterResponse;
+import com.sdp1617.backend.letter.dto.UnreadLetterCountResponse;
 import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.service.LetterInboxService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -88,6 +89,18 @@ public class LetterInboxController {
             @Parameter(description = "페이지 크기 (기본 20, 최대 100)", example = "20") @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.ok("보낸 편지 목록을 조회했습니다.", letterInboxService.getSentLetters(memberId, page, size));
+    }
+
+    @GetMapping("/received/unread-count")
+    @Operation(summary = "미읽음 편지 수", description = """
+            받은 편지함에서 아직 열지 않은 편지 수를 조회합니다 (LB-221). 홈·편지함의 미읽음 뱃지에 씁니다.
+            - 받는 사람이 편지를 처음 열면(편지 열기 API) 읽음이 되어 개수에서 빠집니다.
+            - 받은 편지함에서 지운 편지는 세지 않습니다.
+            """)
+    public ApiResponse<UnreadLetterCountResponse> getUnreadCount(
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
+    ) {
+        return ApiResponse.ok("미읽음 편지 수를 조회했습니다.", letterInboxService.getUnreadCount(memberId));
     }
 
     @GetMapping("/{letterId}")
