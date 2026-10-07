@@ -29,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,6 +91,12 @@ class MemberWithdrawalIntegrationTest {
         unsentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "보내지 않은 카드",
                 null, null, null, null));
         em.persist(unsentLetter);
+        Letter receivedLetter = Letter.start(friend, "나", "친구", DesignType.values()[0]);
+        receivedLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "받은 카드",
+                null, null, null, null));
+        receivedLetter.complete();
+        receivedLetter.sendTo(me);
+        em.persist(receivedLetter);
         em.flush();
         em.clear();
 
@@ -113,6 +120,10 @@ class MemberWithdrawalIntegrationTest {
         assertEquals(0, em.find(ArchiveCard.class, friendArchive.getId()).getLikeCount());
         assertEquals(1, count("select count(i) from LetterInteraction i where i.memberId = :id", me.getId()));
         assertEquals(0, count("select count(l) from Letter l where l.sender.id = :id", me.getId()));
+        // 받은 편지는 받은 편지함에서만 숨기고, 보낸 친구의 보낸 편지함에는 남긴다
+        Letter hidden = em.find(Letter.class, receivedLetter.getId());
+        assertNotNull(hidden.getRecipientHiddenAt());
+        assertEquals(friend.getId(), hidden.getSender().getId());
 
         // 친구의 보관함에는 주고받은 카드가 "탈퇴한회원N"으로 남는다
         List<CardStorageResponse> friendReceived =

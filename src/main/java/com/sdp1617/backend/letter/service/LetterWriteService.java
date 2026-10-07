@@ -39,13 +39,6 @@ public class LetterWriteService {
         return LetterResponse.from(letterRepository.save(letter));
     }
 
-    public LetterResponse getMyLetter(Long memberId, Long letterId) {
-        Letter letter = letterRepository.findById(letterId)
-                .filter(found -> found.isWrittenBy(memberId))
-                .orElseThrow(() -> new CustomException(ErrorCode.LETTER_001));
-        return LetterResponse.from(letter);
-    }
-
     /** 아직 보내지 않은(작성 중·완료) 내 편지 목록 — 이어쓰기 (#85). 최근 수정 순. */
     public List<LetterDraftResponse> getUnsentLetters(Long memberId) {
         return letterRepository.findBySender_IdAndStatusInOrderByUpdatedAtDescIdDesc(memberId, UNSENT).stream()
@@ -88,16 +81,6 @@ public class LetterWriteService {
     @Transactional
     public LetterResponse complete(Long memberId, Long letterId) {
         return modify(memberId, letterId, Letter::complete);
-    }
-
-    /** 보내기 전의 내 편지를 지운다 (작성 취소). 전송된 편지는 지울 수 없다. */
-    @Transactional
-    public void deleteUnsent(Long memberId, Long letterId) {
-        Letter letter = findMyLetterForUpdate(memberId, letterId);
-        if (letter.getStatus() == LetterStatus.SENT) {
-            throw new CustomException(ErrorCode.LETTER_003);
-        }
-        letterRepository.delete(letter);
     }
 
     /**

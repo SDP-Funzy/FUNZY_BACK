@@ -41,6 +41,9 @@ class LetterWriteIntegrationTest {
     @Autowired
     private LetterCardContentResolver contentResolver;
 
+    @Autowired
+    private LetterInboxService letterInboxService;
+
     private Long writerId;
     private Long otherId;
 
@@ -91,7 +94,7 @@ class LetterWriteIntegrationTest {
 
         em.flush();
         em.clear();
-        LetterResponse reloaded = letterWriteService.getMyLetter(writerId, letterId);
+        LetterResponse reloaded = letterInboxService.getLetter(writerId, letterId);
         assertEquals(2, reloaded.cards().size());
         assertEquals("요즘 피곤해 보여서", reloaded.doodlePick().reason());
     }
@@ -143,9 +146,9 @@ class LetterWriteIntegrationTest {
     void 다른_사람의_편지는_없는_편지와_같이_응답한다() {
         Long letterId = newLetter().letterId();
 
-        assertError(ErrorCode.LETTER_001, () -> letterWriteService.getMyLetter(otherId, letterId));
+        assertError(ErrorCode.LETTER_001, () -> letterInboxService.getLetter(otherId, letterId));
         assertError(ErrorCode.LETTER_001, () -> letterWriteService.addCard(otherId, letterId, card("끼어들기")));
-        assertError(ErrorCode.LETTER_001, () -> letterWriteService.deleteUnsent(otherId, letterId));
+        assertError(ErrorCode.LETTER_001, () -> letterInboxService.deleteOrHide(otherId, letterId));
     }
 
     @Test
@@ -158,7 +161,7 @@ class LetterWriteIntegrationTest {
         assertError(ErrorCode.LETTER_003, () -> letterWriteService.addCard(writerId, letterId, card("2")));
         assertError(ErrorCode.LETTER_003, () -> letterWriteService.updateCard(writerId, letterId, cardId, card("수정")));
         assertError(ErrorCode.LETTER_003, () -> letterWriteService.removeDoodlePick(writerId, letterId));
-        assertError(ErrorCode.LETTER_003, () -> letterWriteService.deleteUnsent(writerId, letterId));
+        assertError(ErrorCode.LETTER_003, () -> letterInboxService.deleteOrHide(writerId, letterId));
     }
 
     @Test
@@ -171,7 +174,7 @@ class LetterWriteIntegrationTest {
         assertEquals(List.of(draft),
                 letterWriteService.getUnsentLetters(writerId).stream().map(letter -> letter.letterId()).toList());
 
-        letterWriteService.deleteUnsent(writerId, draft);
+        letterInboxService.deleteOrHide(writerId, draft);
         em.flush();
         assertEquals(0, letterWriteService.getUnsentLetters(writerId).size());
     }

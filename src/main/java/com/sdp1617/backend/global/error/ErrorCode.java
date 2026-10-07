@@ -56,6 +56,10 @@ public enum ErrorCode {
     LETTER_003(HttpStatus.CONFLICT, "LETTER_003", "이미 전송된 편지는 수정할 수 없습니다."),
     LETTER_004(HttpStatus.BAD_REQUEST, "LETTER_004", "카드를 1장 이상 작성해야 편지를 완료할 수 있습니다."),
     LETTER_005(HttpStatus.NOT_FOUND, "LETTER_005", "편지에 없는 카드입니다."),
+    LETTER_006(HttpStatus.BAD_REQUEST, "LETTER_006", "완료한 편지만 보낼 수 있습니다."),
+    LETTER_007(HttpStatus.BAD_REQUEST, "LETTER_007", "본인에게는 편지를 보낼 수 없습니다."),
+    LETTER_008(HttpStatus.NOT_FOUND, "LETTER_008", "존재하지 않는 받는 사람입니다."),
+    LETTER_009(HttpStatus.CONFLICT, "LETTER_009", "이미 보낸 편지입니다."),
 
     SOCIAL_001(HttpStatus.NOT_FOUND, "SOCIAL_001", "존재하지 않는 친구 코드입니다."),
     SOCIAL_002(HttpStatus.BAD_REQUEST, "SOCIAL_002", "본인에게는 팔로우 요청을 보낼 수 없습니다."),
@@ -64,6 +68,8 @@ public enum ErrorCode {
     SOCIAL_005(HttpStatus.BAD_REQUEST, "SOCIAL_005", "친구 수 상한을 초과했습니다."),
     SOCIAL_006(HttpStatus.NOT_FOUND, "SOCIAL_006", "존재하지 않는 팔로우 요청입니다."),
     SOCIAL_007(HttpStatus.NOT_FOUND, "SOCIAL_007", "친구 관계가 아닙니다."),
+    SOCIAL_008(HttpStatus.BAD_REQUEST, "SOCIAL_008", "검색어는 2자 이상 입력해주세요."),
+    SOCIAL_009(HttpStatus.TOO_MANY_REQUESTS, "SOCIAL_009", "검색 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     NOTIFICATION_001(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "존재하지 않는 알림입니다."),
 

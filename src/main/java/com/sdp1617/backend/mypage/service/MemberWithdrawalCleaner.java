@@ -16,6 +16,7 @@ import com.sdp1617.backend.letter.repository.ReceivedLetterRepository;
 import com.sdp1617.backend.notification.repository.NotificationRepository;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import com.sdp1617.backend.social.repository.FollowRequestRepository;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * - 삭제: 소셜 연결(재가입 가능하게), 친구 관계·팔로우 요청(상대의 친구 수·목록에서 빠지게),
  *         내 아카이브와 거기 달린 좋아요, 내가 누른 좋아요(좋아요 수도 감소), 내 알림, 내 찜, 내가 받은 편지함,
- *         아직 보내지 않은(작성 중·완료) 내 편지
+ *         아직 보내지 않은(작성 중·완료) 내 편지, 내가 받은 편지(받은 편지함에서 숨김 — 보낸 사람의 보낸 편지함에는 남음)
  * - 유지("탈퇴한회원N"으로 표시): 주고받은 마음카드·봉투, 다른 사람 카드에 남긴 이모지·문구 코멘트·편지 리액션·댓글
  */
 @Component
@@ -64,6 +65,7 @@ public class MemberWithdrawalCleaner {
         }
         notificationRepository.deleteByMemberId(memberId);
         deleteMyUnsentLetters(memberId);
+        letterRepository.hideAllReceivedBy(memberId, LocalDateTime.now());
         letterInteractionRepository.deleteByMemberIdAndType(memberId, LetterInteractionType.FAVORITE);
     }
 

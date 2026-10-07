@@ -12,6 +12,10 @@ public record LetterResponse(
         Long letterId,
         @Schema(description = "상태: DRAFT(작성 중) / COMPLETED(완료, 전송 전) / SENT(전송됨)", example = "DRAFT")
         LetterStatus status,
+        @Schema(description = "보낸 회원")
+        LetterMemberResponse sender,
+        @Schema(description = "받는 회원. 보내기 전이면 null")
+        LetterMemberResponse recipient,
         String toName,
         String fromName,
         DesignType designType,
@@ -22,12 +26,16 @@ public record LetterResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         LocalDateTime completedAt,
-        LocalDateTime sentAt
+        LocalDateTime sentAt,
+        @Schema(description = "받는 사람이 처음 열어본 시각. 안 읽었으면 null")
+        LocalDateTime readAt
 ) {
     public static LetterResponse from(Letter letter) {
-        return new LetterResponse(letter.getId(), letter.getStatus(), letter.getToName(), letter.getFromName(),
+        return new LetterResponse(letter.getId(), letter.getStatus(),
+                LetterMemberResponse.from(letter.getSender()), LetterMemberResponse.from(letter.getRecipient()),
+                letter.getToName(), letter.getFromName(),
                 letter.getDesignType(), letter.getCards().stream().map(LetterCardResponse::from).toList(),
                 DoodlePickResponse.from(letter), letter.getCreatedAt(), letter.getUpdatedAt(),
-                letter.getCompletedAt(), letter.getSentAt());
+                letter.getCompletedAt(), letter.getSentAt(), letter.getReadAt());
     }
 }

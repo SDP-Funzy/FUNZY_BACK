@@ -28,6 +28,8 @@ import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * 편지 1통 (#82). 보내는 사람과 받는 사람이 같은 편지를 본다 — 전송은 받는 사람을 지정하고 상태를 바꾸는 것뿐,
@@ -35,6 +37,9 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @Entity
+// 바뀐 컬럼만 UPDATE한다. 보낸 뒤에는 받는 사람 쪽 값(읽은 시각, 받은 편지함에서 지운 시각, 고른 선물)만 바뀌는데,
+// 전체 컬럼을 쓰면 동시에 처리된 다른 변경(예: 열기와 지우기)을 예전 값으로 덮어쓸 수 있다.
+@DynamicUpdate
 @Table(
         name = "letters",
         uniqueConstraints = @UniqueConstraint(name = "uk_letter_share_token", columnNames = "share_token")
@@ -101,12 +106,15 @@ public class Letter {
     /** 받는 사람이 받은 편지함에서 삭제한 시각. 보낸 사람의 보낸함에는 그대로 남는다. */
     private LocalDateTime recipientHiddenAt;
 
+    // 편지함·이어쓰기 목록에서 편지마다 카드를 따로 조회하지 않도록, 한 페이지(최대 100통)의 카드를 한 번에 읽는다
     @OneToMany(mappedBy = "letter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("cardOrder asc")
+    @BatchSize(size = 100)
     private List<LetterCard> cards = new ArrayList<>();
 
     @OneToMany(mappedBy = "letter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("itemOrder asc")
+    @BatchSize(size = 100)
     private List<GiftItem> giftItems = new ArrayList<>();
 
     private Letter(Member sender, String toName, String fromName, DesignType designType) {
@@ -204,6 +212,43 @@ public class Letter {
             completedAt = LocalDateTime.now();
         }
         touch();
+    }
+
+    /**
+     * 회원에게 보낸다 (#86). 완료한 편지만 보낼 수 있고, 보낸 뒤에는 수정할 수 없다.
+     * 받는 사람이 유효한지(탈퇴·본인 여부)는 서비스에서 확인한다.
+     */
+    public void sendTo(Member recipient) {
+        if (status == LetterStatus.SENT) {
+            throw new CustomException(ErrorCode.LETTER_009);
+        }
+        if (status != LetterStatus.COMPLETED) {
+            throw new CustomException(ErrorCode.LETTER_006);
+        }
+        this.recipient = recipient;
+        this.status = LetterStatus.SENT;
+        this.sentAt = LocalDateTime.now();
+        touch();
+    }
+
+    /** 받는 사람이 볼 수 있는 편지인지: 받은 편지이고, 받은 편지함에서 지우지 않았어야 한다. */
+    public boolean isVisibleToRecipient(Long memberId) {
+        return status == LetterStatus.SENT
+                && recipient != null
+                && recipient.getId().equals(memberId)
+                && recipientHiddenAt == null;
+    }
+
+    /** 받는 사람이 처음 열어본 시각을 남긴다 (미읽음 표시 #90). */
+    public void markReadByRecipient() {
+        if (readAt == null) {
+            readAt = LocalDateTime.now();
+        }
+    }
+
+    /** 받는 사람이 받은 편지함에서 지운다. 보낸 사람의 보낸 편지함에는 남는다. */
+    public void hideForRecipient() {
+        recipientHiddenAt = LocalDateTime.now();
     }
 
     /** 전송 전(작성 중·완료)에는 수정할 수 있고, 전송된 편지는 수정할 수 없다 (LW-020). */
