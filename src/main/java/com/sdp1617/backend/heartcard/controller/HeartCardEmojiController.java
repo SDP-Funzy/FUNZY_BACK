@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "마음카드 이모지", description = "마음카드 이모지 조회, 등록, 수정, 삭제 API")
+@Tag(name = "편지 ③ 마음카드 이모지", description = "받은 펀지의 마음카드에 이모지를 남기는 API. 이모지 남기기·내 이모지 조회는 받은 사람만, 이모지 선택지 조회는 누구나 사용할 수 있습니다. heartCardId는 편지 열기 응답의 cards[].cardId입니다.")
 public class HeartCardEmojiController {
 
     private final HeartCardEmojiService heartCardEmojiService;

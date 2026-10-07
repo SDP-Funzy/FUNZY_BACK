@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "선물 항목 이모지", description = "두들픽 선물 항목 이모지 상태 조회, 등록, 수정, 삭제 API")
+@Tag(name = "편지 ③ 두들픽 선물 이모지", description = "받은 펀지의 두들픽 선물 후보에 이모지를 남기는 API. 받은 사람만 사용할 수 있습니다. giftItemId는 편지 열기 응답의 doodlePick.giftItems[].giftItemId입니다.")
 public class GiftItemEmojiController {
 
     private final GiftItemEmojiService giftItemEmojiService;

@@ -1,6 +1,6 @@
 package com.sdp1617.backend.letter.dto;
 
-import com.sdp1617.backend.card.dto.DesignType;
+import com.sdp1617.backend.letter.entity.DesignType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

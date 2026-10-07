@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "아카이브", description = "찜한 편지 카드를 카테고리별로 저장하고 조회하는 아카이브 API")
+@Tag(name = "아카이브", description = "받은 마음카드를 카테고리별 보드에 담아 보는 아카이브 API. 카드를 담는 방법은 콕(PUT /api/heart-cards/{cardId}/kok) 또는 아카이브 저장 API이며, letterCardId는 편지 열기 응답의 cards[].cardId입니다.")
 public class ArchiveController {
 
     private final ArchiveService archiveService;
@@ -58,8 +58,8 @@ public class ArchiveController {
 
     @PostMapping("/api/archive/cards")
     @Operation(
-            summary = "편지 카드 아카이브 저장",
-            description = "편지 보관함에서 찜한 카드를 아카이브에 저장합니다. 같은 회원이 같은 편지 카드를 중복 저장할 수 없습니다."
+            summary = "받은 마음카드 아카이브에 담기",
+            description = "내가 받은 편지의 마음카드를 아카이브에 담습니다(콕과 같은 동작, 카드 내용이 함께 저장됨). 내가 받은 편지의 카드가 아니면 COMMON_001, 이미 담은 카드면 ARCHIVE_001입니다."
     )
     public ApiResponse<ArchiveCardDetailResponse> saveCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
@@ -88,7 +88,7 @@ public class ArchiveController {
     @DeleteMapping("/api/archive/cards/{archiveCardId}")
     @Operation(
             summary = "아카이브 카드 삭제",
-            description = "카드를 아카이브에서만 제거합니다. 편지 보관함 원본은 삭제하지 않습니다."
+            description = "카드를 아카이브에서만 뺍니다. 받은 편지(펀지팩)의 원본 카드는 그대로 남습니다."
     )
     public ApiResponse<Void> deleteCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,

@@ -1,6 +1,6 @@
 package com.sdp1617.backend.letter.dto;
 
-import com.sdp1617.backend.card.dto.DesignType;
+import com.sdp1617.backend.letter.entity.DesignType;
 import com.sdp1617.backend.letter.entity.Letter;
 import com.sdp1617.backend.letter.entity.LetterStatus;
 import io.swagger.v3.oas.annotations.media.Schema;

@@ -7,13 +7,11 @@ import com.sdp1617.backend.auth.entity.AuthProvider;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.entity.SocialConnection;
-import com.sdp1617.backend.card.dto.CardBoxType;
-import com.sdp1617.backend.card.dto.DesignType;
-import com.sdp1617.backend.card.dto.response.CardStorageResponse;
-import com.sdp1617.backend.card.entity.Card;
-import com.sdp1617.backend.card.entity.Envelop;
-import com.sdp1617.backend.card.service.CardService;
+import com.sdp1617.backend.letter.dto.CardBoxType;
+import com.sdp1617.backend.letter.entity.DesignType;
+import com.sdp1617.backend.letter.dto.CardStorageResponse;
 import com.sdp1617.backend.letter.entity.Letter;
+import com.sdp1617.backend.letter.service.LetterCardBoxService;
 import com.sdp1617.backend.letter.entity.LetterCardContent;
 import com.sdp1617.backend.letter.entity.LetterInteraction;
 import com.sdp1617.backend.letter.entity.LetterInteractionType;
@@ -47,7 +45,7 @@ class MemberWithdrawalIntegrationTest {
     private AccountSettingsService accountSettingsService;
 
     @Autowired
-    private CardService cardService;
+    private LetterCardBoxService cardService;
 
     private Member member(String name) {
         Member member = new Member(name + "@withdraw.test", "encoded", name, Consent.requiredOnly());
@@ -66,12 +64,13 @@ class MemberWithdrawalIntegrationTest {
         Member other = member("other");
         em.persist(SocialConnection.create(me, AuthProvider.KAKAO, "kakao-withdraw-1"));
 
-        Envelop sent = Envelop.create(me, friend, DesignType.values()[0]);
-        em.persist(sent);
-        em.persist(Card.create(sent, "보낸 카드", ArchiveCategory.values()[0], null, null, "내용"));
-        Envelop received = Envelop.create(friend, me, DesignType.values()[0]);
-        em.persist(received);
-        em.persist(Card.create(received, "받은 카드", ArchiveCategory.values()[0], null, null, "내용"));
+        // 내가 친구에게 보낸 편지 (편지는 회원을 외래키로 참조한다)
+        Letter sentLetter = Letter.start(me, "친구", "나", DesignType.values()[0]);
+        sentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "보낸 카드",
+                null, null, null, null));
+        sentLetter.complete();
+        sentLetter.sendTo(friend);
+        em.persist(sentLetter);
 
         em.persist(FollowRelation.of(me.getId(), friend.getId()));
         em.persist(new FollowRequest(me.getId(), other.getId()));
@@ -119,7 +118,11 @@ class MemberWithdrawalIntegrationTest {
         assertEquals(0, count("select count(n) from Notification n where n.memberId = :id", me.getId()));
         assertEquals(0, em.find(ArchiveCard.class, friendArchive.getId()).getLikeCount());
         assertEquals(1, count("select count(i) from LetterInteraction i where i.memberId = :id", me.getId()));
-        assertEquals(0, count("select count(l) from Letter l where l.sender.id = :id", me.getId()));
+        // 보내지 않은 내 편지는 지우고, 친구에게 보낸 편지는 친구 보관함에 남긴다
+        assertEquals(0, count("select count(l) from Letter l where l.sender.id = :id"
+                + " and l.status <> com.sdp1617.backend.letter.entity.LetterStatus.SENT", me.getId()));
+        assertEquals(1, count("select count(l) from Letter l where l.sender.id = :id"
+                + " and l.status = com.sdp1617.backend.letter.entity.LetterStatus.SENT", me.getId()));
         // 받은 편지는 받은 편지함에서만 숨기고, 보낸 친구의 보낸 편지함에는 남긴다
         Letter hidden = em.find(Letter.class, receivedLetter.getId());
         assertNotNull(hidden.getRecipientHiddenAt());

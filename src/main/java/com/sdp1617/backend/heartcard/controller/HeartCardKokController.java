@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "마음카드 콕", description = "마음카드 콕 상태 조회와 토글 API")
+@Tag(name = "편지 ③ 마음카드 콕", description = "받은 펀지의 마음카드를 내 아카이브에 담는(콕) API. 받은 사람만 사용할 수 있습니다. heartCardId는 편지 열기 응답의 cards[].cardId입니다.")
 public class HeartCardKokController {
 
     private final HeartCardKokService heartCardKokService;

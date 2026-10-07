@@ -56,3 +56,8 @@ cloud:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID:68223418406-g2sdcb7dj9kl8rnl2emp1eg8kfbp08el.apps.googleusercontent.com}
+
+# Swagger UI 태그를 가나다순으로 정렬한다 — "편지 ① 쓰기 → ② 보내기·편지함 → ③ 반응"이 흐름 순서대로 붙어 보이게
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha

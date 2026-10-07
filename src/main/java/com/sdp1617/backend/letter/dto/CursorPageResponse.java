@@ -1,4 +1,4 @@
-package com.sdp1617.backend.card.dto.response;
+package com.sdp1617.backend.letter.dto;
 
 import java.util.List;
 

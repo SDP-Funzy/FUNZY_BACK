@@ -1,4 +1,4 @@
-package com.sdp1617.backend.card.dto.request;
+package com.sdp1617.backend.letter.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

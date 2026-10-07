@@ -4,9 +4,9 @@ import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(description = "편지 보관함 카드를 아카이브에 저장할 때 필요한 요청 값")
+@Schema(description = "받은 편지의 마음카드를 아카이브에 담을 때 필요한 요청 값")
 public record ArchiveCardCreateRequest(
-        @Schema(description = "편지 보관함에 있는 원본 카드 ID", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "받은 편지의 마음카드 ID (편지 열기 응답의 cards[].cardId)", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull Long letterCardId,
 
         @Schema(

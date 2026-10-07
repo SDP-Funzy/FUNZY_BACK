@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "편지 반응", description = "리액션, 댓글, 찜 저장 API. 비로그인 사용자는 호출할 수 없습니다.")
+@Tag(name = "편지 ③ 편지 리액션·댓글·찜", description = "받은 펀지(편지 전체)에 리액션·댓글·찜을 남기는 API. 받은 사람만 사용할 수 있고, 비로그인 사용자는 호출할 수 없습니다. 카드 단위 반응은 \"편지 ③ 마음카드 …\" API입니다.")
 public class LetterInteractionController {
 
     private final LetterInteractionService letterInteractionService;

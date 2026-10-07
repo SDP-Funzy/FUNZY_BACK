@@ -1,6 +1,6 @@
-package com.sdp1617.backend.card.dto.response;
+package com.sdp1617.backend.letter.dto;
 
-import com.sdp1617.backend.card.dto.CardBoxType;
+import com.sdp1617.backend.letter.dto.CardBoxType;
 
 import java.util.List;
 

@@ -30,7 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/letters")
 @RequiredArgsConstructor
-@Tag(name = "편지함", description = "편지 보내기, 받은 편지함·보낸 편지함, 편지 열기·삭제 API")
+@Tag(name = "편지 ② 보내기·편지함", description = """
+        완료한 편지 보내기, 받은 편지함(= 받은 펀지팩 목록)·보낸 편지함, 편지 열기(= 펀지팩 열기)·삭제, 두들픽 선물 고르기.
+        받는 사람에게 도착한 편지가 펀지팩이며, 보낸 사람과 같은 letterId를 씁니다.
+        """)
 public class LetterInboxController {
 
     private final LetterInboxService letterInboxService;
@@ -51,7 +54,7 @@ public class LetterInboxController {
     }
 
     @GetMapping("/received")
-    @Operation(summary = "받은 편지함", description = """
+    @Operation(summary = "받은 편지함 (받은 펀지팩 목록)", description = """
             받은 편지 목록을 조회합니다 (LR-011/012). 받은 편지함에서 지운 편지는 나오지 않습니다.
             - senderName: 봉투의 보내는 사람 이름 또는 보낸 회원 닉네임에 포함된 편지만 (대소문자 무시)
             - receivedFrom/receivedTo: 받은 날짜 범위 (시작일·종료일 포함)
@@ -88,8 +91,9 @@ public class LetterInboxController {
     }
 
     @GetMapping("/{letterId}")
-    @Operation(summary = "편지 열기", description = """
-            편지를 카드(순서대로)·두들픽과 함께 조회합니다.
+    @Operation(summary = "편지 열기 (펀지팩 열기)", description = """
+            편지를 마음카드(순서대로)·두들픽과 함께 조회합니다. 받는 사람에게는 펀지팩 열기(LR-020)이고, 카드를 넘겨보는 화면과 펀지팩 전체 저장(LR-511)에 이 응답을 씁니다.
+            - 응답의 cards[].cardId로 마음카드 반응(이모지·문구 코멘트·콕)을, doodlePick.giftItems[].giftItemId로 선물 이모지·선물 고르기를 호출합니다.
             - 보낸 사람은 작성 중이든 보낸 뒤든 언제나 볼 수 있습니다 (LW-013 카드 목록 화면).
             - 받는 사람은 받은 편지함에서 지우지 않은 동안 볼 수 있고, 처음 열면 읽음(readAt)으로 표시됩니다 (LR-020).
             - 그 외에는 LETTER_001입니다.
@@ -102,7 +106,7 @@ public class LetterInboxController {
     }
 
     @PutMapping("/{letterId}/gift")
-    @Operation(summary = "선물 고르기", description = """
+    @Operation(summary = "두들픽 선물 고르기", description = """
             받은 편지의 두들픽 선물 후보 중 하나를 고릅니다 (LR-022). 다시 고르면 바뀌고, giftItemId를 비우면 선택을 취소합니다.
             - 편지에 없는 선물 후보면 LETTER_010, 내가 받은 편지가 아니면 COMMON_001입니다.
             """)
@@ -115,7 +119,7 @@ public class LetterInboxController {
     }
 
     @DeleteMapping("/{letterId}")
-    @Operation(summary = "편지 삭제", description = """
+    @Operation(summary = "편지 삭제 (보낸 사람: 작성 취소 / 받는 사람: 펀지팩 삭제)", description = """
             - 보낸 사람: 아직 보내지 않은 편지를 카드·두들픽과 함께 삭제합니다 (작성 취소). 보낸 편지는 삭제할 수 없습니다(LETTER_003).
             - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 복구할 수 없고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)도 함께 지워집니다. 보낸 사람의 보낸 편지함에는 남습니다.
             """)

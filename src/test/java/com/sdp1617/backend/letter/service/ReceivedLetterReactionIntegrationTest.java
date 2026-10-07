@@ -7,7 +7,7 @@ import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.archive.service.ArchiveService;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
-import com.sdp1617.backend.card.dto.DesignType;
+import com.sdp1617.backend.letter.entity.DesignType;
 import com.sdp1617.backend.giftitem.dto.GiftItemEmojiRequest;
 import com.sdp1617.backend.giftitem.service.GiftItemEmojiService;
 import com.sdp1617.backend.global.error.CustomException;
