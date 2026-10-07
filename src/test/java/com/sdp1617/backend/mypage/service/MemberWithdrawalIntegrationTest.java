@@ -13,6 +13,8 @@ import com.sdp1617.backend.card.dto.response.CardStorageResponse;
 import com.sdp1617.backend.card.entity.Card;
 import com.sdp1617.backend.card.entity.Envelop;
 import com.sdp1617.backend.card.service.CardService;
+import com.sdp1617.backend.letter.entity.Letter;
+import com.sdp1617.backend.letter.entity.LetterCardContent;
 import com.sdp1617.backend.letter.entity.LetterInteraction;
 import com.sdp1617.backend.letter.entity.LetterInteractionType;
 import com.sdp1617.backend.notification.entity.Notification;
@@ -84,6 +86,10 @@ class MemberWithdrawalIntegrationTest {
         em.persist(new Notification(me.getId(), NotificationType.values()[0], "알림"));
         em.persist(new LetterInteraction(1L, me.getId(), LetterInteractionType.FAVORITE, "FAVORITE"));
         em.persist(new LetterInteraction(1L, me.getId(), LetterInteractionType.COMMENT, "남긴 댓글"));
+        Letter unsentLetter = Letter.start(me, "친구", "나", DesignType.values()[0]);
+        unsentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "보내지 않은 카드",
+                null, null, null, null));
+        em.persist(unsentLetter);
         em.flush();
         em.clear();
 
@@ -106,6 +112,7 @@ class MemberWithdrawalIntegrationTest {
         assertEquals(0, count("select count(n) from Notification n where n.memberId = :id", me.getId()));
         assertEquals(0, em.find(ArchiveCard.class, friendArchive.getId()).getLikeCount());
         assertEquals(1, count("select count(i) from LetterInteraction i where i.memberId = :id", me.getId()));
+        assertEquals(0, count("select count(l) from Letter l where l.sender.id = :id", me.getId()));
 
         // 친구의 보관함에는 주고받은 카드가 "탈퇴한회원N"으로 남는다
         List<CardStorageResponse> friendReceived =
