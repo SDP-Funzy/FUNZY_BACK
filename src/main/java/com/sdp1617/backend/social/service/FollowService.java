@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class FollowService {
     private final MemberRepository memberRepository;
     private final FollowRequestRepository followRequestRepository;
     private final FollowRelationRepository followRelationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.social.max-follow-count}")
     private int maxFollowCount;
@@ -72,6 +74,8 @@ public class FollowService {
             ensureUnderFollowLimit(requesterId, receiverId);
             followRequestRepository.delete(reverseRequest.get());
             followRelationRepository.save(FollowRelation.of(requesterId, receiverId));
+            // 상대가 먼저 보낸 요청을 내가 수락한 것과 같다
+            eventPublisher.publishEvent(new FollowAcceptedEvent(receiverId, requesterId));
             return;
         }
 
@@ -79,6 +83,7 @@ public class FollowService {
             throw new CustomException(ErrorCode.SOCIAL_005);
         }
         followRequestRepository.save(new FollowRequest(requesterId, receiverId));
+        eventPublisher.publishEvent(new FollowRequestedEvent(requesterId, receiverId));
     }
 
     public List<FollowRequestResponse> getReceivedRequests(Long memberId) {
@@ -135,6 +140,7 @@ public class FollowService {
 
         followRequestRepository.delete(request);
         followRelationRepository.save(FollowRelation.of(request.getRequesterId(), memberId));
+        eventPublisher.publishEvent(new FollowAcceptedEvent(request.getRequesterId(), memberId));
     }
 
     @Transactional

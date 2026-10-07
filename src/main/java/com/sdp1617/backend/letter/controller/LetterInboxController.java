@@ -134,7 +134,7 @@ public class LetterInboxController {
     @DeleteMapping("/{letterId}")
     @Operation(summary = "편지 삭제 (보낸 사람: 작성 취소 / 받는 사람: 펀지팩 삭제)", description = """
             - 보낸 사람: 아직 보내지 않은 편지를 카드·두들픽과 함께 삭제합니다 (작성 취소). 보낸 편지는 삭제할 수 없습니다(LETTER_003).
-            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 복구할 수 없고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)도 함께 지워집니다. 보낸 사람의 보낸 편지함에는 남습니다.
+            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 복구할 수 없고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 반응 알림은 남습니다.
             """)
     public ApiResponse<Void> deleteOrHide(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
