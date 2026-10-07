@@ -19,7 +19,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +26,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -94,11 +92,11 @@ public class FollowController {
             - 친구 수 상한(기본 50명)에 도달하면 요청을 보낼 수 없습니다.
             """)
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "요청 전송 성공 (교차 요청인 경우 즉시 맞팔 처리)",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "요청 전송 성공 (교차 요청인 경우 즉시 맞팔 처리)",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                             {
                               "success": true,
-                              "code": "201",
+                              "code": "200",
                               "message": "팔로우 요청을 보냈습니다.",
                               "data": null
                             }
@@ -152,13 +150,12 @@ public class FollowController {
                     }))
     })
     @PostMapping("/requests")
-    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<Void> sendFollowRequest(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody FollowRequestCreateRequest request
     ) {
         followService.sendFollowRequest(memberId, request.followCode());
-        return ApiResponse.created("팔로우 요청을 보냈습니다.", null);
+        return ApiResponse.ok("팔로우 요청을 보냈습니다.", null);
     }
 
     @Operation(summary = "받은 팔로우 요청 목록 조회", description = """

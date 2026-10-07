@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -46,13 +44,12 @@ public class HeartCardPhraseCommentController {
             summary = "마음카드 문구 코멘트 작성",
             description = "선택한 문구 범위에 최대 50자의 코멘트를 저장합니다. 기존 코멘트 영역과 겹치면 저장할 수 없습니다. 등록 시에만 알림 생성 대상입니다."
     )
-    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<HeartCardPhraseCommentResponse> createComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardPhraseCommentCreateRequest request
     ) {
-        return ApiResponse.created("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
+        return ApiResponse.ok("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
     }
 
     @GetMapping("/api/heart-cards/{heartCardId}/phrase-comments/{commentId}")

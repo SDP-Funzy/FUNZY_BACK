@@ -25,14 +25,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -172,11 +170,11 @@ public class AuthController {
             - 가입 완료 후 자동 로그인되지 않으며, 로그인 화면으로 이동해 별도로 로그인해야 합니다.
             """)
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "가입 성공",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "가입 성공",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                             {
                               "success": true,
-                              "code": "201",
+                              "code": "200",
                               "message": "회원가입이 완료되었습니다.",
                               "data": null
                             }
@@ -221,10 +219,9 @@ public class AuthController {
                     }))
     })
     @PostMapping("/signup")
-    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<Void> signUp(@Valid @RequestBody SignUpRequest request) {
         authService.signUp(request);
-        return ApiResponse.created("회원가입이 완료되었습니다.", null);
+        return ApiResponse.ok("회원가입이 완료되었습니다.", null);
     }
 
     @Operation(summary = "아이디(닉네임) 중복 확인", description = """

@@ -21,6 +21,16 @@ public class OpenApiConfig {
     private static final String DESCRIPTION = """
             SDP1617 백엔드 API 문서입니다. 인증이 필요한 API는 Authorize 버튼에 JWT access token을 입력해서 테스트합니다.
 
+            ### 응답 규칙
+            모든 응답은 `{ "success", "code", "message", "data" }` 형식입니다.
+            | 경우 | HTTP 상태 | 본문 `success` | 본문 `code` |
+            |---|---|---|---|
+            | 성공 (조회·생성·수정·삭제 모두) | **200** | `true` | `"200"` |
+            | 실패 | 4xx·5xx (에러 코드마다 정해짐) | `false` | 에러 코드 (예: `"LETTER_001"`) |
+
+            - 새로 만드는 API(회원가입, 친구 요청, 편지 만들기 등)도 201이 아니라 200입니다.
+            - 오류 종류는 `code`로 분기하고 `message`는 화면 표시용입니다. 전체 목록과 HTTP 상태: [에러 코드 문서](/docs/error-codes)
+
             ### 편지 용어 ↔ API 대응 (기획서 용어로 API 찾기)
             | 기획서 용어 | 뜻 | API / ID |
             |---|---|---|

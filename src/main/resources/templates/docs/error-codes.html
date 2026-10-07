@@ -104,7 +104,8 @@
     <p class="summary" th:text="|전체 ${totalCount}개|">전체 0개</p>
     <p class="format">
         모든 에러 응답 형식: <code>{ "success": false, "code": "AUTH_001", "message": "...", "data": null }</code>
-        — 분기는 <code>code</code>로 하고, <code>message</code>는 화면 표시용입니다.
+        — 분기는 <code>code</code>로 하고, <code>message</code>는 화면 표시용입니다. HTTP 상태는 아래 표의 HttpStatus입니다.<br>
+        성공 응답: <code>{ "success": true, "code": "200", "message": "...", "data": ... }</code> — 조회·생성·수정·삭제 모두 HTTP <strong>200</strong>입니다 (201을 쓰지 않음).
     </p>
 
     <div th:if="${#maps.isEmpty(groupedErrorCodes)}" class="empty">
