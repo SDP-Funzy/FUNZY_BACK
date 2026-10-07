@@ -1,6 +1,7 @@
 package com.sdp1617.backend.heartcard.dto;
 
 import com.sdp1617.backend.heartcard.entity.HeartCardPhraseComment;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ public record HeartCardPhraseCommentResponse(
         String selectedText,
         String content,
         boolean mine,
+        @Schema(description = "이번 요청으로 보낸 사람에게 알림을 만들었는지. 코멘트 작성 시 true (보낸 사람이 탈퇴했으면 false). 수정·조회는 false")
         boolean notificationCreated,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

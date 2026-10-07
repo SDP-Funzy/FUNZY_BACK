@@ -51,9 +51,11 @@ public class HeartCardEmojiService {
         HeartCardEmojiReaction reaction = heartCardEmojiReactionRepository.save(
                 new HeartCardEmojiReaction(heartCard.getId(), memberId, request.emoji())
         );
-        eventPublisher.publishEvent(
-                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_EMOJI, heartCard.getLetter(), heartCard.getId()));
-        return HeartCardEmojiResponse.of(reaction.getHeartCardId(), reaction.getEmoji(), HeartCardEmojiAction.CREATED, false);
+        LetterReactedEvent event =
+                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_EMOJI, heartCard.getLetter(), heartCard.getId());
+        eventPublisher.publishEvent(event);
+        return HeartCardEmojiResponse.of(reaction.getHeartCardId(), reaction.getEmoji(), HeartCardEmojiAction.CREATED,
+                event.notificationCreated());
     }
 
     private HeartCardEmojiResponse updateOrDelete(

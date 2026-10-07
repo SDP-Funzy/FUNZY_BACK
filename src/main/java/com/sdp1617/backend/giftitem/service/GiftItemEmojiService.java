@@ -46,9 +46,10 @@ public class GiftItemEmojiService {
         GiftItemEmojiReaction reaction = giftItemEmojiReactionRepository.save(
                 new GiftItemEmojiReaction(giftItem.getId(), memberId, request.emoji())
         );
-        eventPublisher.publishEvent(
-                LetterReactedEvent.of(LetterReactedEvent.Kind.GIFT_EMOJI, giftItem.getLetter(), null));
-        return GiftItemEmojiResponse.of(reaction.getGiftItemId(), reaction.getEmoji(), HeartCardEmojiAction.CREATED, false);
+        LetterReactedEvent event = LetterReactedEvent.of(LetterReactedEvent.Kind.GIFT_EMOJI, giftItem.getLetter(), null);
+        eventPublisher.publishEvent(event);
+        return GiftItemEmojiResponse.of(reaction.getGiftItemId(), reaction.getEmoji(), HeartCardEmojiAction.CREATED,
+                event.notificationCreated());
     }
 
     private GiftItemEmojiResponse updateOrDelete(
