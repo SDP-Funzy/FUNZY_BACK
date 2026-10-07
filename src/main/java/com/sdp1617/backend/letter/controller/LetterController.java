@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/letters")
 @RequiredArgsConstructor
-@Tag(name = "편지 쓰기", description = "편지(펀지) 작성: 봉투 구성 → 카드 1~5장 → 두들픽 → 완료. 전송 전까지는 보낸 사람만 조회·수정할 수 있습니다.")
+@Tag(name = "편지 쓰기", description = "편지(펀지) 작성: 봉투 구성 → 카드 1~5장 → 두들픽 → 완료. 보내기 전까지는 보낸 사람만 수정할 수 있습니다. 편지 조회·삭제·보내기는 '편지함' API를 사용합니다.")
 public class LetterController {
 
     private final LetterWriteService letterWriteService;
@@ -55,18 +55,6 @@ public class LetterController {
         return ApiResponse.ok("보내지 않은 편지 목록을 조회했습니다.", letterWriteService.getUnsentLetters(memberId));
     }
 
-    @GetMapping("/{letterId}")
-    @Operation(summary = "내가 쓴 편지 조회", description = """
-            내가 쓴 편지를 카드(순서대로)·두들픽과 함께 조회합니다 (LW-013 카드 목록 화면).
-            - 내가 쓴 편지가 아니면 LETTER_001입니다.
-            """)
-    public ApiResponse<LetterResponse> getMyLetter(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId
-    ) {
-        return ApiResponse.ok("편지를 조회했습니다.", letterWriteService.getMyLetter(memberId, letterId));
-    }
-
     @PutMapping("/{letterId}")
     @Operation(summary = "봉투 수정", description = """
             받는 사람·보내는 사람 이름과 봉투 디자인을 수정합니다. 전송된 편지는 수정할 수 없습니다(LETTER_003).
@@ -77,18 +65,6 @@ public class LetterController {
             @Valid @RequestBody LetterEnvelopeRequest request
     ) {
         return ApiResponse.ok("봉투를 수정했습니다.", letterWriteService.updateEnvelope(memberId, letterId, request));
-    }
-
-    @DeleteMapping("/{letterId}")
-    @Operation(summary = "보내지 않은 편지 삭제 (작성 취소)", description = """
-            아직 보내지 않은 내 편지를 카드·두들픽과 함께 삭제합니다. 전송된 편지는 삭제할 수 없습니다(LETTER_003).
-            """)
-    public ApiResponse<Void> deleteUnsent(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId
-    ) {
-        letterWriteService.deleteUnsent(memberId, letterId);
-        return ApiResponse.ok("편지를 삭제했습니다.", null);
     }
 
     @PostMapping("/{letterId}/cards")

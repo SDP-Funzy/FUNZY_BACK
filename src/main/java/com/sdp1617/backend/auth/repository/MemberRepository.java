@@ -5,8 +5,10 @@ import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -28,6 +30,34 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findByNickname(String nickname);
 
     Optional<Member> findByFollowCode(String followCode);
+
+    /** 닉네임 앞부분이 일치하는 친구(맞팔). 나와 탈퇴한 회원은 제외. prefix는 소문자로 바꾸고 LIKE 와일드카드를 이스케이프한 값. */
+    @Query("""
+            select m from Member m
+            where lower(m.nickname) like :prefix escape '\\'
+              and m.id <> :viewerId
+              and m.withdrawnAt is null
+              and exists (select 1 from FollowRelation f
+                          where (f.memberIdA = :viewerId and f.memberIdB = m.id)
+                             or (f.memberIdA = m.id and f.memberIdB = :viewerId))
+            order by m.nickname asc, m.id asc
+            """)
+    List<Member> searchFriendsByNicknamePrefix(
+            @Param("viewerId") Long viewerId, @Param("prefix") String prefix, Pageable pageable);
+
+    /** 닉네임 앞부분이 일치하는, 친구가 아닌 회원. 나와 탈퇴한 회원은 제외. */
+    @Query("""
+            select m from Member m
+            where lower(m.nickname) like :prefix escape '\\'
+              and m.id <> :viewerId
+              and m.withdrawnAt is null
+              and not exists (select 1 from FollowRelation f
+                              where (f.memberIdA = :viewerId and f.memberIdB = m.id)
+                                 or (f.memberIdA = m.id and f.memberIdB = :viewerId))
+            order by m.nickname asc, m.id asc
+            """)
+    List<Member> searchNonFriendsByNicknamePrefix(
+            @Param("viewerId") Long viewerId, @Param("prefix") String prefix, Pageable pageable);
 
     /** 탈퇴하지 않은 회원. 탈퇴해도 회원 행은 남으므로(익명화) 회원 정보를 읽거나 바꿀 때는 findById 대신 이걸 쓴다. */
     default Optional<Member> findActiveById(Long id) {
