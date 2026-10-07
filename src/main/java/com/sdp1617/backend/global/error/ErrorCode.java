@@ -51,6 +51,12 @@ public enum ErrorCode {
     CARD_005(HttpStatus.BAD_REQUEST, "CARD_005", "본인에게는 마음카드를 보낼 수 없습니다."),
     CARD_006(HttpStatus.NOT_FOUND, "CARD_006", "존재하지 않는 수신자입니다."),
 
+    LETTER_001(HttpStatus.NOT_FOUND, "LETTER_001", "존재하지 않는 편지입니다."),
+    LETTER_002(HttpStatus.BAD_REQUEST, "LETTER_002", "카드는 편지당 최대 5장까지 작성할 수 있습니다."),
+    LETTER_003(HttpStatus.CONFLICT, "LETTER_003", "이미 전송된 편지는 수정할 수 없습니다."),
+    LETTER_004(HttpStatus.BAD_REQUEST, "LETTER_004", "카드를 1장 이상 작성해야 편지를 완료할 수 있습니다."),
+    LETTER_005(HttpStatus.NOT_FOUND, "LETTER_005", "편지에 없는 카드입니다."),
+
     SOCIAL_001(HttpStatus.NOT_FOUND, "SOCIAL_001", "존재하지 않는 친구 코드입니다."),
     SOCIAL_002(HttpStatus.BAD_REQUEST, "SOCIAL_002", "본인에게는 팔로우 요청을 보낼 수 없습니다."),
     SOCIAL_003(HttpStatus.CONFLICT, "SOCIAL_003", "이미 친구인 회원입니다."),
