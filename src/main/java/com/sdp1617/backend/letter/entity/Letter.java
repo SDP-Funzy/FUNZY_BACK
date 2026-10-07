@@ -28,6 +28,7 @@ import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.DynamicUpdate;
 
 /**
@@ -105,12 +106,15 @@ public class Letter {
     /** 받는 사람이 받은 편지함에서 삭제한 시각. 보낸 사람의 보낸함에는 그대로 남는다. */
     private LocalDateTime recipientHiddenAt;
 
+    // 편지함·이어쓰기 목록에서 편지마다 카드를 따로 조회하지 않도록, 한 페이지(최대 100통)의 카드를 한 번에 읽는다
     @OneToMany(mappedBy = "letter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("cardOrder asc")
+    @BatchSize(size = 100)
     private List<LetterCard> cards = new ArrayList<>();
 
     @OneToMany(mappedBy = "letter", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("itemOrder asc")
+    @BatchSize(size = 100)
     private List<GiftItem> giftItems = new ArrayList<>();
 
     private Letter(Member sender, String toName, String fromName, DesignType designType) {
