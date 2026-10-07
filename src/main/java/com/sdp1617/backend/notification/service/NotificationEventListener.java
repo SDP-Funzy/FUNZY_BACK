@@ -36,11 +36,14 @@ public class NotificationEventListener {
     @EventListener
     public void onLetterReacted(LetterReactedEvent event) {
         String name = event.recipientName();
-        switch (event.kind()) {
+        boolean created = switch (event.kind()) {
             case CARD_EMOJI -> notifyEmojiOnce(event, name + "님이 마음카드에 이모지를 남겼어요.", event.cardId());
             case CARD_COMMENT -> notify(event.senderId(), NotificationType.COMMENT,
                     name + "님이 마음카드에 코멘트를 남겼어요.", event.recipientId(), event.letterId(), event.cardId());
             case GIFT_EMOJI -> notifyEmojiOnce(event, name + "님이 두들픽 선물에 이모지를 남겼어요.", null);
+        };
+        if (created) {
+            event.markNotificationCreated();
         }
     }
 
@@ -74,19 +77,21 @@ public class NotificationEventListener {
      * 이모지 알림은 마음카드마다(두들픽 선물 이모지는 편지마다) 한 번만 만든다 (LR-114, LR-614).
      * 같은 이모지를 다시 눌러 지웠다가 또 남기면 반응은 새로 생기지만, 그때마다 알림이 쌓이지 않게 한다.
      */
-    private void notifyEmojiOnce(LetterReactedEvent event, String content, Long cardId) {
+    private boolean notifyEmojiOnce(LetterReactedEvent event, String content, Long cardId) {
         if (notificationRepository.existsByMemberIdAndActorMemberIdAndTypeAndLetterIdAndCardId(
                 event.senderId(), event.recipientId(), NotificationType.REACTION, event.letterId(), cardId)) {
-            return;
+            return false;
         }
-        notify(event.senderId(), NotificationType.REACTION, content, event.recipientId(), event.letterId(), cardId);
+        return notify(event.senderId(), NotificationType.REACTION, content, event.recipientId(), event.letterId(), cardId);
     }
 
-    private void notify(Long memberId, NotificationType type, String content, Long actorMemberId, Long letterId,
-                        Long cardId) {
+    /** 알림을 만들었으면 true. 알림 받을 회원이 탈퇴했으면 만들지 않고 false. */
+    private boolean notify(Long memberId, NotificationType type, String content, Long actorMemberId, Long letterId,
+                           Long cardId) {
         if (memberRepository.findActiveById(memberId).isEmpty()) {
-            return;
+            return false;
         }
         notificationRepository.save(new Notification(memberId, type, content, actorMemberId, letterId, cardId));
+        return true;
     }
 }

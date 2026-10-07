@@ -65,9 +65,10 @@ public class HeartCardPhraseCommentService {
                 request.content()
         ));
         // 등록할 때마다 보낸 사람에게 알림 (LR-224). 수정·삭제는 알림 없음.
-        eventPublisher.publishEvent(
-                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_COMMENT, heartCard.getLetter(), heartCardId));
-        return HeartCardPhraseCommentResponse.of(comment, memberId, false);
+        LetterReactedEvent event =
+                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_COMMENT, heartCard.getLetter(), heartCardId);
+        eventPublisher.publishEvent(event);
+        return HeartCardPhraseCommentResponse.of(comment, memberId, event.notificationCreated());
     }
 
     @Transactional
