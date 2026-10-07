@@ -33,6 +33,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -202,6 +203,42 @@ class NotificationEventIntegrationTest {
         heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.HEART));
 
         assertTrue(notifications(sender).isEmpty());
+    }
+
+    @Test
+    void 반응_응답의_notificationCreated는_실제로_알림을_만들었을_때만_true다() {
+        letterInboxService.send(sender.getId(), letterId, recipient.getId());
+        Long recipientId = recipient.getId();
+
+        assertTrue(heartCardEmojiService.updateEmoji(recipientId, cardId,
+                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
+        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
+                new HeartCardEmojiRequest(HeartCardEmojiType.LIKE)).notificationCreated()); // 수정
+        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
+                new HeartCardEmojiRequest(HeartCardEmojiType.LIKE)).notificationCreated()); // 삭제
+        em.flush();
+        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
+                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated()); // 다시 남김: 이미 알림 있음
+
+        assertTrue(giftItemEmojiService.updateEmoji(recipientId, giftItemIds.get(0),
+                new GiftItemEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
+        assertFalse(giftItemEmojiService.updateEmoji(recipientId, giftItemIds.get(1),
+                new GiftItemEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated()); // 같은 편지의 다른 선물
+
+        assertTrue(phraseCommentService.createComment(recipientId, cardId,
+                new HeartCardPhraseCommentCreateRequest(0, 3, "출근길", "나도!")).notificationCreated());
+    }
+
+    @Test
+    void 보낸_사람이_탈퇴했으면_notificationCreated는_false다() {
+        letterInboxService.send(sender.getId(), letterId, recipient.getId());
+        sender.withdraw();
+        em.flush();
+
+        assertFalse(heartCardEmojiService.updateEmoji(recipient.getId(), cardId,
+                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
+        assertFalse(phraseCommentService.createComment(recipient.getId(), cardId,
+                new HeartCardPhraseCommentCreateRequest(0, 3, "출근길", "나도!")).notificationCreated());
     }
 
     @Test
