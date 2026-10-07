@@ -8,6 +8,7 @@ import com.sdp1617.backend.letter.dto.LetterPageResponse;
 import com.sdp1617.backend.letter.dto.LetterResponse;
 import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
 import com.sdp1617.backend.letter.dto.SentLetterResponse;
+import com.sdp1617.backend.letter.dto.UnreadLetterCountResponse;
 import com.sdp1617.backend.letter.entity.Letter;
 import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.entity.LetterStatus;
@@ -127,6 +128,12 @@ public class LetterInboxService {
         return LetterPageResponse.of(
                 letterRepository.findBySender_IdAndStatus(memberId, LetterStatus.SENT, pageable),
                 SentLetterResponse::from);
+    }
+
+    /** 미읽음 편지 수 (LB-221): 받은 편지함에 남아 있고 아직 열지 않은 편지. */
+    public UnreadLetterCountResponse getUnreadCount(Long memberId) {
+        return new UnreadLetterCountResponse(letterRepository
+                .countByRecipient_IdAndStatusAndRecipientHiddenAtIsNullAndReadAtIsNull(memberId, LetterStatus.SENT));
     }
 
     /** 조건이 비어 있으면 아예 넣지 않는다 — PostgreSQL에서 값 없는 파라미터의 타입을 추론하지 못하는 문제(#126)를 피한다. */
