@@ -1,4 +1,4 @@
-package com.sdp1617.backend.card.dto;
+package com.sdp1617.backend.letter.entity;
 
 public enum DesignType {
     DesignType_A,

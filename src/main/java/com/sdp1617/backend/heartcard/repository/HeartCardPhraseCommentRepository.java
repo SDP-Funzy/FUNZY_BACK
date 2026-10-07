@@ -15,7 +15,6 @@ public interface HeartCardPhraseCommentRepository extends JpaRepository<HeartCar
 
     Optional<HeartCardPhraseComment> findByIdAndHeartCardId(Long id, Long heartCardId);
 
-    void deleteByHeartCardIdIn(Collection<Long> heartCardIds);
 
     @Query("""
             select count(comment) > 0

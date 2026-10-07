@@ -1,4 +1,4 @@
-package com.sdp1617.backend.card.dto.response;
+package com.sdp1617.backend.letter.dto;
 
 import com.sdp1617.backend.global.s3.S3ImageService;
 

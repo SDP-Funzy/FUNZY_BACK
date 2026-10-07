@@ -48,8 +48,6 @@ public enum ErrorCode {
     CARD_002(HttpStatus.BAD_REQUEST, "CARD_002", "이미지 업로드가 완료되지 않았습니다."),
     CARD_003(HttpStatus.BAD_REQUEST, "CARD_003", "지원하지 않는 이미지 형식입니다."),
     CARD_004(HttpStatus.BAD_REQUEST, "CARD_004", "이미지 파일 크기가 허용 범위를 초과했습니다."),
-    CARD_005(HttpStatus.BAD_REQUEST, "CARD_005", "본인에게는 마음카드를 보낼 수 없습니다."),
-    CARD_006(HttpStatus.NOT_FOUND, "CARD_006", "존재하지 않는 수신자입니다."),
 
     LETTER_001(HttpStatus.NOT_FOUND, "LETTER_001", "존재하지 않는 편지입니다."),
     LETTER_002(HttpStatus.BAD_REQUEST, "LETTER_002", "카드는 편지당 최대 5장까지 작성할 수 있습니다."),

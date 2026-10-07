@@ -1,4 +1,4 @@
-package com.sdp1617.backend.card.dto;
+package com.sdp1617.backend.letter.dto;
 
 public enum CardBoxType {
     SENT,

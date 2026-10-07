@@ -1,7 +1,6 @@
 package com.sdp1617.backend.letter.entity;
 
 import com.sdp1617.backend.auth.entity.Member;
-import com.sdp1617.backend.card.dto.DesignType;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import jakarta.persistence.CascadeType;

@@ -3,7 +3,7 @@ package com.sdp1617.backend.letter.service;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
-import com.sdp1617.backend.card.dto.DesignType;
+import com.sdp1617.backend.letter.entity.DesignType;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.letter.dto.DoodlePickRequest;

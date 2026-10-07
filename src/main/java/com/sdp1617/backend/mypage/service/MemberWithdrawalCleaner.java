@@ -50,7 +50,6 @@ public class MemberWithdrawalCleaner {
         followRelationRepository.deleteAllByMember(memberId);
         followRequestRepository.deleteAllByMember(memberId);
 
-        // 아카이브를 펀지팩보다 먼저 지운다 — 펀지팩 삭제는 아카이브 카드만 지우고 거기 달린 좋아요는 남기기 때문
         deleteMyLikes(memberId);
         deleteMyArchive(memberId);
 
