@@ -30,7 +30,7 @@ public class GiftItemEmojiController {
     )
     public ApiResponse<GiftItemEmojiResponse> getMyEmoji(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "선물 항목 ID", example = "200") @PathVariable Long giftItemId
+            @Parameter(description = "받은 편지의 두들픽 선물 후보 ID (편지 열기 응답의 doodlePick.giftItems[].giftItemId). 받은 편지가 아니면 COMMON_001", example = "3") @PathVariable Long giftItemId
     ) {
         return ApiResponse.ok("선물 항목 이모지를 조회했습니다.", giftItemEmojiService.getMyEmoji(memberId, giftItemId));
     }
@@ -42,7 +42,7 @@ public class GiftItemEmojiController {
     )
     public ApiResponse<GiftItemEmojiResponse> updateEmoji(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "선물 항목 ID", example = "200") @PathVariable Long giftItemId,
+            @Parameter(description = "받은 편지의 두들픽 선물 후보 ID (편지 열기 응답의 doodlePick.giftItems[].giftItemId). 받은 편지가 아니면 COMMON_001", example = "3") @PathVariable Long giftItemId,
             @Valid @RequestBody GiftItemEmojiRequest request
     ) {
         return ApiResponse.ok("선물 항목 이모지를 변경했습니다.", giftItemEmojiService.updateEmoji(memberId, giftItemId, request));

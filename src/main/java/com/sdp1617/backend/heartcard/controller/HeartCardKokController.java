@@ -29,7 +29,7 @@ public class HeartCardKokController {
     )
     public ApiResponse<HeartCardKokResponse> getKok(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId
     ) {
         return ApiResponse.ok("콕 상태를 조회했습니다.", heartCardKokService.getKok(memberId, heartCardId));
     }
@@ -46,7 +46,7 @@ public class HeartCardKokController {
     )
     public ApiResponse<HeartCardKokResponse> updateKok(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @RequestBody(required = false) HeartCardKokRequest request
     ) {
         return ApiResponse.ok("콕 상태를 변경했습니다.", heartCardKokService.updateKok(memberId, heartCardId, request));

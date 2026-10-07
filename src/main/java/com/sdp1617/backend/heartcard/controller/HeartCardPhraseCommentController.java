@@ -34,7 +34,7 @@ public class HeartCardPhraseCommentController {
     )
     public ApiResponse<HeartCardPhraseCommentListResponse> getComments(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId
     ) {
         return ApiResponse.ok("문구 코멘트 목록을 조회했습니다.", heartCardPhraseCommentService.getComments(memberId, heartCardId));
     }
@@ -46,7 +46,7 @@ public class HeartCardPhraseCommentController {
     )
     public ApiResponse<HeartCardPhraseCommentResponse> createComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardPhraseCommentCreateRequest request
     ) {
         return ApiResponse.created("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
@@ -59,7 +59,7 @@ public class HeartCardPhraseCommentController {
     )
     public ApiResponse<HeartCardPhraseCommentResponse> getComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId
     ) {
         return ApiResponse.ok("문구 코멘트를 조회했습니다.", heartCardPhraseCommentService.getComment(memberId, heartCardId, commentId));
@@ -72,7 +72,7 @@ public class HeartCardPhraseCommentController {
     )
     public ApiResponse<HeartCardPhraseCommentResponse> updateComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId,
             @Valid @RequestBody HeartCardPhraseCommentUpdateRequest request
     ) {
@@ -86,7 +86,7 @@ public class HeartCardPhraseCommentController {
     )
     public ApiResponse<Void> deleteComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "100") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Parameter(description = "문구 코멘트 ID", example = "1") @PathVariable Long commentId
     ) {
         heartCardPhraseCommentService.deleteComment(memberId, heartCardId, commentId);

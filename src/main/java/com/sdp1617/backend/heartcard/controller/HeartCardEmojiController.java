@@ -40,7 +40,7 @@ public class HeartCardEmojiController {
     )
     public ApiResponse<HeartCardEmojiResponse> getMyEmoji(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "1") @PathVariable Long heartCardId
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId
     ) {
         return ApiResponse.ok("마음카드 이모지를 조회했습니다.", heartCardEmojiService.getMyEmoji(memberId, heartCardId));
     }
@@ -52,7 +52,7 @@ public class HeartCardEmojiController {
     )
     public ApiResponse<HeartCardEmojiResponse> updateEmoji(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "마음카드 ID", example = "1") @PathVariable Long heartCardId,
+            @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardEmojiRequest request
     ) {
         return ApiResponse.ok("마음카드 이모지를 변경했습니다.", heartCardEmojiService.updateEmoji(memberId, heartCardId, request));

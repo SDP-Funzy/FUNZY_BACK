@@ -18,6 +18,8 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.letter.entity.LetterCard;
+import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class ArchiveService {
     private final ArchiveCardLikeRepository archiveCardLikeRepository;
     private final FollowRelationRepository followRelationRepository;
     private final MemberRepository memberRepository;
+    private final ReceivedLetterAccess receivedLetterAccess;
 
     public ArchiveHomeResponse getHome(Long memberId) {
         return buildHome(findActiveMember(memberId), false);
@@ -74,13 +77,15 @@ public class ArchiveService {
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 
+    /** 내가 받은 편지의 카드만 담을 수 있다 (콕과 같은 기준, #82). 남의 카드 ID면 없는 카드와 같이 COMMON_001. */
     @Transactional
     public ArchiveCardDetailResponse saveCard(Long memberId, ArchiveCardCreateRequest request) {
+        LetterCard letterCard = receivedLetterAccess.lockReceivedCard(memberId, request.letterCardId());
         if (archiveCardRepository.existsByOwnerMemberIdAndLetterCardId(memberId, request.letterCardId())) {
             throw new CustomException(ErrorCode.ARCHIVE_001);
         }
 
-        ArchiveCard card = archiveCardRepository.save(new ArchiveCard(memberId, request.letterCardId(), request.category()));
+        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.category()));
         return ArchiveCardDetailResponse.from(card, false, false);
     }
 

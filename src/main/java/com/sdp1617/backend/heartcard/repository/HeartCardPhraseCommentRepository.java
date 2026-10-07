@@ -29,4 +29,6 @@ public interface HeartCardPhraseCommentRepository extends JpaRepository<HeartCar
             @Param("startOffset") int startOffset,
             @Param("endOffset") int endOffset
     );
+
+    void deleteByMemberIdAndHeartCardIdIn(Long memberId, Collection<Long> heartCardIds);
 }

@@ -8,7 +8,6 @@ import com.sdp1617.backend.letter.entity.LetterInteraction;
 import com.sdp1617.backend.letter.entity.LetterInteractionType;
 import com.sdp1617.backend.letter.entity.LetterReactionType;
 import com.sdp1617.backend.letter.repository.LetterInteractionRepository;
-import com.sdp1617.backend.letter.repository.ReceivedLetterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LetterInteractionService {
 
     private final LetterInteractionRepository letterInteractionRepository;
-    private final ReceivedLetterRepository receivedLetterRepository;
+    private final ReceivedLetterAccess receivedLetterAccess;
 
     @Transactional
     public LetterInteractionResponse saveReaction(Long memberId, Long letterId, LetterReactionType reactionType) {
@@ -65,9 +64,8 @@ public class LetterInteractionService {
         }
     }
 
+    /** 받은 편지에만 반응할 수 있다. 편지를 잠가, 받은 편지를 지우며 반응을 정리하는 요청과 순서대로 처리한다. */
     private void validateReceivedLetterAccess(Long letterId, Long memberId) {
-        if (!receivedLetterRepository.existsByIdAndReceiverMemberId(letterId, memberId)) {
-            throw new CustomException(ErrorCode.COMMON_001);
-        }
+        receivedLetterAccess.lockReceivedLetter(memberId, letterId);
     }
 }

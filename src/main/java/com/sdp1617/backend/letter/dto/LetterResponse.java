@@ -23,6 +23,8 @@ public record LetterResponse(
         List<LetterCardResponse> cards,
         @Schema(description = "두들픽. 없으면 null")
         DoodlePickResponse doodlePick,
+        @Schema(description = "받는 사람이 고른 선물 후보 ID. 안 골랐으면 null")
+        Long selectedGiftItemId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         LocalDateTime completedAt,
@@ -35,7 +37,7 @@ public record LetterResponse(
                 LetterMemberResponse.from(letter.getSender()), LetterMemberResponse.from(letter.getRecipient()),
                 letter.getToName(), letter.getFromName(),
                 letter.getDesignType(), letter.getCards().stream().map(LetterCardResponse::from).toList(),
-                DoodlePickResponse.from(letter), letter.getCreatedAt(), letter.getUpdatedAt(),
+                DoodlePickResponse.from(letter), letter.getSelectedGiftItemId(), letter.getCreatedAt(), letter.getUpdatedAt(),
                 letter.getCompletedAt(), letter.getSentAt(), letter.getReadAt());
     }
 }
