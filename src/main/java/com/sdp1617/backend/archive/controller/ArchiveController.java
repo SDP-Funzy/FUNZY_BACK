@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -61,6 +63,7 @@ public class ArchiveController {
             summary = "받은 마음카드 아카이브에 담기",
             description = "내가 받은 편지의 마음카드를 아카이브에 담습니다(콕과 같은 동작, 카드 내용이 함께 저장됨). 내가 받은 편지의 카드가 아니면 COMMON_001, 이미 담은 카드면 ARCHIVE_001입니다."
     )
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ArchiveCardDetailResponse> saveCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody ArchiveCardCreateRequest request

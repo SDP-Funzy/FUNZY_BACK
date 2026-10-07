@@ -10,11 +10,13 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,6 +31,7 @@ public class LetterInteractionController {
             summary = "편지 리액션 저장",
             description = "편지에 리액션을 저장합니다. Authorization 헤더가 없으면 401이 반환되며, 프론트에서 로그인/회원가입 유도 팝업을 표시하면 됩니다."
     )
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<LetterInteractionResponse> saveReaction(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "반응을 남길 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId,
@@ -45,6 +48,7 @@ public class LetterInteractionController {
             summary = "편지 댓글 저장",
             description = "편지에 댓글을 저장합니다. 저장 실패 시 에러 응답이 내려가며, 프론트는 입력 내용을 유지하고 재시도 안내를 표시합니다."
     )
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<LetterInteractionResponse> saveComment(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "댓글을 남길 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId,
@@ -61,6 +65,7 @@ public class LetterInteractionController {
             summary = "편지 찜 저장",
             description = "편지를 찜합니다. 비로그인 사용자는 호출할 수 없고, 중복 찜은 한 번만 저장됩니다."
     )
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<LetterInteractionResponse> saveFavorite(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "찜할 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,6 +43,7 @@ public class LetterController {
             받는 사람·보내는 사람 이름(각 10자 이내)과 봉투 디자인으로 새 편지를 만듭니다 (LW-111/112). 상태는 DRAFT(작성 중)입니다.
             - 이어서 카드 추가 API로 카드를 1~5장 작성합니다.
             """)
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<LetterResponse> start(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody LetterEnvelopeRequest request
@@ -77,6 +80,7 @@ public class LetterController {
               업로드가 끝나지 않았으면 CARD_002, 지원하지 않는 형식이면 CARD_003, 5MB 초과면 CARD_004, 내 imageKey가 아니면 COMMON_004입니다.
             - 전송된 편지에는 추가할 수 없습니다(LETTER_003).
             """)
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<LetterResponse> addCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
