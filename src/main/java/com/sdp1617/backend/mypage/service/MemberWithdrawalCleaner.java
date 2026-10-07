@@ -6,13 +6,17 @@ import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.repository.SocialConnectionRepository;
 import com.sdp1617.backend.funzypack.service.FunzyPackService;
+import com.sdp1617.backend.letter.entity.Letter;
 import com.sdp1617.backend.letter.entity.LetterInteractionType;
+import com.sdp1617.backend.letter.entity.LetterStatus;
 import com.sdp1617.backend.letter.entity.ReceivedLetter;
 import com.sdp1617.backend.letter.repository.LetterInteractionRepository;
+import com.sdp1617.backend.letter.repository.LetterRepository;
 import com.sdp1617.backend.letter.repository.ReceivedLetterRepository;
 import com.sdp1617.backend.notification.repository.NotificationRepository;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import com.sdp1617.backend.social.repository.FollowRequestRepository;
+import java.util.EnumSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  * 여기서는 "본인만 쓰던 데이터"와 "다른 회원에게 영향을 주는 관계"만 지운다.
  *
  * - 삭제: 소셜 연결(재가입 가능하게), 친구 관계·팔로우 요청(상대의 친구 수·목록에서 빠지게),
- *         내 아카이브와 거기 달린 좋아요, 내가 누른 좋아요(좋아요 수도 감소), 내 알림, 내 찜, 내가 받은 편지함
+ *         내 아카이브와 거기 달린 좋아요, 내가 누른 좋아요(좋아요 수도 감소), 내 알림, 내 찜, 내가 받은 편지함,
+ *         아직 보내지 않은(작성 중·완료) 내 편지
  * - 유지("탈퇴한회원N"으로 표시): 주고받은 마음카드·봉투, 다른 사람 카드에 남긴 이모지·문구 코멘트·편지 리액션·댓글
  */
 @Component
@@ -40,6 +45,7 @@ public class MemberWithdrawalCleaner {
     private final LetterInteractionRepository letterInteractionRepository;
     private final ReceivedLetterRepository receivedLetterRepository;
     private final FunzyPackService funzyPackService;
+    private final LetterRepository letterRepository;
 
     /** 탈퇴 트랜잭션 안에서만 호출한다 — 회원 익명화와 함께 커밋되거나 함께 롤백돼야 한다. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -57,7 +63,18 @@ public class MemberWithdrawalCleaner {
             funzyPackService.deletePack(memberId, letter.getId());
         }
         notificationRepository.deleteByMemberId(memberId);
+        deleteMyUnsentLetters(memberId);
         letterInteractionRepository.deleteByMemberIdAndType(memberId, LetterInteractionType.FAVORITE);
+    }
+
+    /**
+     * 아직 보내지 않은 내 편지. 편지를 잠가 동시에 진행 중인 카드 추가가 끝난 뒤에 지운다.
+     * 카드 사진은 정기 정리(#122)에서 지운다.
+     */
+    private void deleteMyUnsentLetters(Long memberId) {
+        List<Letter> letters = letterRepository.findBySenderIdAndStatusInForUpdate(
+                memberId, EnumSet.of(LetterStatus.DRAFT, LetterStatus.COMPLETED));
+        letterRepository.deleteAll(letters);
     }
 
     /** 내가 다른 사람 아카이브 카드에 누른 좋아요. 좋아요 수도 함께 줄인다. */
