@@ -45,7 +45,7 @@ public class LetterController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody LetterEnvelopeRequest request
     ) {
-        return ApiResponse.created("편지를 만들었습니다.", letterWriteService.start(memberId, request));
+        return ApiResponse.ok("편지를 만들었습니다.", letterWriteService.start(memberId, request));
     }
 
     @GetMapping("/drafts")
@@ -82,7 +82,7 @@ public class LetterController {
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
             @Valid @RequestBody LetterCardRequest request
     ) {
-        return ApiResponse.created("카드를 추가했습니다.", letterWriteService.addCard(memberId, letterId, letterCardContentResolver.resolve(memberId, request)));
+        return ApiResponse.ok("카드를 추가했습니다.", letterWriteService.addCard(memberId, letterId, letterCardContentResolver.resolve(memberId, request)));
     }
 
     @PutMapping("/{letterId}/cards/{cardId}")

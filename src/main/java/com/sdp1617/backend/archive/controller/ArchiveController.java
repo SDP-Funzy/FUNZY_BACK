@@ -65,7 +65,7 @@ public class ArchiveController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody ArchiveCardCreateRequest request
     ) {
-        return ApiResponse.created("아카이브에 카드를 저장했습니다.", archiveService.saveCard(memberId, request));
+        return ApiResponse.ok("아카이브에 카드를 저장했습니다.", archiveService.saveCard(memberId, request));
     }
 
     @GetMapping("/api/archive/cards/{archiveCardId}")

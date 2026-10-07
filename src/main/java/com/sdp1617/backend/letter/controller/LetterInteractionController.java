@@ -34,7 +34,7 @@ public class LetterInteractionController {
             @Parameter(description = "반응을 남길 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId,
             @Parameter(description = "리액션 종류", example = "HEART") @RequestParam LetterReactionType reactionType
     ) {
-        return ApiResponse.created(
+        return ApiResponse.ok(
                 "리액션을 저장했습니다.",
                 letterInteractionService.saveReaction(memberId, letterId, reactionType)
         );
@@ -50,7 +50,7 @@ public class LetterInteractionController {
             @Parameter(description = "댓글을 남길 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId,
             @Valid @RequestBody LetterCommentRequest request
     ) {
-        return ApiResponse.created(
+        return ApiResponse.ok(
                 "댓글을 저장했습니다.",
                 letterInteractionService.saveComment(memberId, letterId, request)
         );
@@ -65,7 +65,7 @@ public class LetterInteractionController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "찜할 받은 편지 ID. 받은 편지가 아니면 COMMON_001", example = "1") @PathVariable Long letterId
     ) {
-        return ApiResponse.created(
+        return ApiResponse.ok(
                 "편지를 찜했습니다.",
                 letterInteractionService.saveFavorite(memberId, letterId)
         );

@@ -49,7 +49,7 @@ public class HeartCardPhraseCommentController {
             @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,
             @Valid @RequestBody HeartCardPhraseCommentCreateRequest request
     ) {
-        return ApiResponse.created("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
+        return ApiResponse.ok("문구 코멘트를 작성했습니다.", heartCardPhraseCommentService.createComment(memberId, heartCardId, request));
     }
 
     @GetMapping("/api/heart-cards/{heartCardId}/phrase-comments/{commentId}")

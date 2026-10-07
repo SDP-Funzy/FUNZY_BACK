@@ -92,11 +92,11 @@ public class FollowController {
             - 친구 수 상한(기본 50명)에 도달하면 요청을 보낼 수 없습니다.
             """)
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "요청 전송 성공 (교차 요청인 경우 즉시 맞팔 처리)",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "요청 전송 성공 (교차 요청인 경우 즉시 맞팔 처리)",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                             {
                               "success": true,
-                              "code": "201",
+                              "code": "200",
                               "message": "팔로우 요청을 보냈습니다.",
                               "data": null
                             }
@@ -155,7 +155,7 @@ public class FollowController {
             @Valid @RequestBody FollowRequestCreateRequest request
     ) {
         followService.sendFollowRequest(memberId, request.followCode());
-        return ApiResponse.created("팔로우 요청을 보냈습니다.", null);
+        return ApiResponse.ok("팔로우 요청을 보냈습니다.", null);
     }
 
     @Operation(summary = "받은 팔로우 요청 목록 조회", description = """

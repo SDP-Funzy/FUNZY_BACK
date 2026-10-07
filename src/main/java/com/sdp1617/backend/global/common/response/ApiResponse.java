@@ -1,7 +1,9 @@
 package com.sdp1617.backend.global.common.response;
 
-import org.springframework.http.HttpStatus;
-
+/**
+ * 공통 응답 형식. 성공 응답은 생성 API를 포함해 모두 HTTP 200, code "200"이다 (#116).
+ * 실패 응답은 GlobalExceptionHandler가 에러 코드의 HTTP 상태로 내려준다.
+ */
 public record ApiResponse<T>(
         boolean success,
         String code,
@@ -9,14 +11,6 @@ public record ApiResponse<T>(
         T data
 ) {
     public static <T> ApiResponse<T> ok(String message, T data) {
-        return of(HttpStatus.OK, message, data);
-    }
-
-    public static <T> ApiResponse<T> created(String message, T data) {
-        return of(HttpStatus.CREATED, message, data);
-    }
-
-    public static <T> ApiResponse<T> of(HttpStatus httpStatus, String message, T data) {
-        return new ApiResponse<>(true, String.valueOf(httpStatus.value()), message, data);
+        return new ApiResponse<>(true, "200", message, data);
     }
 }
