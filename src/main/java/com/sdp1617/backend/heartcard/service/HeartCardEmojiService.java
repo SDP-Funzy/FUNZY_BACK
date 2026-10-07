@@ -8,8 +8,11 @@ import com.sdp1617.backend.heartcard.dto.HeartCardEmojiResponse;
 import com.sdp1617.backend.heartcard.entity.HeartCardEmojiAction;
 import com.sdp1617.backend.heartcard.entity.HeartCardEmojiReaction;
 import com.sdp1617.backend.heartcard.repository.HeartCardEmojiReactionRepository;
+import com.sdp1617.backend.letter.entity.LetterCard;
+import com.sdp1617.backend.letter.service.LetterReactedEvent;
 import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,7 @@ public class HeartCardEmojiService {
 
     private final HeartCardEmojiReactionRepository heartCardEmojiReactionRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
+    private final ApplicationEventPublisher eventPublisher;
 
     public HeartCardEmojiOptionListResponse getEmojiOptions() {
         return HeartCardEmojiOptionListResponse.fromDefaultOptions();
@@ -36,17 +40,19 @@ public class HeartCardEmojiService {
     @Transactional
     public HeartCardEmojiResponse updateEmoji(Long memberId, Long heartCardId, HeartCardEmojiRequest request) {
         requireLogin(memberId);
-        receivedLetterAccess.lockReceivedCard(memberId, heartCardId);
+        LetterCard heartCard = receivedLetterAccess.lockReceivedCard(memberId, heartCardId);
         return heartCardEmojiReactionRepository.findByHeartCardIdAndMemberId(heartCardId, memberId)
                 .map(reaction -> updateOrDelete(heartCardId, reaction, request))
-                .orElseGet(() -> create(memberId, heartCardId, request));
+                .orElseGet(() -> create(memberId, heartCard, request));
     }
 
-    private HeartCardEmojiResponse create(Long memberId, Long heartCardId, HeartCardEmojiRequest request) {
+    /** 남길 때 보낸 사람에게 알림 (LR-114). 바꾸거나 지울 때는 알림 없고, 지웠다 다시 남겨도 카드마다 한 번만 (알림 쪽에서 거름). */
+    private HeartCardEmojiResponse create(Long memberId, LetterCard heartCard, HeartCardEmojiRequest request) {
         HeartCardEmojiReaction reaction = heartCardEmojiReactionRepository.save(
-                new HeartCardEmojiReaction(heartCardId, memberId, request.emoji())
+                new HeartCardEmojiReaction(heartCard.getId(), memberId, request.emoji())
         );
-        // TODO: 알림 도메인(LN-021)이 연결되면 최초 등록 시에만 알림 INBOX 생성 호출.
+        eventPublisher.publishEvent(
+                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_EMOJI, heartCard.getLetter(), heartCard.getId()));
         return HeartCardEmojiResponse.of(reaction.getHeartCardId(), reaction.getEmoji(), HeartCardEmojiAction.CREATED, false);
     }
 

@@ -9,8 +9,10 @@ import com.sdp1617.backend.heartcard.dto.HeartCardPhraseCommentUpdateRequest;
 import com.sdp1617.backend.heartcard.entity.HeartCardPhraseComment;
 import com.sdp1617.backend.heartcard.repository.HeartCardPhraseCommentRepository;
 import com.sdp1617.backend.letter.entity.LetterCard;
+import com.sdp1617.backend.letter.service.LetterReactedEvent;
 import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ public class HeartCardPhraseCommentService {
 
     private final HeartCardPhraseCommentRepository heartCardPhraseCommentRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** 받은 사람과 보낸 사람이 볼 수 있다. */
     public HeartCardPhraseCommentListResponse getComments(Long memberId, Long heartCardId) {
@@ -61,7 +64,9 @@ public class HeartCardPhraseCommentService {
                 request.selectedText(),
                 request.content()
         ));
-        // TODO: 알림 도메인(LN-022)이 연결되면 코멘트 등록 시에만 알림 INBOX 생성 호출.
+        // 등록할 때마다 보낸 사람에게 알림 (LR-224). 수정·삭제는 알림 없음.
+        eventPublisher.publishEvent(
+                LetterReactedEvent.of(LetterReactedEvent.Kind.CARD_COMMENT, heartCard.getLetter(), heartCardId));
         return HeartCardPhraseCommentResponse.of(comment, memberId, false);
     }
 

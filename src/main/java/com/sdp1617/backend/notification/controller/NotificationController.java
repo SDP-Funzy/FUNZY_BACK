@@ -92,7 +92,13 @@ public class NotificationController {
 
     @Operation(summary = "알림 목록 조회", description = """
             최신순으로 알림 목록을 조회합니다.
-            - 편지/리액션/댓글 알림은 각 기능이 연동된 이후부터 실제로 쌓입니다.
+            - 알림이 생기는 경우 (알림 받는 사람):
+              LETTER 편지 도착(받는 사람) / REACTION 마음카드·두들픽 선물 이모지를 처음 남김(보낸 사람) /
+              COMMENT 마음카드 문구 코멘트(보낸 사람) / GIFT_SELECTED 선물을 새로 고르거나 바꿈(보낸 사람) /
+              FOLLOW_REQUEST 친구 요청(요청 받은 사람) / FOLLOW_ACCEPTED 친구 요청 수락(요청한 사람)
+            - 이모지 수정·삭제, 코멘트 수정·삭제, 콕, 선물 선택 취소, 친구 요청 거절·끊기는 알림이 없습니다.
+            - 탭하면 이동: letterId가 있으면 편지 열기(GET /api/letters/{letterId}), cardId가 있으면 그 마음카드로.
+              친구 알림은 actorMemberId(상대 회원)로 받은 요청·친구 화면을 엽니다.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
@@ -106,10 +112,23 @@ public class NotificationController {
                                       "message": "알림 목록을 조회했습니다.",
                                       "data": [
                                         {
+                                          "id": 2,
+                                          "type": "REACTION",
+                                          "content": "은우님이 마음카드에 이모지를 남겼어요.",
+                                          "read": false,
+                                          "actorMemberId": 8,
+                                          "letterId": 12,
+                                          "cardId": 34,
+                                          "createdAt": "2026-08-14T05:10:02.118201"
+                                        },
+                                        {
                                           "id": 1,
                                           "type": "LETTER",
-                                          "content": "새 편지가 도착했습니다.",
-                                          "read": false,
+                                          "content": "티키님에게서 편지가 도착했어요.",
+                                          "read": true,
+                                          "actorMemberId": 7,
+                                          "letterId": 12,
+                                          "cardId": null,
                                           "createdAt": "2026-08-14T05:06:13.340691"
                                         }
                                       ]
