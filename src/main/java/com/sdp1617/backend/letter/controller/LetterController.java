@@ -27,7 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/letters")
 @RequiredArgsConstructor
-@Tag(name = "편지 쓰기", description = "편지(펀지) 작성: 봉투 구성 → 카드 1~5장 → 두들픽 → 완료. 보내기 전까지는 보낸 사람만 수정할 수 있습니다. 편지 조회·삭제·보내기는 '편지함' API를 사용합니다.")
+@Tag(name = "편지 ① 쓰기", description = """
+        펀지(편지) 작성: 봉투 구성 → 마음카드 1~5장 → 두들픽(선택) → 완료. 보내기 전까지는 보낸 사람만 수정할 수 있습니다.
+        작성 중인 편지 조회·삭제와 보내기는 "편지 ② 보내기·편지함" API를 사용합니다.
+        """)
 public class LetterController {
 
     private final LetterWriteService letterWriteService;

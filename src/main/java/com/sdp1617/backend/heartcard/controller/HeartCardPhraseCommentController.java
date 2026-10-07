@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "마음카드 문구 코멘트", description = "마음카드 본문 선택 문구 단위 코멘트 API")
+@Tag(name = "편지 ③ 마음카드 문구 코멘트", description = "받은 펀지의 마음카드 본문 중 선택한 문구에 코멘트를 남기는 API. 작성·수정·삭제는 받은 사람, 조회는 받은 사람과 보낸 사람이 할 수 있습니다. heartCardId는 편지 열기 응답의 cards[].cardId입니다.")
 public class HeartCardPhraseCommentController {
 
     private final HeartCardPhraseCommentService heartCardPhraseCommentService;

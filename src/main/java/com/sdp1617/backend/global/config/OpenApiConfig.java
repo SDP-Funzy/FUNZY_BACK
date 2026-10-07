@@ -17,12 +17,32 @@ public class OpenApiConfig {
 
     private static final String BEARER_AUTH = "bearerAuth";
 
+    /** 문서 맨 위에 보이는 설명. 기획서 용어와 API·ID의 대응을 함께 적어 팀원이 헷갈리지 않게 한다 (#82). */
+    private static final String DESCRIPTION = """
+            SDP1617 백엔드 API 문서입니다. 인증이 필요한 API는 Authorize 버튼에 JWT access token을 입력해서 테스트합니다.
+
+            ### 편지 용어 ↔ API 대응 (기획서 용어로 API 찾기)
+            | 기획서 용어 | 뜻 | API / ID |
+            |---|---|---|
+            | **펀지** | 편지. 카드 1~5장 + 두들픽(선택)을 봉투에 담은 것 | `/api/letters`, `letterId` |
+            | **펀지팩** | 받는 사람에게 도착한 펀지. 보낸 사람의 편지와 **같은 데이터**(받는 쪽 복사본 없음) | `letterId` 그대로 사용. 열기 `GET /api/letters/{letterId}`, 삭제 `DELETE /api/letters/{letterId}` |
+            | **마음카드** | 펀지 속 카드 1장 | `cardId` (= 반응 API의 `heartCardId`, 아카이브의 `letterCardId`) |
+            | **두들픽** | 펀지에 넣는 선물 후보 2~3개 + 선정 이유 | `giftItemId` (= 선물 이모지·선물 고르기에 사용) |
+            | **콕** | 받은 마음카드를 내 아카이브에 담기 | `PUT /api/heart-cards/{cardId}/kok` |
+
+            ### 편지 흐름
+            1. **쓰기** (태그 "편지 ① 쓰기"): 봉투 → 카드 1~5장 → 두들픽(선택) → 완료
+            2. **보내기·편지함** (태그 "편지 ② 보내기·편지함"): 회원에게 보내기, 받은 편지함(받은 펀지팩 목록), 보낸 편지함, 열기, 삭제, 선물 고르기
+            3. **받은 사람의 반응** (태그 "편지 ③ …"): 마음카드 이모지·문구 코멘트·콕, 두들픽 선물 이모지, 편지 리액션·댓글·찜
+            4. **마음카드 보관함**: 주고받은 펀지 속 카드를 보낸함·받은함으로 모아 보기
+            """;
+
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
                         .title("SDP1617 API")
-                        .description("SDP1617 백엔드 API 문서입니다. 인증이 필요한 API는 Authorize 버튼에 JWT access token을 입력해서 테스트합니다.")
+                        .description(DESCRIPTION)
                         .version("v1"))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
