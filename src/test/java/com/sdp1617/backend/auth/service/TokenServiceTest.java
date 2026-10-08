@@ -66,6 +66,8 @@ class TokenServiceTest {
     private void givenRotation(RotationStatus status, String tokenId) {
         when(jwtProvider.parse("refresh-token", TokenType.REFRESH))
                 .thenReturn(new JwtClaims(1L, "session-1", SESSION_VERSION));
+        when(memberRepository.findActiveTokenStateById(1L))
+                .thenReturn(Optional.of(new MemberTokenState(SESSION_VERSION)));
         when(refreshTokenRepository.rotate(1L, "session-1", TokenService.ROTATION_GRACE_PERIOD))
                 .thenReturn(new RotationResult(status, tokenId));
     }
@@ -106,6 +108,18 @@ class TokenServiceTest {
         CustomException exception = assertThrows(CustomException.class, () -> tokenService.reissue("refresh-token"));
 
         assertEquals(ErrorCode.AUTH_027, exception.getErrorCode());
+        verify(refreshTokenRepository, never()).rotate(any(), any(), any());
+    }
+
+    @Test
+    void 탈퇴한_회원의_refresh_token이면_AUTH_003을_던지고_교체하지_않는다() {
+        when(jwtProvider.parse("refresh-token", TokenType.REFRESH))
+                .thenReturn(new JwtClaims(1L, "session-1", SESSION_VERSION));
+        when(memberRepository.findActiveTokenStateById(1L)).thenReturn(Optional.empty());
+
+        CustomException exception = assertThrows(CustomException.class, () -> tokenService.reissue("refresh-token"));
+
+        assertEquals(ErrorCode.AUTH_003, exception.getErrorCode());
         verify(refreshTokenRepository, never()).rotate(any(), any(), any());
     }
 

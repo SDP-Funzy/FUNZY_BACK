@@ -5,6 +5,7 @@ import com.sdp1617.backend.auth.jwt.JwtClaims;
 import com.sdp1617.backend.auth.jwt.JwtProvider;
 import com.sdp1617.backend.auth.jwt.TokenType;
 import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.auth.repository.MemberTokenState;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository.RotationResult;
 import com.sdp1617.backend.global.error.CustomException;
@@ -49,10 +50,11 @@ public class TokenService {
      */
     public TokenResponse reissue(String refreshToken) {
         JwtClaims claims = jwtProvider.parse(refreshToken, TokenType.REFRESH);
-        // refresh token은 세션을 끊은 커밋 뒤에 지워지므로, 그 사이에 교체돼 살아남은 토큰도 여기서 막는다
-        if (memberRepository.findActiveTokenStateById(claims.memberId())
-                .filter(state -> state.isRevoked(claims.sessionVersion()))
-                .isPresent()) {
+        // refresh token은 세션을 끊은 커밋 뒤에 지워지므로, 그 사이에 재발급을 시도한 토큰도 여기서 막는다.
+        // 탈퇴한 회원은 access token 필터와 같이 AUTH_003
+        MemberTokenState state = memberRepository.findActiveTokenStateById(claims.memberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_003));
+        if (state.isRevoked(claims.sessionVersion())) {
             throw new CustomException(ErrorCode.AUTH_027);
         }
 
