@@ -177,6 +177,21 @@ class AccountSettingsServiceTest {
     }
 
     @Test
+    void 새_비밀번호가_현재_비밀번호와_같으면_AUTH_028_예외를_던지고_세션을_끊지_않는다() {
+        Member member = localMember();
+        setId(member, 1L);
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("oldPw1!", "encoded")).thenReturn(true);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> accountSettingsService.changePassword(1L, "oldPw1!", "oldPw1!", "oldPw1!"));
+
+        assertEquals(ErrorCode.AUTH_028, exception.getErrorCode());
+        assertEquals("encoded", member.getPassword());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void 로그아웃시_해당_세션만_폐기한다() {
         accountSettingsService.logout(1L, "refresh-token");
 

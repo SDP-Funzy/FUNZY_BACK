@@ -167,6 +167,7 @@ public class AccountSettingsController {
     @Operation(summary = "비밀번호 변경", description = """
             현재 비밀번호 확인 후 새 비밀번호로 변경합니다.
             - 소셜 전용 계정(비밀번호 없음)은 변경할 수 없습니다.
+            - 새 비밀번호가 현재 비밀번호와 같으면 변경할 수 없습니다(AUTH_028).
             - 변경 성공 시 이 기기를 포함해 로그인되어 있던 모든 기기의 세션이 종료됩니다.
               이미 발급된 access token도 바로 쓸 수 없게 되어(AUTH_027), 변경 후에는 새 비밀번호로 다시 로그인해야 합니다.
             """)
@@ -180,7 +181,7 @@ public class AccountSettingsController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "소셜 전용 계정 / 현재 비밀번호 불일치 / 새 비밀번호 확인 불일치",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "소셜 전용 계정 / 현재 비밀번호 불일치 / 새 비밀번호 확인 불일치 / 현재와 같은 새 비밀번호",
                     content = @Content(mediaType = "application/json", examples = {
                             @ExampleObject(name = "소셜 전용 계정", value = """
                                     {
@@ -203,6 +204,14 @@ public class AccountSettingsController {
                                       "success": false,
                                       "code": "AUTH_008",
                                       "message": "비밀번호가 일치하지 않습니다.",
+                                      "data": null
+                                    }
+                                    """),
+                            @ExampleObject(name = "현재 비밀번호와 같은 새 비밀번호", value = """
+                                    {
+                                      "success": false,
+                                      "code": "AUTH_028",
+                                      "message": "현재 비밀번호와 다른 비밀번호를 입력해주세요.",
                                       "data": null
                                     }
                                     """)

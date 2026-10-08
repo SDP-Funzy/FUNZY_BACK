@@ -358,6 +358,8 @@ public class AuthController {
 
     @Operation(summary = "비밀번호 재설정", description = """
             이메일로 받은 토큰으로 비밀번호를 재설정합니다.
+            - 새 비밀번호가 현재 비밀번호와 같으면 재설정할 수 없습니다(AUTH_028).
+            - 링크는 한 번만 쓸 수 있습니다. 실패(AUTH_028 포함)해도 링크는 사용된 것으로 처리되어, 다시 시도하려면 재설정 메일을 다시 요청해야 합니다(AUTH_011).
             - 재설정 성공 시 계정 잠금이 함께 해제되고, 로그인되어 있던 기기의 세션도 모두 종료됩니다.
               이미 발급된 access token도 바로 쓸 수 없게 됩니다(AUTH_027) — 계정 탈취가 의심될 때 기존 로그인을 즉시 끊기 위함.
             """)
@@ -371,7 +373,7 @@ public class AuthController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "새 비밀번호 확인 불일치 / 토큰 만료 또는 유효하지 않음",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "새 비밀번호 확인 불일치 / 토큰 만료 또는 유효하지 않음 / 현재와 같은 새 비밀번호",
                     content = @Content(mediaType = "application/json", examples = {
                             @ExampleObject(name = "새 비밀번호 확인 불일치", value = """
                                     {
@@ -386,6 +388,14 @@ public class AuthController {
                                       "success": false,
                                       "code": "AUTH_011",
                                       "message": "유효하지 않거나 만료된 링크입니다.",
+                                      "data": null
+                                    }
+                                    """),
+                            @ExampleObject(name = "현재 비밀번호와 같은 새 비밀번호", value = """
+                                    {
+                                      "success": false,
+                                      "code": "AUTH_028",
+                                      "message": "현재 비밀번호와 다른 비밀번호를 입력해주세요.",
                                       "data": null
                                     }
                                     """)

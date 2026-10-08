@@ -66,6 +66,10 @@ public class AccountSettingsService {
         if (!newPassword.equals(newPasswordConfirm)) {
             throw new CustomException(ErrorCode.AUTH_008);
         }
+        // 이전(현재) 비밀번호는 다시 쓸 수 없다 (H-213, MY-210, #94)
+        if (newPassword.equals(currentPassword)) {
+            throw new CustomException(ErrorCode.AUTH_028);
+        }
 
         member.changePassword(passwordEncoder.encode(newPassword));
         eventPublisher.publishEvent(new AllSessionsRevokedEvent(memberId));
