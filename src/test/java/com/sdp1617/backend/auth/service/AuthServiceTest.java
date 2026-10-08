@@ -386,6 +386,23 @@ class AuthServiceTest {
     }
 
     @Test
+    void 현재_비밀번호와_같은_비밀번호로_재설정하면_AUTH_028을_던지고_링크는_소비된다() {
+        Member member = member("test@sdp1617.com", "old-encoded", "닉네임");
+        when(verificationTokenRepository.consume("password-reset", "token-value")).thenReturn(Optional.of(1L));
+        when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("OldPassword1!", "old-encoded")).thenReturn(true);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> authService.resetPassword("token-value", "OldPassword1!", "OldPassword1!"));
+
+        assertEquals(ErrorCode.AUTH_028, exception.getErrorCode());
+        assertEquals("old-encoded", member.getPassword());
+        // 실패해도 링크를 살려 두지 않는다 — 링크 하나로 현재 비밀번호 후보를 여러 개 확인할 수 없게
+        verify(verificationTokenRepository).consume("password-reset", "token-value");
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void 비밀번호_재설정_요청시_링크가_포함된_이벤트를_발행한다() {
         Member member = member("test@sdp1617.com", "encoded", "닉네임");
         setId(member, 1L);
