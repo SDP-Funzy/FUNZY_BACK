@@ -129,7 +129,8 @@ public class AuthService {
         }
 
         loginAttemptRecorder.recordSuccess(member.getId(), clientIp);
-        return tokenService.issueTokens(member.getId());
+        // 비밀번호와 같은 행에서 읽은 세션 버전을 담는다. 검사 도중 비밀번호가 바뀌어도 이 토큰은 옛 버전이라 무효가 된다 (#124)
+        return tokenService.issueTokens(member.getId(), member.getSessionVersion());
     }
 
     /** 비밀번호 재설정/계정 잠금 해제 메일이 공유하는 템플릿(verification-link.html) 렌더링 헬퍼. */

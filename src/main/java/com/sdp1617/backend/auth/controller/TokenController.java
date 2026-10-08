@@ -29,7 +29,9 @@ public class TokenController {
             - 재발급할 때마다 refresh token 만료가 다시 30일로 시작되므로, 앱을 쓰는 동안은 로그인이 유지되고 30일 동안 사용하지 않으면 로그아웃됩니다.
             - 동시에 여러 요청에서 같은 refresh token으로 재발급해도, 교체된 지 30초 안의 토큰이면 같은 세션의 최신 토큰을 돌려줍니다.
             - 그보다 오래된(이미 교체된) refresh token을 다시 사용하면 탈취로 판단해 그 로그인 세션(해당 기기)을 종료합니다(AUTH_005). 다른 기기의 로그인은 유지됩니다.
-            - 로그아웃/비밀번호 변경/회원 탈퇴 등으로 폐기된 세션이면 재발급에 실패합니다(AUTH_005).
+            - 로그아웃/회원 탈퇴 등으로 폐기된 세션이면 재발급에 실패합니다(AUTH_005).
+            - 비밀번호 변경·재설정, 잠금 해제 전에 로그인한 세션이면 재발급에 실패합니다(AUTH_027). 새 비밀번호로 다시 로그인해야 합니다.
+            - 재발급한 토큰은 처음 로그인한 세션을 이어가는 것이라, 비밀번호가 바뀌면 재발급받은 토큰도 함께 무효가 됩니다.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재발급 성공",
@@ -55,7 +57,7 @@ public class TokenController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 토큰, 폐기된 세션, 또는 교체된 토큰 재사용",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 토큰, 폐기된 세션, 교체된 토큰 재사용, 또는 비밀번호 변경 등으로 끊긴 세션",
                     content = @Content(mediaType = "application/json", examples = {
                             @ExampleObject(name = "유효하지 않은 토큰", value = """
                                     {
@@ -73,11 +75,19 @@ public class TokenController {
                                       "data": null
                                     }
                                     """),
-                            @ExampleObject(name = "폐기된 세션 (로그아웃/비밀번호 변경 등)", value = """
+                            @ExampleObject(name = "폐기된 세션 (로그아웃/탈퇴 등)", value = """
                                     {
                                       "success": false,
                                       "code": "AUTH_005",
                                       "message": "저장된 refresh token을 찾을 수 없습니다.",
+                                      "data": null
+                                    }
+                                    """),
+                            @ExampleObject(name = "비밀번호 변경 등으로 로그인 해제됨", value = """
+                                    {
+                                      "success": false,
+                                      "code": "AUTH_027",
+                                      "message": "비밀번호 변경 등으로 로그인이 해제되었습니다. 다시 로그인해주세요.",
                                       "data": null
                                     }
                                     """)

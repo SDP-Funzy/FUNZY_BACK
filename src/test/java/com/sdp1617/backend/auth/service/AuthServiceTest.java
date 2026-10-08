@@ -352,7 +352,7 @@ class AuthServiceTest {
         setId(member, 1L);
         when(memberRepository.findByNickname("닉네임")).thenReturn(Optional.of(member));
         when(passwordEncoder.matches("Password1!", "encoded")).thenReturn(true);
-        when(tokenService.issueTokens(1L)).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(1L, 0)).thenReturn(new TokenResponse("access", "refresh"));
 
         LoginRequest request = new LoginRequest("닉네임", "Password1!");
         TokenResponse response = authService.login(IP, request);

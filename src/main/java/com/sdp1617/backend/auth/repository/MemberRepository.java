@@ -11,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -75,6 +76,20 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     /** 탈퇴하지 않은 회원인지. 탈퇴해도 회원 행은 남으므로(익명화) existsById 대신 이걸 쓴다. */
     @Query("select count(m) > 0 from Member m where m.id = :id and m.withdrawnAt is null")
     boolean existsActiveById(@Param("id") Long id);
+
+    /**
+     * 세션 버전을 DB에서 1 올린다 (#124). Java에서 "읽은 값 + 1"로 쓰면, 행을 잠그지 않는 잠금 해제와 비밀번호 변경이
+     * 겹칠 때 둘 다 같은 값을 써서 한 번의 증가가 사라진다. 영속 상태의 Member 값은 갱신되지 않지만,
+     * Member는 @DynamicUpdate라 같은 트랜잭션에서 다른 칸(비밀번호 등)을 저장해도 이 값을 덮어쓰지 않는다.
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("update Member m set m.sessionVersion = coalesce(m.sessionVersion, 0) + 1 where m.id = :id")
+    int incrementSessionVersion(@Param("id") Long id);
+
+    /** 토큰 검증용. 탈퇴하지 않은 회원이면 세션 버전을 함께 돌려준다 (요청마다 조회 1번, #124). */
+    @Query("select new com.sdp1617.backend.auth.repository.MemberTokenState(m.sessionVersion) "
+            + "from Member m where m.id = :id and m.withdrawnAt is null")
+    Optional<MemberTokenState> findActiveTokenStateById(@Param("id") Long id);
 
     /**
      * 같은 회원에 대한 소셜 연결 해제 요청 두 개가 동시에 들어오면(예: KAKAO/GOOGLE 동시 해제),

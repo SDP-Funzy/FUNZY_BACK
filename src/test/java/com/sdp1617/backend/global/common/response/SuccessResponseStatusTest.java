@@ -36,7 +36,7 @@ class SuccessResponseStatusTest {
         em.persist(member);
 
         mockMvc.perform(post("/api/letters")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtProvider.createAccessToken(member.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtProvider.createAccessToken(member.getId(), member.getSessionVersion()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"toName": "은우", "fromName": "티키", "designType": "DesignType_A"}

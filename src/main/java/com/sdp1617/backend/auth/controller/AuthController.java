@@ -358,7 +358,8 @@ public class AuthController {
 
     @Operation(summary = "비밀번호 재설정", description = """
             이메일로 받은 토큰으로 비밀번호를 재설정합니다.
-            - 재설정 성공 시 계정 잠금이 함께 해제되고, 로그인되어 있던 다른 기기의 세션도 모두 종료됩니다.
+            - 재설정 성공 시 계정 잠금이 함께 해제되고, 로그인되어 있던 기기의 세션도 모두 종료됩니다.
+              이미 발급된 access token도 바로 쓸 수 없게 됩니다(AUTH_027) — 계정 탈취가 의심될 때 기존 로그인을 즉시 끊기 위함.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재설정 성공",
@@ -434,7 +435,8 @@ public class AuthController {
 
     @Operation(summary = "계정 잠금 해제", description = """
             이메일로 받은 토큰으로 계정 잠금을 해제합니다.
-            - 해제 성공 시 모든 IP의 실패 횟수가 초기화되고, 로그인되어 있던 다른 기기의 세션도 모두 종료됩니다.
+            - 해제 성공 시 모든 IP의 실패 횟수가 초기화되고, 로그인되어 있던 기기의 세션도 모두 종료됩니다.
+              이미 발급된 access token도 바로 쓸 수 없게 됩니다(AUTH_027).
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "잠금 해제 성공",

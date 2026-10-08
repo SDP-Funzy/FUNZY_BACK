@@ -44,6 +44,8 @@ public class Member {
      * 일반 회원은 이 접두사로 시작하는 닉네임을 쓸 수 없다 ({@link #isReservedNickname}) — 탈퇴 시 닉네임 충돌 방지.
      */
     public static final String WITHDRAWN_NICKNAME_PREFIX = "탈퇴한회원";
+    /** 새로 가입한 회원의 세션 버전. */
+    public static final int INITIAL_SESSION_VERSION = 0;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -85,6 +87,15 @@ public class Member {
     /** 탈퇴 시각. null이면 활성 회원. 탈퇴해도 행은 남기고 개인정보만 지운다 (주고받은 카드·편지가 참조하므로). */
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
+
+    /**
+     * 세션 버전. 로그인할 때 비밀번호와 함께 읽어 토큰에 담고, 비밀번호 변경·재설정, 잠금 해제 등 전체 세션을 끊을 때
+     * {@link com.sdp1617.backend.auth.repository.MemberRepository#incrementSessionVersion}으로 1 올린다.
+     * 토큰의 버전이 이보다 낮으면 거절한다 (#124). 시각이 아니라 같은 행에서 읽은 값으로 비교하므로, 변경이 커밋되기 직전에
+     * 옛 비밀번호로 로그인하거나 재발급해도 그 토큰은 옛 버전을 갖게 되어 함께 무효가 된다. null은 0 (칼럼 추가 전 회원).
+     */
+    @Column(name = "session_version")
+    private Integer sessionVersion;
 
     public Member(String email, String password, String nickname, Consent consent) {
         // 아이디/비밀번호 계정은 이메일이 본인 확인·비밀번호 재설정·아이디 찾기의 유일한 수단이라 비어 있으면 안 된다
@@ -139,6 +150,11 @@ public class Member {
         this.followCode = FollowCodeGenerator.generate();
         this.withdrawnAt = LocalDateTime.now();
     }
+
+    public int getSessionVersion() {
+        return sessionVersion == null ? INITIAL_SESSION_VERSION : sessionVersion;
+    }
+
 
     public boolean hasPassword() {
         return password != null;

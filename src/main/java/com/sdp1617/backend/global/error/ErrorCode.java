@@ -39,6 +39,7 @@ public enum ErrorCode {
     AUTH_024(HttpStatus.TOO_MANY_REQUESTS, "AUTH_024", "인증번호는 1분 후에 다시 요청할 수 있습니다."),
     AUTH_025(HttpStatus.TOO_MANY_REQUESTS, "AUTH_025", "인증번호 요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
     AUTH_026(HttpStatus.BAD_REQUEST, "AUTH_026", "이메일 인증이 만료되었거나 유효하지 않습니다. 이메일 인증을 다시 진행해주세요."),
+    AUTH_027(HttpStatus.UNAUTHORIZED, "AUTH_027", "비밀번호 변경 등으로 로그인이 해제되었습니다. 다시 로그인해주세요."),
 
     ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "이미 저장된 카드입니다."),
     ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "존재하지 않는 아카이브 카드입니다."),

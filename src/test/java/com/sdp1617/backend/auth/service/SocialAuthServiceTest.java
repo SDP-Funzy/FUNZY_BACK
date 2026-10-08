@@ -89,7 +89,7 @@ class SocialAuthServiceTest {
         SocialConnection connection = SocialConnection.create(member, AuthProvider.KAKAO, "12345");
         when(socialConnectionRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "12345"))
                 .thenReturn(Optional.of(connection));
-        when(tokenService.issueTokens(1L)).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(1L, 0)).thenReturn(new TokenResponse("access", "refresh"));
 
         SocialAuthResponse response = socialAuthService.login(AuthProvider.KAKAO, "token");
 
@@ -145,7 +145,7 @@ class SocialAuthServiceTest {
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
         when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
-        when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(any(), eq(0))).thenReturn(new TokenResponse("access", "refresh"));
 
         TokenResponse response = socialAuthService.completeSignUp("signup-token", "닉네임", Consent.requiredOnly());
 
@@ -158,7 +158,7 @@ class SocialAuthServiceTest {
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
         when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
-        when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(any(), eq(0))).thenReturn(new TokenResponse("access", "refresh"));
 
         socialAuthService.completeSignUp("signup-token", "닉네임", Consent.requiredOnly());
 
@@ -178,7 +178,7 @@ class SocialAuthServiceTest {
         when(socialSignupSessionRepository.consume("signup-token")).thenReturn(Optional.of(session));
         when(memberRepository.isNicknameTaken("닉네임")).thenReturn(false);
         when(memberRepository.existsByEmail("test@kakao.com")).thenReturn(false);
-        when(tokenService.issueTokens(any())).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(any(), eq(0))).thenReturn(new TokenResponse("access", "refresh"));
 
         Consent consent = new Consent(true, true, false, true);
         socialAuthService.completeSignUp("signup-token", "닉네임", consent);
@@ -212,7 +212,7 @@ class SocialAuthServiceTest {
         SocialConnection existingConnection = SocialConnection.create(winner, AuthProvider.KAKAO, "12345");
         when(socialConnectionRepository.findByProviderAndProviderId(AuthProvider.KAKAO, "12345"))
                 .thenReturn(Optional.of(existingConnection));
-        when(tokenService.issueTokens(1L)).thenReturn(new TokenResponse("access", "refresh"));
+        when(tokenService.issueTokens(1L, 0)).thenReturn(new TokenResponse("access", "refresh"));
 
         TokenResponse response = socialAuthService.completeSignUp("signup-token", "닉네임", Consent.requiredOnly());
 

@@ -167,7 +167,8 @@ public class AccountSettingsController {
     @Operation(summary = "비밀번호 변경", description = """
             현재 비밀번호 확인 후 새 비밀번호로 변경합니다.
             - 소셜 전용 계정(비밀번호 없음)은 변경할 수 없습니다.
-            - 변경 성공 시 로그인되어 있던 모든 기기의 세션이 종료됩니다(현재 요청에 사용된 access token 자체는 만료 전까지 유효).
+            - 변경 성공 시 이 기기를 포함해 로그인되어 있던 모든 기기의 세션이 종료됩니다.
+              이미 발급된 access token도 바로 쓸 수 없게 되어(AUTH_027), 변경 후에는 새 비밀번호로 다시 로그인해야 합니다.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "변경 성공",

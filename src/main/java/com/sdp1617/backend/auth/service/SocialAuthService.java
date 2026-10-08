@@ -47,7 +47,9 @@ public class SocialAuthService {
         SocialUserInfo userInfo = userInfoProvider.fetchUserInfo(token);
 
         return socialConnectionRepository.findByProviderAndProviderId(provider, userInfo.externalId())
-                .map(connection -> SocialAuthResponse.existingUser(tokenService.issueTokens(connection.getMember().getId())))
+                .map(SocialConnection::getMember)
+                .map(member -> SocialAuthResponse.existingUser(
+                        tokenService.issueTokens(member.getId(), member.getSessionVersion())))
                 .orElseGet(() -> startSignup(provider, userInfo));
     }
 
@@ -85,7 +87,7 @@ public class SocialAuthService {
         }
 
         Long memberId = createMemberWithConnection(session, nickname, consent);
-        return tokenService.issueTokens(memberId);
+        return tokenService.issueTokens(memberId, Member.INITIAL_SESSION_VERSION);
     }
 
     private Long createMemberWithConnection(SocialSignupSession session, String nickname, Consent consent) {
