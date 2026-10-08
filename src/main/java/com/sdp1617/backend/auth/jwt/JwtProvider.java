@@ -18,6 +18,8 @@ import java.util.Date;
 public class JwtProvider {
 
     private static final String TYPE_CLAIM = "type";
+    /** 로그인할 때 읽은 회원의 세션 버전. 재발급한 토큰도 그대로 이어받는다 (#124, {@link JwtClaims#sessionVersion()}). */
+    private static final String SESSION_VERSION_CLAIM = "sv";
 
     private final SecretKey key;
     private final long accessExpiration;
@@ -29,12 +31,12 @@ public class JwtProvider {
         this.refreshExpiration = jwtProperties.refreshExpiration();
     }
 
-    public String createAccessToken(Long memberId) {
-        return createToken(memberId, accessExpiration, TokenType.ACCESS, null);
+    public String createAccessToken(Long memberId, int sessionVersion) {
+        return createToken(memberId, accessExpiration, TokenType.ACCESS, null, sessionVersion);
     }
 
-    public String createRefreshToken(Long memberId, String tokenId) {
-        return createToken(memberId, refreshExpiration, TokenType.REFRESH, tokenId);
+    public String createRefreshToken(Long memberId, String tokenId, int sessionVersion) {
+        return createToken(memberId, refreshExpiration, TokenType.REFRESH, tokenId, sessionVersion);
     }
 
     public JwtClaims parse(String token, TokenType expectedType) {
@@ -50,7 +52,7 @@ public class JwtProvider {
                 throw new CustomException(ErrorCode.AUTH_003);
             }
 
-            return new JwtClaims(Long.valueOf(claims.getSubject()), claims.getId());
+            return new JwtClaims(Long.valueOf(claims.getSubject()), claims.getId(), sessionVersion(claims));
         } catch (ExpiredJwtException e) {
             throw new CustomException(ErrorCode.AUTH_004);
         } catch (JwtException | IllegalArgumentException e) {
@@ -58,11 +60,18 @@ public class JwtProvider {
         }
     }
 
-    private String createToken(Long memberId, long expiration, TokenType type, String tokenId) {
+    /** 세션 버전이 없는 예전 토큰은 0으로 본다 — 한 번이라도 세션을 끊은 회원이면 거절된다. */
+    private int sessionVersion(Claims claims) {
+        Number version = claims.get(SESSION_VERSION_CLAIM, Number.class);
+        return version == null ? 0 : version.intValue();
+    }
+
+    private String createToken(Long memberId, long expiration, TokenType type, String tokenId, int sessionVersion) {
         Date now = new Date();
         JwtBuilder builder = Jwts.builder()
                 .subject(String.valueOf(memberId))
                 .claim(TYPE_CLAIM, type.name())
+                .claim(SESSION_VERSION_CLAIM, sessionVersion)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration));
 

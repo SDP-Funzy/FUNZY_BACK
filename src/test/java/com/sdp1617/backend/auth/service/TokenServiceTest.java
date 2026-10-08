@@ -4,6 +4,8 @@ import com.sdp1617.backend.auth.dto.TokenResponse;
 import com.sdp1617.backend.auth.jwt.JwtClaims;
 import com.sdp1617.backend.auth.jwt.JwtProvider;
 import com.sdp1617.backend.auth.jwt.TokenType;
+import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.auth.repository.MemberTokenState;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository.RotationResult;
 import com.sdp1617.backend.auth.repository.RefreshTokenRepository.RotationStatus;
@@ -16,10 +18,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -34,15 +39,18 @@ class TokenServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private MemberRepository memberRepository;
+
     @InjectMocks
     private TokenService tokenService;
 
     @Test
     void issueTokens는_accessToken과_refreshToken을_발급하고_refreshToken을_저장한다() {
-        when(jwtProvider.createAccessToken(1L)).thenReturn("access-token");
-        when(jwtProvider.createRefreshToken(org.mockito.ArgumentMatchers.eq(1L), any())).thenReturn("refresh-token");
+        when(jwtProvider.createAccessToken(1L, 2)).thenReturn("access-token");
+        when(jwtProvider.createRefreshToken(eq(1L), any(), eq(2))).thenReturn("refresh-token");
 
-        TokenResponse response = tokenService.issueTokens(1L);
+        TokenResponse response = tokenService.issueTokens(1L, 2);
 
         assertEquals("access-token", response.accessToken());
         assertEquals("refresh-token", response.refreshToken());
@@ -53,8 +61,13 @@ class TokenServiceTest {
         assertEquals(RefreshTokenRepository.chainOf(tokenId.getValue()), tokenId.getValue().split("\\.")[0]);
     }
 
+    private static final int SESSION_VERSION = 2;
+
     private void givenRotation(RotationStatus status, String tokenId) {
-        when(jwtProvider.parse("refresh-token", TokenType.REFRESH)).thenReturn(new JwtClaims(1L, "session-1"));
+        when(jwtProvider.parse("refresh-token", TokenType.REFRESH))
+                .thenReturn(new JwtClaims(1L, "session-1", SESSION_VERSION));
+        when(memberRepository.findActiveTokenStateById(1L))
+                .thenReturn(Optional.of(new MemberTokenState(SESSION_VERSION)));
         when(refreshTokenRepository.rotate(1L, "session-1", TokenService.ROTATION_GRACE_PERIOD))
                 .thenReturn(new RotationResult(status, tokenId));
     }
@@ -62,8 +75,9 @@ class TokenServiceTest {
     @Test
     void 세션이_살아있으면_기존_세션을_교체하고_새_accessToken과_새_refreshToken을_발급한다() {
         givenRotation(RotationStatus.ROTATED, "session-2");
-        when(jwtProvider.createAccessToken(1L)).thenReturn("new-access-token");
-        when(jwtProvider.createRefreshToken(1L, "session-2")).thenReturn("new-refresh-token");
+        // 재발급한 토큰도 로그인할 때의 세션 버전을 이어받는다
+        when(jwtProvider.createAccessToken(1L, SESSION_VERSION)).thenReturn("new-access-token");
+        when(jwtProvider.createRefreshToken(1L, "session-2", SESSION_VERSION)).thenReturn("new-refresh-token");
 
         TokenResponse response = tokenService.reissue("refresh-token");
 
@@ -74,13 +88,39 @@ class TokenServiceTest {
     @Test
     void 동시_재발급으로_유예시간_안에_예전_토큰이_오면_같은_새_세션의_토큰을_발급한다() {
         givenRotation(RotationStatus.GRACE_RETRY, "session-2");
-        when(jwtProvider.createAccessToken(1L)).thenReturn("new-access-token");
-        when(jwtProvider.createRefreshToken(1L, "session-2")).thenReturn("new-refresh-token");
+        // 재발급한 토큰도 로그인할 때의 세션 버전을 이어받는다
+        when(jwtProvider.createAccessToken(1L, SESSION_VERSION)).thenReturn("new-access-token");
+        when(jwtProvider.createRefreshToken(1L, "session-2", SESSION_VERSION)).thenReturn("new-refresh-token");
 
         TokenResponse response = tokenService.reissue("refresh-token");
 
         assertEquals("new-refresh-token", response.refreshToken());
         verify(refreshTokenRepository, never()).deleteAllByMemberId(any());
+    }
+
+    @Test
+    void 비밀번호_변경_등으로_끊긴_세션의_refresh_token이면_AUTH_027을_던지고_교체하지_않는다() {
+        when(jwtProvider.parse("refresh-token", TokenType.REFRESH))
+                .thenReturn(new JwtClaims(1L, "session-1", SESSION_VERSION));
+        when(memberRepository.findActiveTokenStateById(1L))
+                .thenReturn(Optional.of(new MemberTokenState(SESSION_VERSION + 1)));
+
+        CustomException exception = assertThrows(CustomException.class, () -> tokenService.reissue("refresh-token"));
+
+        assertEquals(ErrorCode.AUTH_027, exception.getErrorCode());
+        verify(refreshTokenRepository, never()).rotate(any(), any(), any());
+    }
+
+    @Test
+    void 탈퇴한_회원의_refresh_token이면_AUTH_003을_던지고_교체하지_않는다() {
+        when(jwtProvider.parse("refresh-token", TokenType.REFRESH))
+                .thenReturn(new JwtClaims(1L, "session-1", SESSION_VERSION));
+        when(memberRepository.findActiveTokenStateById(1L)).thenReturn(Optional.empty());
+
+        CustomException exception = assertThrows(CustomException.class, () -> tokenService.reissue("refresh-token"));
+
+        assertEquals(ErrorCode.AUTH_003, exception.getErrorCode());
+        verify(refreshTokenRepository, never()).rotate(any(), any(), any());
     }
 
     @Test
@@ -92,7 +132,7 @@ class TokenServiceTest {
         assertEquals(ErrorCode.AUTH_005, exception.getErrorCode());
         // 체인 폐기는 저장소(rotate)가 처리한다. 회원 전체 세션을 지우면 다른 기기까지 로그아웃된다.
         verify(refreshTokenRepository, never()).deleteAllByMemberId(any());
-        verify(jwtProvider, never()).createAccessToken(any());
+        verify(jwtProvider, never()).createAccessToken(any(), anyInt());
     }
 
     @Test
@@ -108,7 +148,7 @@ class TokenServiceTest {
     @Test
     void revokeSession은_해당_세션만_삭제한다() {
         String refreshToken = "refresh-token";
-        when(jwtProvider.parse(refreshToken, TokenType.REFRESH)).thenReturn(new JwtClaims(1L, "session-1"));
+        when(jwtProvider.parse(refreshToken, TokenType.REFRESH)).thenReturn(new JwtClaims(1L, "session-1", 0));
 
         tokenService.revokeSession(1L, refreshToken);
 
@@ -118,7 +158,7 @@ class TokenServiceTest {
     @Test
     void revokeSession시_토큰의_memberId가_다르면_AUTH_003_예외를_던진다() {
         String refreshToken = "refresh-token";
-        when(jwtProvider.parse(refreshToken, TokenType.REFRESH)).thenReturn(new JwtClaims(2L, "session-1"));
+        when(jwtProvider.parse(refreshToken, TokenType.REFRESH)).thenReturn(new JwtClaims(2L, "session-1", 0));
 
         CustomException exception = assertThrows(CustomException.class, () -> tokenService.revokeSession(1L, refreshToken));
 

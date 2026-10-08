@@ -16,7 +16,7 @@ class JwtProviderTest {
 
     @Test
     void createAccessToken으로_만든_토큰에서_memberId를_복원한다() {
-        String token = jwtProvider.createAccessToken(1L);
+        String token = jwtProvider.createAccessToken(1L, 0);
 
         JwtClaims claims = jwtProvider.parse(token, TokenType.ACCESS);
 
@@ -25,8 +25,15 @@ class JwtProviderTest {
     }
 
     @Test
+    void 세션_버전을_담고_복원한다() {
+        assertEquals(3, jwtProvider.parse(jwtProvider.createAccessToken(1L, 3), TokenType.ACCESS).sessionVersion());
+        assertEquals(3, jwtProvider.parse(
+                jwtProvider.createRefreshToken(1L, "session-1", 3), TokenType.REFRESH).sessionVersion());
+    }
+
+    @Test
     void createRefreshToken으로_만든_토큰에서_memberId와_tokenId를_복원한다() {
-        String token = jwtProvider.createRefreshToken(1L, "session-1");
+        String token = jwtProvider.createRefreshToken(1L, "session-1", 0);
 
         JwtClaims claims = jwtProvider.parse(token, TokenType.REFRESH);
 
@@ -36,7 +43,7 @@ class JwtProviderTest {
 
     @Test
     void refreshToken을_ACCESS_타입으로_검증하면_AUTH_003_예외를_던진다() {
-        String refreshToken = jwtProvider.createRefreshToken(1L, "session-1");
+        String refreshToken = jwtProvider.createRefreshToken(1L, "session-1", 0);
 
         CustomException exception =
                 assertThrows(CustomException.class, () -> jwtProvider.parse(refreshToken, TokenType.ACCESS));
@@ -46,7 +53,7 @@ class JwtProviderTest {
 
     @Test
     void accessToken을_REFRESH_타입으로_검증하면_AUTH_003_예외를_던진다() {
-        String accessToken = jwtProvider.createAccessToken(1L);
+        String accessToken = jwtProvider.createAccessToken(1L, 0);
 
         CustomException exception =
                 assertThrows(CustomException.class, () -> jwtProvider.parse(accessToken, TokenType.REFRESH));
@@ -58,7 +65,7 @@ class JwtProviderTest {
     void 만료된_토큰은_AUTH_004_예외를_던진다() {
         JwtProvider expiredTokenProvider =
                 new JwtProvider(new JwtProperties(jwtProperties.secret(), -1_000L, -1_000L));
-        String expiredToken = expiredTokenProvider.createAccessToken(1L);
+        String expiredToken = expiredTokenProvider.createAccessToken(1L, 0);
 
         CustomException exception =
                 assertThrows(CustomException.class, () -> jwtProvider.parse(expiredToken, TokenType.ACCESS));
