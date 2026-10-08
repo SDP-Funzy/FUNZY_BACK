@@ -194,6 +194,11 @@ public class AuthService {
         if (!member.hasPassword()) {
             throw new CustomException(ErrorCode.AUTH_011);
         }
+        // 이전(현재) 비밀번호는 다시 쓸 수 없다 (H-213, #94). 링크는 위에서 이미 소비했다 — 실패해도 링크를 살려 두면
+        // 링크를 가진 사람이 후보를 계속 넣어 AUTH_028로 현재 비밀번호를 알아낼 수 있다
+        if (passwordEncoder.matches(newPassword, member.getPassword())) {
+            throw new CustomException(ErrorCode.AUTH_028);
+        }
 
         member.changePassword(passwordEncoder.encode(newPassword));
         // best-effort: 실패해도 뒤이은 세션 폐기(AllSessionsRevokedEvent)는 반드시 실행돼야 한다. 잠금은 15분 뒤 자연 해제.
