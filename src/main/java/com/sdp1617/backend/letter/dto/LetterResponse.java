@@ -32,6 +32,17 @@ public record LetterResponse(
         @Schema(description = "받는 사람이 처음 열어본 시각. 안 읽었으면 null")
         LocalDateTime readAt
 ) {
+    /**
+     * 공유 링크를 보낸 사람·받는 사람이 아닌 사람(로그인 안 함 포함)에게 보여줄 때: 받는 사람이 누구인지, 읽었는지,
+     * 어떤 선물을 골랐는지는 가린다 (#87). 링크는 다른 사람에게 다시 전달될 수 있다.
+     */
+    public static LetterResponse forLinkViewer(Letter letter) {
+        LetterResponse full = from(letter);
+        return new LetterResponse(full.letterId(), full.status(), full.sender(), null, full.toName(), full.fromName(),
+                full.designType(), full.cards(), full.doodlePick(), null, full.createdAt(), full.updatedAt(),
+                full.completedAt(), full.sentAt(), null);
+    }
+
     public static LetterResponse from(Letter letter) {
         return new LetterResponse(letter.getId(), letter.getStatus(),
                 LetterMemberResponse.from(letter.getSender()), LetterMemberResponse.from(letter.getRecipient()),

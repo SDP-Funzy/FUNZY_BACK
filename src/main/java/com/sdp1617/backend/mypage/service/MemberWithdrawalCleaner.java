@@ -55,6 +55,7 @@ public class MemberWithdrawalCleaner {
 
         notificationRepository.deleteByMemberId(memberId);
         deleteMyUnsentLetters(memberId);
+        letterRepository.revokeShareLinksBySender(memberId);
         letterRepository.hideAllReceivedBy(memberId, LocalDateTime.now());
         letterInteractionRepository.deleteByMemberIdAndType(memberId, LetterInteractionType.FAVORITE);
     }

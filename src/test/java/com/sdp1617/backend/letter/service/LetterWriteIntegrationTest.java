@@ -155,7 +155,12 @@ class LetterWriteIntegrationTest {
     void 전송된_편지는_수정하거나_삭제할_수_없다() {
         Long letterId = newLetter().letterId();
         Long cardId = letterWriteService.addCard(writerId, letterId, card("1")).cards().get(0).cardId();
-        ReflectionTestUtils.setField(em.find(Letter.class, letterId), "status", LetterStatus.SENT);
+        // 받는 사람이 정해진 보낸 편지 (받는 사람 없이 보낸 편지는 아직 아무도 받지 않은 링크 편지라 지울 수 있다 — #87)
+        Member recipient = new Member("sentrecipient@write.test", "encoded", "sentrecipient", Consent.requiredOnly());
+        em.persist(recipient);
+        Letter letter = em.find(Letter.class, letterId);
+        ReflectionTestUtils.setField(letter, "status", LetterStatus.SENT);
+        ReflectionTestUtils.setField(letter, "recipient", recipient);
         em.flush();
 
         assertError(ErrorCode.LETTER_003, () -> letterWriteService.addCard(writerId, letterId, card("2")));
