@@ -114,12 +114,16 @@ public class LetterCardBoxService {
         return new CardCalendarResponse(type, year, month, days);
     }
 
-    /** 보관함의 카드 1장: 내가 보낸 편지의 카드이거나, 내가 받고 숨기지 않은 편지의 카드. */
+    /**
+     * 보관함의 카드 1장: 내가 보낸 편지의 카드이거나, 내가 받고 숨기지 않은 편지의 카드.
+     * 공유 링크로 보냈지만 아직 받는 사람이 없는 편지는 목록·폴더·캘린더처럼 보관함에 넣지 않는다 (#87, 받는 사람 정보가 없음).
+     */
     public CardStorageResponse getCard(Long memberId, Long cardId) {
         LetterCard card = letterCardRepository.findWithLetterById(cardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CARD_001));
         Letter letter = card.getLetter();
-        boolean sentByMe = letter.getStatus() == LetterStatus.SENT && letter.isWrittenBy(memberId);
+        boolean sentByMe = letter.getStatus() == LetterStatus.SENT && letter.isWrittenBy(memberId)
+                && !letter.isWaitingForRecipient();
         if (!sentByMe && !letter.isVisibleToRecipient(memberId)) {
             throw new CustomException(ErrorCode.CARD_001);
         }

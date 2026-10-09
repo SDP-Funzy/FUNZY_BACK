@@ -31,6 +31,17 @@ public interface LetterRepository extends JpaRepository<Letter, Long>, JpaSpecif
     /** 미읽음 편지 수: 받은 편지함에서 지우지 않았고 아직 열지 않은 편지. */
     long countByRecipient_IdAndStatusAndRecipientHiddenAtIsNullAndReadAtIsNull(Long recipientId, LetterStatus status);
 
+    /**
+     * 공유 링크로 편지 ID만 찾기 (#114 받기). 편지를 먼저 읽어 두면 뒤이은 행 잠금 조회가 같은 객체(잠그기 전 값)를
+     * 돌려줘 동시에 받은 다른 회원을 덮어쓸 수 있으므로, 잠그기 전에는 ID만 읽는다.
+     */
+    @Query("select l.id from Letter l where l.shareToken = :token")
+    Optional<Long> findIdByShareToken(@Param("token") String token);
+
+    /** 공유 링크로 편지 찾기 (#87 열람). */
+    @EntityGraph(attributePaths = {"sender", "recipient"})
+    Optional<Letter> findByShareToken(String shareToken);
+
     /** 편지를 수정할 때 행을 잠가, 동시에 카드를 추가해 5장을 넘기는 등의 경쟁을 막는다. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select l from Letter l where l.id = :id")
@@ -48,6 +59,14 @@ public interface LetterRepository extends JpaRepository<Letter, Long>, JpaSpecif
     List<Long> findIdsByStatusInAndUpdatedAtBefore(
             @Param("statuses") Collection<LetterStatus> statuses, @Param("cutoff") LocalDateTime cutoff,
             @Param("afterId") Long afterId, Pageable pageable);
+
+    /** 탈퇴 정리용. 내가 만든 공유 링크를 모두 취소한다 — 탈퇴 뒤에는 링크로 읽거나 받을 수 없다 (#87). */
+    @Modifying
+    @Query("""
+            update Letter l set l.shareToken = null, l.shareTokenExpiresAt = null
+            where l.sender.id = :senderId and l.shareToken is not null
+            """)
+    int revokeShareLinksBySender(@Param("senderId") Long senderId);
 
     /** 탈퇴 정리용. 받은 편지함에서 아직 지우지 않은 받은 편지를 모두 숨긴다 (보낸 사람의 보낸 편지함에는 남음). */
     @Modifying

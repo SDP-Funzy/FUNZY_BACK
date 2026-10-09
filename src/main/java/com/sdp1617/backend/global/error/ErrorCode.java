@@ -61,6 +61,9 @@ public enum ErrorCode {
     LETTER_008(HttpStatus.NOT_FOUND, "LETTER_008", "존재하지 않는 받는 사람입니다."),
     LETTER_009(HttpStatus.CONFLICT, "LETTER_009", "이미 보낸 편지입니다."),
     LETTER_010(HttpStatus.NOT_FOUND, "LETTER_010", "편지에 없는 선물입니다."),
+    LETTER_011(HttpStatus.NOT_FOUND, "LETTER_011", "유효하지 않거나 만료된 편지 링크입니다."),
+    LETTER_012(HttpStatus.CONFLICT, "LETTER_012", "이미 다른 사람이 받은 편지입니다."),
+    LETTER_013(HttpStatus.BAD_REQUEST, "LETTER_013", "내가 보낸 편지는 받을 수 없습니다."),
 
     SOCIAL_001(HttpStatus.NOT_FOUND, "SOCIAL_001", "존재하지 않는 회원입니다."),
     SOCIAL_002(HttpStatus.BAD_REQUEST, "SOCIAL_002", "본인에게는 팔로우 요청을 보낼 수 없습니다."),

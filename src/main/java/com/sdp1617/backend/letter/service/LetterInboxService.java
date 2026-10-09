@@ -82,6 +82,7 @@ public class LetterInboxService {
      * 편지 지우기. 보낸 사람은 보내기 전 편지를 삭제(작성 취소)하고, 받는 사람은 받은 편지함에서 숨기며
      * 그 편지에 남긴 내 반응(아카이브·이모지·코멘트 등)과 그 편지로 받은 알림도 함께 지운다 (LR-512).
      * 보낸 편지는 보낸 사람이 지울 수 없다(LETTER_003) — 받는 사람의 편지함에 있는 편지이기 때문이다.
+     * 단, 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 지울 수 있다 (링크도 함께 사라진다).
      */
     @Transactional
     public void deleteOrHide(Long memberId, Long letterId) {
@@ -96,7 +97,9 @@ public class LetterInboxService {
         if (!letter.isWrittenBy(memberId)) {
             throw new CustomException(ErrorCode.LETTER_001);
         }
-        if (letter.getStatus() == LetterStatus.SENT) {
+        // 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 지울 수 있다 — 받은 사람이 없어 다른 사람에게 영향이 없다.
+        // 같은 편지 행을 잠그므로 링크 받기와 순서대로 처리된다 (먼저 받았으면 LETTER_003, 먼저 지웠으면 받기는 LETTER_011)
+        if (letter.getStatus() == LetterStatus.SENT && !letter.isWaitingForRecipient()) {
             throw new CustomException(ErrorCode.LETTER_003);
         }
         letterRepository.delete(letter);

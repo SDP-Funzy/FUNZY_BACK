@@ -77,9 +77,13 @@ public class Letter {
     @Column(nullable = false, length = 20)
     private LetterStatus status;
 
-    /** 링크 전송용 토큰 (#87). */
+    /** 공유 링크 토큰 (#87). 추측할 수 없는 값. 취소하면 null, 다시 발급하면 바뀐다. */
     @Column(name = "share_token", length = 64)
     private String shareToken;
+
+    /** 공유 링크 만료 시각 (발급 후 30일). 확정된 수신자는 만료 뒤에도 받은 편지함에서 계속 본다. */
+    @Column(name = "share_token_expires_at")
+    private LocalDateTime shareTokenExpiresAt;
 
     /** 두들픽 선정 이유. 두들픽이 없으면 null. */
     @Column(name = "gift_reason", length = 150)
@@ -97,6 +101,10 @@ public class Letter {
 
     private LocalDateTime completedAt;
 
+    /**
+     * 받는 사람에게 전달된 시각 — 받은 편지함의 받은 날짜·정렬·날짜 필터와 보관함 날짜에 쓴다.
+     * 직접 보내면 보낸 시각, 공유 링크는 누군가 받은 시각(받기 전에는 링크를 만든 시각) (#87, #114).
+     */
     private LocalDateTime sentAt;
 
     /** 받는 사람이 처음 열어본 시각 (미읽음 표시 #90). */
@@ -215,9 +223,14 @@ public class Letter {
 
     /**
      * 회원에게 보낸다 (#86). 완료한 편지만 보낼 수 있고, 보낸 뒤에는 수정할 수 없다.
+     * 공유 링크로 보냈지만 아직 아무도 받지 않은 편지도 회원에게 보낼 수 있고, 그 회원이 받는 사람이 된다 (#114).
      * 받는 사람이 유효한지(탈퇴·본인 여부)는 서비스에서 확인한다.
      */
     public void sendTo(Member recipient) {
+        if (isWaitingForRecipient()) {
+            deliverTo(recipient);
+            return;
+        }
         if (status == LetterStatus.SENT) {
             throw new CustomException(ErrorCode.LETTER_009);
         }
@@ -225,6 +238,55 @@ public class Letter {
             throw new CustomException(ErrorCode.LETTER_006);
         }
         this.recipient = recipient;
+        markSent();
+    }
+
+    /**
+     * 공유 링크를 발급한다 (#87). 완료한 편지는 이때 보낸 편지가 되어 더 이상 수정할 수 없고, 받는 사람은 링크로 정해진다.
+     * 회원에게 직접 보낸 편지도 링크를 만들 수 있다(받는 사람은 그대로). 다시 발급하면 이전 링크는 무효.
+     */
+    public void issueShareLink(String token, LocalDateTime expiresAt) {
+        if (status == LetterStatus.DRAFT) {
+            throw new CustomException(ErrorCode.LETTER_006);
+        }
+        if (status == LetterStatus.COMPLETED) {
+            markSent();
+        }
+        this.shareToken = token;
+        this.shareTokenExpiresAt = expiresAt;
+    }
+
+    /** 공유 링크를 취소한다. 이미 정해진 받는 사람은 그대로 받은 편지함에서 본다. */
+    public void revokeShareLink() {
+        this.shareToken = null;
+        this.shareTokenExpiresAt = null;
+    }
+
+    public boolean isShareLinkValid(LocalDateTime now) {
+        return shareToken != null && shareTokenExpiresAt != null && shareTokenExpiresAt.isAfter(now);
+    }
+
+    /** 링크로 보냈고 아직 아무도 받지 않은 편지. */
+    public boolean isWaitingForRecipient() {
+        return status == LetterStatus.SENT && recipient == null;
+    }
+
+    /** 링크로 받은 회원을 받는 사람으로 정한다 (#114). 받을 수 있는지는 서비스에서 편지 행을 잠그고 확인한다. */
+    public void receiveViaLink(Member recipient) {
+        if (!isWaitingForRecipient()) {
+            throw new CustomException(ErrorCode.LETTER_012);
+        }
+        deliverTo(recipient);
+    }
+
+    /** 링크로 보낸 편지의 받는 사람이 정해진 때가 받는 사람에게 전달된 시각이다. */
+    private void deliverTo(Member recipient) {
+        this.recipient = recipient;
+        this.sentAt = LocalDateTime.now();
+        touch();
+    }
+
+    private void markSent() {
         this.status = LetterStatus.SENT;
         this.sentAt = LocalDateTime.now();
         touch();
@@ -256,6 +318,15 @@ public class Letter {
     /** 받는 사람이 받은 편지함에서 지운다. 보낸 사람의 보낸 편지함에는 남는다. */
     public void hideForRecipient() {
         recipientHiddenAt = LocalDateTime.now();
+    }
+
+    /** 받은 편지함에서 지운 받는 사람이 공유 링크로 다시 받으면 받은 편지함에 되돌린다 (#114). 지울 때 정리한 반응은 돌아오지 않는다. */
+    public void restoreForRecipient() {
+        recipientHiddenAt = null;
+    }
+
+    public boolean isRecipient(Long memberId) {
+        return recipient != null && recipient.getId().equals(memberId);
     }
 
     /** 전송 전(작성 중·완료)에는 수정할 수 있고, 전송된 편지는 수정할 수 없다 (LW-020). */

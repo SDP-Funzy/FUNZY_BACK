@@ -43,7 +43,8 @@ public class LetterInboxController {
     @Operation(summary = "편지 보내기", description = """
             완료한 편지를 회원에게 보냅니다 (LW-822). 보내면 받는 사람의 받은 편지함에 도착하고, 더 이상 수정할 수 없습니다.
             - 받는 사람은 친구 목록 또는 회원 검색 결과의 memberId입니다. 친구가 아니어도 보낼 수 있습니다.
-            - 완료하지 않은 편지는 LETTER_006, 이미 보낸 편지는 LETTER_009, 본인에게 보내면 LETTER_007,
+            - 공유 링크로 보냈지만 아직 아무도 받지 않은 편지도 보낼 수 있고, 이 회원이 받는 사람이 됩니다 (#114).
+            - 완료하지 않은 편지는 LETTER_006, 이미 받는 사람이 정해진 편지는 LETTER_009, 본인에게 보내면 LETTER_007,
               없거나 탈퇴한 회원이면 LETTER_008, 내가 쓴 편지가 아니면 LETTER_001입니다.
             """)
     public ApiResponse<LetterResponse> send(
@@ -81,6 +82,7 @@ public class LetterInboxController {
     @GetMapping("/sent")
     @Operation(summary = "보낸 편지함", description = """
             내가 보낸 편지 목록을 최근에 보낸 순으로 조회합니다 (LW-840). read로 받는 사람이 읽었는지 알 수 있습니다.
+            - 공유 링크로 보내고 아직 아무도 받지 않은 편지는 recipient가 null입니다 ("아직 받는 사람 없음").
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다.
             """)
     public ApiResponse<LetterPageResponse<SentLetterResponse>> getSentLetters(
@@ -134,7 +136,8 @@ public class LetterInboxController {
     @DeleteMapping("/{letterId}")
     @Operation(summary = "편지 삭제 (보낸 사람: 작성 취소 / 받는 사람: 펀지팩 삭제)", description = """
             - 보낸 사람: 아직 보내지 않은 편지를 카드·두들픽과 함께 삭제합니다 (작성 취소). 보낸 편지는 삭제할 수 없습니다(LETTER_003).
-            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 복구할 수 없고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 반응 알림은 남습니다.
+              단, 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 삭제할 수 있고 링크도 함께 무효가 됩니다.
+            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 공유 링크로 받은 편지는 링크로 다시 받으면 되돌릴 수 있고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 반응 알림은 남습니다.
             """)
     public ApiResponse<Void> deleteOrHide(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
