@@ -1,7 +1,6 @@
 package com.sdp1617.backend.social.controller;
 
 import com.sdp1617.backend.global.common.response.ApiResponse;
-import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestCreateRequest;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
@@ -31,63 +30,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/social/follow")
-@Tag(name = "소셜 - 팔로우", description = "고유 코드 발급/재발급, 팔로우 요청/취소/수락/거절/끊기, 친구 목록·보낸 요청·친구 수 조회 API")
+@Tag(name = "소셜 - 팔로우", description = "친구(맞팔) 요청/취소/수락/거절/끊기, 친구 목록·보낸 요청·친구 수 조회 API. 친구 찾기는 닉네임(아이디) 검색(GET /api/social/members/search)")
 public class FollowController {
 
     private final FollowService followService;
 
-    @Operation(summary = "내 팔로우 코드 조회", description = """
-            가입 시 자동 발급된 내 고유 팔로우 코드를 조회합니다.
-            - 이 코드를 상대방에게 공유하면, 상대방이 코드로 나에게 팔로우 요청을 보낼 수 있습니다.
-            - 닉네임 검색 기능은 없으며, 코드 입력으로만 팔로우 요청이 가능합니다.
-            """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = FollowCodeResponse.class),
-                            examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "팔로우 코드를 조회했습니다.",
-                              "data": { "followCode": "S4UEFSAD" }
-                            }
-                            """)))
-    })
-    @GetMapping("/code")
-    public ApiResponse<FollowCodeResponse> getMyFollowCode(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
-    ) {
-        return ApiResponse.ok("팔로우 코드를 조회했습니다.", followService.getMyFollowCode(memberId));
-    }
-
-    @Operation(summary = "팔로우 코드 재발급", description = """
-            내 팔로우 코드를 새로 발급받습니다.
-            - 재발급 시 기존 코드는 즉시 무효화되어, 그 코드를 알고 있던 사람도 더 이상 사용할 수 없습니다.
-            - 코드를 실수로 공개했거나 원치 않는 요청이 계속될 때 사용합니다.
-            """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재발급 성공",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = FollowCodeResponse.class),
-                            examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "팔로우 코드가 재발급되었습니다.",
-                              "data": { "followCode": "878NVGYP" }
-                            }
-                            """)))
-    })
-    @PostMapping("/code/reissue")
-    public ApiResponse<FollowCodeResponse> reissueFollowCode(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
-    ) {
-        return ApiResponse.ok("팔로우 코드가 재발급되었습니다.", followService.reissueFollowCode(memberId));
-    }
-
-    @Operation(summary = "팔로우 코드로 팔로우 요청", description = """
-            상대방의 팔로우 코드를 입력해 팔로우 요청을 보냅니다.
+    @Operation(summary = "친구 요청 보내기", description = """
+            닉네임(아이디) 검색(GET /api/social/members/search) 결과의 memberId로 친구 요청을 보냅니다 (FR-010).
+            - 상대가 수락하면 서로 친구가 됩니다.
             - 상대가 이미 나에게 요청을 보낸 상태(교차 요청)라면 새 요청을 만들지 않고 즉시 맞팔로 처리됩니다.
             - 친구 수 상한(기본 50명)에 도달하면 요청을 보낼 수 없습니다.
             """)
@@ -101,18 +51,18 @@ public class FollowController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않는 팔로우 코드",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않거나 탈퇴한 회원",
                     content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
                             {
                               "success": false,
                               "code": "SOCIAL_001",
-                              "message": "존재하지 않는 친구 코드입니다.",
+                              "message": "존재하지 않는 회원입니다.",
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "본인 코드 입력 / 친구 수 상한 초과",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "본인에게 요청 / 친구 수 상한 초과 / memberId 누락",
                     content = @Content(mediaType = "application/json", examples = {
-                            @ExampleObject(name = "본인 코드 입력", value = """
+                            @ExampleObject(name = "본인에게 요청", value = """
                                     {
                                       "success": false,
                                       "code": "SOCIAL_002",
@@ -154,7 +104,7 @@ public class FollowController {
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody FollowRequestCreateRequest request
     ) {
-        followService.sendFollowRequest(memberId, request.followCode());
+        followService.sendFollowRequest(memberId, request.memberId());
         return ApiResponse.ok("팔로우 요청을 보냈습니다.", null);
     }
 

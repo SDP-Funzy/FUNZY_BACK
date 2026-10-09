@@ -31,7 +31,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByNickname(String nickname);
 
-    Optional<Member> findByFollowCode(String followCode);
 
     /** 닉네임 앞부분이 일치하는 친구(맞팔). 나와 탈퇴한 회원은 제외. prefix는 소문자로 바꾸고 LIKE 와일드카드를 이스케이프한 값. */
     @Query("""

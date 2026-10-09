@@ -5,7 +5,6 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
-import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
 import com.sdp1617.backend.social.dto.FriendResponse;
@@ -75,25 +74,15 @@ class FollowServiceTest {
     }
 
     @Test
-    void 내_팔로우코드를_조회한다() {
-        Member member = member(1L, "닉네임");
-        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(member));
-
-        FollowCodeResponse response = followService.getMyFollowCode(1L);
-
-        assertEquals(member.getFollowCode(), response.followCode());
-    }
-
-    @Test
-    void 팔로우코드로_요청을_보낸다() {
+    void 회원_ID로_친구_요청을_보낸다() {
         Member receiver = member(2L, "받는사람");
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findActiveById(2L)).thenReturn(Optional.of(receiver));
         when(followRelationRepository.findBetween(1L, 2L)).thenReturn(Optional.empty());
         when(followRequestRepository.existsByRequesterIdAndReceiverId(1L, 2L)).thenReturn(false);
         when(followRequestRepository.findByRequesterIdAndReceiverId(2L, 1L)).thenReturn(Optional.empty());
         when(followRelationRepository.countByMember(1L)).thenReturn(0L);
 
-        followService.sendFollowRequest(1L, "CODE1234");
+        followService.sendFollowRequest(1L, 2L);
 
         ArgumentCaptor<FollowRequest> captor = ArgumentCaptor.forClass(FollowRequest.class);
         verify(followRequestRepository).save(captor.capture());
@@ -105,14 +94,14 @@ class FollowServiceTest {
     void 상대가_이미_나에게_요청했으면_바로_맞팔_처리된다() {
         Member receiver = member(2L, "받는사람");
         FollowRequest reverseRequest = new FollowRequest(2L, 1L);
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findActiveById(2L)).thenReturn(Optional.of(receiver));
         when(followRelationRepository.findBetween(1L, 2L)).thenReturn(Optional.empty());
         when(followRequestRepository.existsByRequesterIdAndReceiverId(1L, 2L)).thenReturn(false);
         when(followRequestRepository.findByRequesterIdAndReceiverId(2L, 1L)).thenReturn(Optional.of(reverseRequest));
         when(followRelationRepository.countByMember(1L)).thenReturn(0L);
         when(followRelationRepository.countByMember(2L)).thenReturn(0L);
 
-        followService.sendFollowRequest(1L, "CODE1234");
+        followService.sendFollowRequest(1L, 2L);
 
         verify(followRequestRepository).delete(reverseRequest);
         verify(followRequestRepository, never()).save(any());
@@ -123,22 +112,22 @@ class FollowServiceTest {
     }
 
     @Test
-    void 존재하지_않는_코드로_요청하면_SOCIAL_001_예외를_던진다() {
-        when(memberRepository.findByFollowCode("BADCODE")).thenReturn(Optional.empty());
+    void 없거나_탈퇴한_회원에게_요청하면_SOCIAL_001_예외를_던진다() {
+        when(memberRepository.findActiveById(99L)).thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
-                () -> followService.sendFollowRequest(1L, "BADCODE"));
+                () -> followService.sendFollowRequest(1L, 99L));
 
         assertEquals(ErrorCode.SOCIAL_001, exception.getErrorCode());
     }
 
     @Test
-    void 본인_코드로_요청하면_SOCIAL_002_예외를_던진다() {
+    void 본인에게_요청하면_SOCIAL_002_예외를_던진다() {
         Member self = member(1L, "닉네임");
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(self));
+        when(memberRepository.findActiveById(1L)).thenReturn(Optional.of(self));
 
         CustomException exception = assertThrows(CustomException.class,
-                () -> followService.sendFollowRequest(1L, "CODE1234"));
+                () -> followService.sendFollowRequest(1L, 1L));
 
         assertEquals(ErrorCode.SOCIAL_002, exception.getErrorCode());
     }
@@ -146,11 +135,11 @@ class FollowServiceTest {
     @Test
     void 이미_친구인_회원에게_요청하면_SOCIAL_003_예외를_던진다() {
         Member receiver = member(2L, "받는사람");
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findActiveById(2L)).thenReturn(Optional.of(receiver));
         when(followRelationRepository.findBetween(1L, 2L)).thenReturn(Optional.of(FollowRelation.of(1L, 2L)));
 
         CustomException exception = assertThrows(CustomException.class,
-                () -> followService.sendFollowRequest(1L, "CODE1234"));
+                () -> followService.sendFollowRequest(1L, 2L));
 
         assertEquals(ErrorCode.SOCIAL_003, exception.getErrorCode());
     }
@@ -158,12 +147,12 @@ class FollowServiceTest {
     @Test
     void 이미_보낸_요청이_있으면_SOCIAL_004_예외를_던진다() {
         Member receiver = member(2L, "받는사람");
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findActiveById(2L)).thenReturn(Optional.of(receiver));
         when(followRelationRepository.findBetween(1L, 2L)).thenReturn(Optional.empty());
         when(followRequestRepository.existsByRequesterIdAndReceiverId(1L, 2L)).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
-                () -> followService.sendFollowRequest(1L, "CODE1234"));
+                () -> followService.sendFollowRequest(1L, 2L));
 
         assertEquals(ErrorCode.SOCIAL_004, exception.getErrorCode());
     }
@@ -171,14 +160,14 @@ class FollowServiceTest {
     @Test
     void 친구수_상한을_초과하면_요청시_SOCIAL_005_예외를_던진다() {
         Member receiver = member(2L, "받는사람");
-        when(memberRepository.findByFollowCode("CODE1234")).thenReturn(Optional.of(receiver));
+        when(memberRepository.findActiveById(2L)).thenReturn(Optional.of(receiver));
         when(followRelationRepository.findBetween(1L, 2L)).thenReturn(Optional.empty());
         when(followRequestRepository.existsByRequesterIdAndReceiverId(1L, 2L)).thenReturn(false);
         when(followRequestRepository.findByRequesterIdAndReceiverId(2L, 1L)).thenReturn(Optional.empty());
         when(followRelationRepository.countByMember(1L)).thenReturn(2L);
 
         CustomException exception = assertThrows(CustomException.class,
-                () -> followService.sendFollowRequest(1L, "CODE1234"));
+                () -> followService.sendFollowRequest(1L, 2L));
 
         assertEquals(ErrorCode.SOCIAL_005, exception.getErrorCode());
     }

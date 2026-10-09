@@ -243,7 +243,7 @@ class NotificationEventIntegrationTest {
 
     @Test
     void 친구_요청과_수락_알림() {
-        followService.sendFollowRequest(sender.getId(), recipient.getFollowCode());
+        followService.sendFollowRequest(sender.getId(), recipient.getId());
 
         List<NotificationResponse> requested = notifications(recipient);
         assertEquals(1, requested.size());
@@ -265,8 +265,8 @@ class NotificationEventIntegrationTest {
 
     @Test
     void 서로_요청해서_바로_친구가_되면_먼저_요청한_사람에게_수락_알림이_간다() {
-        followService.sendFollowRequest(sender.getId(), recipient.getFollowCode());
-        followService.sendFollowRequest(recipient.getId(), sender.getFollowCode());
+        followService.sendFollowRequest(sender.getId(), recipient.getId());
+        followService.sendFollowRequest(recipient.getId(), sender.getId());
 
         List<NotificationResponse> toSender = notifications(sender);
         assertEquals(1, toSender.size());

@@ -4,7 +4,6 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
-import com.sdp1617.backend.social.dto.FollowCodeResponse;
 import com.sdp1617.backend.social.dto.FollowCountResponse;
 import com.sdp1617.backend.social.dto.FollowRequestResponse;
 import com.sdp1617.backend.social.dto.FriendResponse;
@@ -38,24 +37,11 @@ public class FollowService {
     @Value("${app.social.max-follow-count}")
     private int maxFollowCount;
 
-    public FollowCodeResponse getMyFollowCode(Long memberId) {
-        Member member = getMember(memberId);
-        return new FollowCodeResponse(member.getFollowCode());
-    }
-
+    /** 닉네임(아이디) 검색으로 찾은 회원에게 친구 요청을 보낸다 (FR-010, #142). 탈퇴한 회원이면 없는 회원과 같이 SOCIAL_001. */
     @Transactional
-    public FollowCodeResponse reissueFollowCode(Long memberId) {
-        Member member = memberRepository.findActiveByIdForUpdate(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
-        member.reissueFollowCode();
-        return new FollowCodeResponse(member.getFollowCode());
-    }
-
-    @Transactional
-    public void sendFollowRequest(Long requesterId, String followCode) {
-        Member receiver = memberRepository.findByFollowCode(followCode)
+    public void sendFollowRequest(Long requesterId, Long receiverId) {
+        memberRepository.findActiveById(receiverId)
                 .orElseThrow(() -> new CustomException(ErrorCode.SOCIAL_001));
-        Long receiverId = receiver.getId();
 
         if (receiverId.equals(requesterId)) {
             throw new CustomException(ErrorCode.SOCIAL_002);
@@ -187,10 +173,5 @@ public class FollowService {
     private Map<Long, Member> membersById(Collection<Long> memberIds) {
         return memberRepository.findAllById(memberIds).stream()
                 .collect(Collectors.toMap(Member::getId, Function.identity()));
-    }
-
-    private Member getMember(Long memberId) {
-        return memberRepository.findActiveById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 }
