@@ -1,4 +1,7 @@
 spring:
+  jpa:
+    # 운영에서는 실행하는 SQL을 로그로 찍지 않는다 (#149) — 요청마다 SQL이 쌓여 로그·디스크를 키운다. 로컬은 기본값(true) 유지
+    show-sql: false
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/sdp1617}
     username: ${DB_USERNAME:postgres}
