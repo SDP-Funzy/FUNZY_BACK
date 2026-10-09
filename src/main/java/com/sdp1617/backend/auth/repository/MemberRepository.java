@@ -20,11 +20,22 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);
 
-    boolean existsByNickname(String nickname);
+    boolean existsByNicknameIgnoreCase(String nickname);
 
-    /** 닉네임을 새로 쓸 수 없는지: 이미 사용 중이거나, 탈퇴 회원용으로 예약된 닉네임. */
+    boolean existsByNicknameIgnoreCaseAndIdNot(String nickname, Long id);
+
+    /**
+     * 아이디를 새로 쓸 수 없는지: 이미 사용 중이거나, 탈퇴 회원용으로 예약된 아이디.
+     * 대소문자를 구분하지 않는다 — 규칙(#144) 전에 대문자로 가입한 "Tiki"가 있으면 "tiki"도 쓸 수 없다
+     * (공개 아이디라 검색에서 똑같이 보여 사칭에 쓰일 수 있음). DB 고유 제약은 대소문자를 구분하므로 여기서 막는다.
+     */
     default boolean isNicknameTaken(String nickname) {
-        return Member.isReservedNickname(nickname) || existsByNickname(nickname);
+        return Member.isReservedNickname(nickname) || existsByNicknameIgnoreCase(nickname);
+    }
+
+    /** 아이디 변경용. 본인을 빼고 확인해, 대문자 아이디 "Tiki"를 가진 회원이 "tiki"로 바꾸는 것은 허용한다. */
+    default boolean isNicknameTakenByOthers(String nickname, Long memberId) {
+        return Member.isReservedNickname(nickname) || existsByNicknameIgnoreCaseAndIdNot(nickname, memberId);
     }
 
     Optional<Member> findByEmail(String email);

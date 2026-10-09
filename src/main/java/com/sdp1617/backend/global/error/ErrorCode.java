@@ -21,7 +21,7 @@ public enum ErrorCode {
     AUTH_004(HttpStatus.UNAUTHORIZED, "AUTH_004", "만료된 토큰입니다."),
     AUTH_005(HttpStatus.UNAUTHORIZED, "AUTH_005", "저장된 refresh token을 찾을 수 없습니다."),
     AUTH_006(HttpStatus.CONFLICT, "AUTH_006", "이미 가입된 이메일입니다."),
-    AUTH_007(HttpStatus.CONFLICT, "AUTH_007", "이미 사용 중인 닉네임입니다."),
+    AUTH_007(HttpStatus.CONFLICT, "AUTH_007", "이미 사용 중인 아이디입니다."),
     AUTH_008(HttpStatus.BAD_REQUEST, "AUTH_008", "비밀번호가 일치하지 않습니다."),
     AUTH_010(HttpStatus.LOCKED, "AUTH_010", "로그인 시도가 많아 일시적으로 잠겼습니다. 15분 후 다시 시도하거나 이메일 인증으로 잠금을 해제해주세요."),
     AUTH_011(HttpStatus.BAD_REQUEST, "AUTH_011", "유효하지 않거나 만료된 링크입니다."),

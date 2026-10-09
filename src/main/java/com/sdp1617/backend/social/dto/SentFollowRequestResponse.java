@@ -10,7 +10,7 @@ public record SentFollowRequestResponse(
         @Schema(description = "요청을 받은 회원 ID", example = "2")
         Long receiverId,
 
-        @Schema(description = "요청을 받은 회원 닉네임", example = "유저B")
+        @Schema(description = "요청을 받은 회원 닉네임", example = "user_b")
         String receiverNickname,
 
         @Schema(description = "요청을 받은 회원 프로필 이미지 URL. 기본 이미지면 null", example = "https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/profiles/2/abc.jpg")

@@ -125,7 +125,7 @@ public class FollowController {
                                         {
                                           "requestId": 1,
                                           "requesterId": 2,
-                                          "requesterNickname": "유저B",
+                                          "requesterNickname": "user_b",
                                           "createdAt": "2026-08-14T05:18:16.856342"
                                         }
                                       ]
@@ -166,7 +166,7 @@ public class FollowController {
                                         {
                                           "requestId": 1,
                                           "receiverId": 2,
-                                          "receiverNickname": "유저B",
+                                          "receiverNickname": "user_b",
                                           "receiverProfileImageUrl": null,
                                           "createdAt": "2026-08-14T05:18:16.856342"
                                         }
@@ -339,7 +339,7 @@ public class FollowController {
                                       "data": [
                                         {
                                           "memberId": 2,
-                                          "nickname": "유저B",
+                                          "nickname": "user_b",
                                           "profileImageUrl": null,
                                           "friendSince": "2026-08-14T05:18:16.856342"
                                         }

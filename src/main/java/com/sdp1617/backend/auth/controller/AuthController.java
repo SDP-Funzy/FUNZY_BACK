@@ -8,6 +8,7 @@ import com.sdp1617.backend.auth.dto.EmailCodeVerifyResponse;
 import com.sdp1617.backend.auth.dto.LoginIdFindRequest;
 import com.sdp1617.backend.auth.dto.LoginRequest;
 import com.sdp1617.backend.auth.dto.NicknameCheckResponse;
+import com.sdp1617.backend.auth.dto.NicknamePolicy;
 import com.sdp1617.backend.auth.dto.PasswordResetConfirmRequest;
 import com.sdp1617.backend.auth.dto.PasswordResetRequest;
 import com.sdp1617.backend.auth.dto.SignUpRequest;
@@ -16,6 +17,7 @@ import com.sdp1617.backend.auth.service.AuthService;
 import com.sdp1617.backend.auth.service.EmailCodeService;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,8 +25,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -161,12 +163,13 @@ public class AuthController {
     }
 
     @Operation(summary = "회원가입", description = """
-            이메일 인증을 마친 뒤 아이디(닉네임)/비밀번호로 신규 가입합니다.
+            이메일 인증을 마친 뒤 아이디/비밀번호로 신규 가입합니다.
             - 이메일은 인증번호 확인 API에서 받은 verificationToken으로 결정되며, 가입 즉시 인증된 계정이 됩니다.
             - verificationToken이 만료(30분)되었거나 유효하지 않으면 AUTH_026으로 거부하며, 이메일 인증부터 다시 진행해야 합니다.
             - verificationToken 필드 자체를 보내지 않으면 입력값 검증 오류(COMMON_002, "이메일 인증이 필요합니다.")입니다.
             - 비밀번호는 8자 이상, 영문+숫자+특수문자 조합이어야 합니다.
-            - 닉네임은 로그인 아이디로 사용되며, 2~20자 이내여야 하고 중복될 수 없습니다.
+            - 아이디(필드 이름은 `nickname`)는 다른 회원에게 보이는 공개 아이디이자 로그인 아이디이며, 중복될 수 없습니다. 2~20자, 영문 소문자·숫자·마침표(.)·밑줄(_)만 쓸 수 있고
+              마침표로 시작·끝나거나 연달아 쓸 수 없습니다(어기면 COMMON_002). 대문자는 앱에서 소문자로 바꿔 보내 주세요.
             - 가입 완료 후 자동 로그인되지 않으며, 로그인 화면으로 이동해 별도로 로그인해야 합니다.
             """)
     @ApiResponses(value = {
@@ -179,7 +182,7 @@ public class AuthController {
                               "data": null
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이메일/닉네임 중복",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이메일/아이디 중복",
                     content = @Content(mediaType = "application/json", examples = {
                             @ExampleObject(name = "이메일 중복", value = """
                                     {
@@ -189,11 +192,11 @@ public class AuthController {
                                       "data": null
                                     }
                                     """),
-                            @ExampleObject(name = "닉네임 중복", value = """
+                            @ExampleObject(name = "아이디 중복", value = """
                                     {
                                       "success": false,
                                       "code": "AUTH_007",
-                                      "message": "이미 사용 중인 닉네임입니다.",
+                                      "message": "이미 사용 중인 아이디입니다.",
                                       "data": null
                                     }
                                     """)
@@ -224,9 +227,11 @@ public class AuthController {
         return ApiResponse.ok("회원가입이 완료되었습니다.", null);
     }
 
-    @Operation(summary = "아이디(닉네임) 중복 확인", description = """
-            닉네임 사용 가능 여부를 실시간으로 확인합니다.
-            - 회원가입, 소셜 회원가입, 닉네임 변경 화면에서 공통으로 사용합니다.
+    @Operation(summary = "아이디 중복 확인", description = """
+            아이디 사용 가능 여부를 실시간으로 확인합니다. 규칙에 어긋나면 COMMON_002로 규칙을 안내합니다.
+            - 회원가입, 소셜 회원가입, 아이디 변경 화면에서 공통으로 사용합니다.
+            - 아이디 변경 화면에서는 access token을 함께 보내 주세요. 로그인한 회원은 본인을 빼고 확인합니다
+              (예: 규칙 전 대문자 아이디 "Tiki"를 "tiki"로 바꾸는 경우 사용 가능). 대소문자만 다른 아이디는 같은 아이디로 봅니다.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
@@ -237,7 +242,7 @@ public class AuthController {
                                     {
                                       "success": true,
                                       "code": "200",
-                                      "message": "닉네임 사용 가능 여부를 조회했습니다.",
+                                      "message": "아이디 사용 가능 여부를 조회했습니다.",
                                       "data": { "available": true }
                                     }
                                     """),
@@ -245,7 +250,7 @@ public class AuthController {
                                     {
                                       "success": true,
                                       "code": "200",
-                                      "message": "닉네임 사용 가능 여부를 조회했습니다.",
+                                      "message": "아이디 사용 가능 여부를 조회했습니다.",
                                       "data": { "available": false }
                                     }
                                     """)
@@ -253,14 +258,17 @@ public class AuthController {
     })
     @GetMapping("/nickname/check")
     public ApiResponse<NicknameCheckResponse> checkNickname(
-            @RequestParam @NotBlank(message = "닉네임을 입력해주세요.") String nickname
+            @RequestParam String nickname,
+            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
     ) {
-        NicknameCheckResponse response = new NicknameCheckResponse(authService.isNicknameAvailable(nickname));
-        return ApiResponse.ok("닉네임 사용 가능 여부를 조회했습니다.", response);
+        // 가입·변경 요청처럼 앞뒤 공백을 자른 값으로 같은 규칙을 검사한다
+        String checked = NicknamePolicy.requireValid(nickname);
+        NicknameCheckResponse response = new NicknameCheckResponse(authService.isNicknameAvailable(checked, memberId));
+        return ApiResponse.ok("아이디 사용 가능 여부를 조회했습니다.", response);
     }
 
     @Operation(summary = "아이디 로그인", description = """
-            아이디(닉네임)/비밀번호로 로그인합니다.
+            아이디/비밀번호로 로그인합니다.
             - 존재하지 않는 아이디, 비밀번호 불일치, 소셜 전용 계정으로 로그인 시도한 경우 모두 동일한 오류(AUTH_001)로 응답합니다. 계정 존재 여부가 외부에 드러나지 않도록 하기 위한 의도된 동작입니다.
             - 같은 IP에서 5회 로그인에 실패하면 그 IP에서의 로그인이 15분간 잠깁니다(실패 횟수는 첫 실패부터 15분간 누적, 로그인 성공 시 그 IP 기록 초기화). 다른 네트워크에서는 그대로 로그인할 수 있습니다.
             - 모든 IP를 합쳐 30회 실패하면 계정 전체가 15분간 잠깁니다(여러 IP로 나눠 비밀번호를 대입하는 것 방지).
@@ -307,7 +315,7 @@ public class AuthController {
     }
 
     @Operation(summary = "아이디 찾기", description = """
-            가입할 때 인증한 이메일로 아이디(닉네임)를 메일로 보내줍니다.
+            가입할 때 인증한 이메일로 아이디를 메일로 보내줍니다.
             - 가입되지 않은 이메일이어도 항상 동일하게 200을 반환합니다(계정 존재 여부 비노출). 실제 메일은 가입된 이메일에만 발송됩니다.
             - 소셜 전용 계정은 아이디로 로그인할 수 없으므로, 아이디 대신 소셜 계정으로 로그인하라는 안내 메일이 발송됩니다.
             - 남용 방지를 위해 IP/이메일 기준으로 rate limit이 적용됩니다. 제한을 초과해도 존재 여부가 드러나지 않도록 동일하게 200을 반환하고 메일만 조용히 보내지 않습니다.

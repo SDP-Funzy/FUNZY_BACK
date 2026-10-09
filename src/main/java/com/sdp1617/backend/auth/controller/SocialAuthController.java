@@ -30,7 +30,7 @@ public class SocialAuthController {
     @Operation(summary = "소셜 로그인", description = """
             카카오/구글/네이버 계정으로 로그인합니다.
             - 이미 가입된 계정이면 즉시 `tokens`를 반환합니다.
-            - 처음 로그인하는 계정이면 `signupToken`을 반환합니다. 이 토큰으로 `/signup/complete`를 호출해 닉네임/약관 동의를 받아야 가입이 완료됩니다. signupToken은 발급 후 15분간 유효합니다.
+            - 처음 로그인하는 계정이면 `signupToken`을 반환합니다. 이 토큰으로 `/signup/complete`를 호출해 아이디/약관 동의를 받아야 가입이 완료됩니다. signupToken은 발급 후 15분간 유효합니다.
             - 동일한 이메일로 이미 다른 방식(이메일 또는 다른 소셜)으로 가입된 계정이 있으면 신규 가입을 막습니다.
             """)
     @ApiResponses(value = {
@@ -94,7 +94,7 @@ public class SocialAuthController {
     }
 
     @Operation(summary = "소셜 회원가입 완료", description = """
-            `/login`에서 받은 signupToken으로 닉네임/약관 동의를 입력받아 신규 소셜 회원가입을 완료합니다.
+            `/login`에서 받은 signupToken으로 아이디/약관 동의를 입력받아 신규 소셜 회원가입을 완료합니다.
             - signupToken은 1회용이며, 사용 시점에 만료되었으면 다시 소셜 로그인부터 시작해야 합니다.
             """)
     @ApiResponses(value = {
@@ -112,13 +112,13 @@ public class SocialAuthController {
                               }
                             }
                             """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "닉네임/이메일 중복",
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "아이디/이메일 중복",
                     content = @Content(mediaType = "application/json", examples = {
-                            @ExampleObject(name = "닉네임 중복", value = """
+                            @ExampleObject(name = "아이디 중복", value = """
                                     {
                                       "success": false,
                                       "code": "AUTH_007",
-                                      "message": "이미 사용 중인 닉네임입니다.",
+                                      "message": "이미 사용 중인 아이디입니다.",
                                       "data": null
                                     }
                                     """),
