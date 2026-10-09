@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,17 +37,6 @@ class MemberTest {
     void 소셜_가입_생성자에_LOCAL_provider를_넘기면_예외를_던진다() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Member("test@sdp1617.com", "닉네임", Consent.requiredOnly(), AuthProvider.LOCAL, "12345"));
-    }
-
-    @Test
-    void 팔로우코드를_재발급하면_값이_바뀐다() {
-        Member member = new Member("test@sdp1617.com", "encoded", "닉네임", Consent.requiredOnly());
-        member.reissueFollowCode();
-        String firstCode = member.getFollowCode();
-
-        member.reissueFollowCode();
-
-        assertNotEquals(firstCode, member.getFollowCode());
     }
 
     @Test
