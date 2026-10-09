@@ -45,7 +45,6 @@ public interface LetterCardRepository extends JpaRepository<LetterCard, Long> {
               and (cast(:startAt as LocalDateTime) is null or l.sentAt >= :startAt)
               and (cast(:endAt as LocalDateTime) is null or l.sentAt < :endAt)
               and (cast(:keyword as String) is null
-                   or lower(c.title) like :keyword escape '\\'
                    or lower(c.content) like :keyword escape '\\'
                    or (:asSender = false and (lower(l.fromName) like :keyword escape '\\'
                                               or lower(s.nickname) like :keyword escape '\\'))

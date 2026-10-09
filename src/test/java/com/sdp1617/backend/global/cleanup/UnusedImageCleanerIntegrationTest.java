@@ -53,7 +53,7 @@ class UnusedImageCleanerIntegrationTest {
 
     private LetterCard addCard(Member sender, Long letterId, String imageKey, String imageUrl) {
         Long cardId = letterWriteService.addCard(sender.getId(), letterId, new LetterCardContent(
-                ArchiveCategory.MUSIC, null, null, "내용", null, null, imageKey, imageUrl)).cards().getLast().cardId();
+                ArchiveCategory.MUSIC, null, "내용", null, null, imageKey, imageUrl)).cards().getLast().cardId();
         return em.find(LetterCard.class, cardId);
     }
 

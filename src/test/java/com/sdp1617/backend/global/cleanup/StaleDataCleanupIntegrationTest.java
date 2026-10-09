@@ -58,7 +58,7 @@ class StaleDataCleanupIntegrationTest {
         Long letterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("은우", "티키", DesignType.DesignType_A)).letterId();
         letterWriteService.addCard(sender.getId(), letterId, contentResolver.resolve(sender.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, null, "내용", null, null, null)));
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, "내용", null, null, null)));
         return letterId;
     }
 

@@ -66,7 +66,7 @@ class MemberWithdrawalIntegrationTest {
 
         // 내가 친구에게 보낸 편지 (편지는 회원을 외래키로 참조한다)
         Letter sentLetter = Letter.start(me, "친구", "나", DesignType.values()[0]);
-        sentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "보낸 카드",
+        sentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, "보낸 카드",
                 null, null, null, null));
         sentLetter.complete();
         sentLetter.sendTo(friend);
@@ -87,11 +87,11 @@ class MemberWithdrawalIntegrationTest {
         em.persist(new LetterInteraction(1L, me.getId(), LetterInteractionType.FAVORITE, "FAVORITE"));
         em.persist(new LetterInteraction(1L, me.getId(), LetterInteractionType.COMMENT, "남긴 댓글"));
         Letter unsentLetter = Letter.start(me, "친구", "나", DesignType.values()[0]);
-        unsentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "보내지 않은 카드",
+        unsentLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, "보내지 않은 카드",
                 null, null, null, null));
         em.persist(unsentLetter);
         Letter receivedLetter = Letter.start(friend, "나", "친구", DesignType.values()[0]);
-        receivedLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, null, "받은 카드",
+        receivedLetter.addCard(new LetterCardContent(ArchiveCategory.values()[0], null, "받은 카드",
                 null, null, null, null));
         receivedLetter.complete();
         receivedLetter.sendTo(me);
