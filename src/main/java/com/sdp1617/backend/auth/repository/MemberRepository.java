@@ -5,6 +5,7 @@ import com.sdp1617.backend.global.error.ConstraintViolations;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -85,6 +86,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Modifying(flushAutomatically = true)
     @Query("update Member m set m.sessionVersion = coalesce(m.sessionVersion, 0) + 1 where m.id = :id")
     int incrementSessionVersion(@Param("id") Long id);
+
+    /** 안 쓰는 사진 정리용 (#122). 주어진 key 중 프로필 사진으로 쓰고 있는 것. */
+    @Query("select m.profileImageKey from Member m where m.profileImageKey in :keys")
+    List<String> findProfileImageKeysIn(@Param("keys") Collection<String> keys);
+
+    boolean existsByProfileImageKeyIsNotNull();
 
     /** 토큰 검증용. 탈퇴하지 않은 회원이면 세션 버전을 함께 돌려준다 (요청마다 조회 1번, #124). */
     @Query("select new com.sdp1617.backend.auth.repository.MemberTokenState(m.sessionVersion) "

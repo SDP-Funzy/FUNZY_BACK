@@ -29,6 +29,8 @@ services:
       AWS_REGION: ${AWS_REGION:-ap-northeast-2}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-sdp-funzy}
       AWS_S3_PRESIGNED_URL_EXPIRATION_MINUTES: ${AWS_S3_PRESIGNED_URL_EXPIRATION_MINUTES:-10}
+      # 매일 새벽 정리 작업(#122). 실제 운영 서버 .env에서만 true — 로컬에서 켜면 운영 버킷 사진을 지울 수 있다
+      CLEANUP_ENABLED: ${CLEANUP_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy

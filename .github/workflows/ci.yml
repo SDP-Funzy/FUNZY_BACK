@@ -51,6 +51,7 @@ jobs:
       - name: Build and test
         env:
           SPRING_PROFILES_ACTIVE: prod,ci
+          CLEANUP_ENABLED: "false"
           JWT_SECRET: ci-only-jwt-secret-key-not-used-in-production-1234567890
           FRONTEND_URL: https://ci-placeholder.sdp1617.example.com
           GOOGLE_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
