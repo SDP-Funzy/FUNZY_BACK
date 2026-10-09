@@ -60,6 +60,8 @@ public class LetterInboxController {
             - senderName: 봉투의 보내는 사람 이름 또는 보낸 회원 닉네임에 포함된 편지만 (대소문자 무시)
             - receivedFrom/receivedTo: 받은 날짜 범위 (시작일·종료일 포함)
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다. read가 false면 미읽음입니다.
+            - 날짜를 고르면 그날 받은 편지만: receivedFrom과 receivedTo에 같은 날짜를 넣습니다.
+            - thumbnailImageUrls: 목록에서 카드가 겹친 썸네일을 그릴 카드 사진 (카드 순서대로 사진 있는 카드 최대 3장)
             """)
     public ApiResponse<LetterPageResponse<ReceivedLetterResponse>> getReceivedLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
@@ -82,6 +84,7 @@ public class LetterInboxController {
     @Operation(summary = "보낸 편지함", description = """
             내가 보낸 편지 목록을 최근에 보낸 순으로 조회합니다 (LW-840). read로 받는 사람이 읽었는지 알 수 있습니다.
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다.
+            - thumbnailImageUrls: 목록 썸네일용 카드 사진 (카드 순서대로 사진 있는 카드 최대 3장)
             """)
     public ApiResponse<LetterPageResponse<SentLetterResponse>> getSentLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,

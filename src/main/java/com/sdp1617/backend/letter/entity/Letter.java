@@ -196,6 +196,15 @@ public class Letter {
         touch();
     }
 
+    /** 편지함 목록 썸네일용: 카드 순서대로 사진이 있는 카드의 사진 URL을 최대 max장 (#147). */
+    public List<String> thumbnailImageUrls(int max) {
+        return cards.stream()
+                .map(LetterCard::getImageUrl)
+                .filter(Objects::nonNull)
+                .limit(max)
+                .toList();
+    }
+
     public boolean hasDoodlePick() {
         return !giftItems.isEmpty();
     }

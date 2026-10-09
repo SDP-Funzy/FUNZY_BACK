@@ -10,6 +10,7 @@ import com.sdp1617.backend.letter.dto.LetterCardRequest;
 import com.sdp1617.backend.letter.dto.LetterEnvelopeRequest;
 import com.sdp1617.backend.letter.dto.LetterResponse;
 import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
+import com.sdp1617.backend.letter.entity.LetterCardContent;
 import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.entity.LetterStatus;
 import jakarta.persistence.EntityManager;
@@ -98,6 +99,33 @@ class LetterInboxIntegrationTest {
         em.flush();
         assertTrue(received(null, null, null).get(0).read());
         assertTrue(letterInboxService.getSentLetters(sender.getId(), 0, 20).letters().get(0).read());
+    }
+
+    @Test
+    void 편지함_목록에_썸네일용_카드_사진을_카드_순서대로_최대_3장_준다() {
+        Long letterId = letterWriteService.start(sender.getId(),
+                new LetterEnvelopeRequest("받는이", "티키", DesignType.DesignType_A)).letterId();
+        for (String image : new String[]{"cards/1/a.jpg", null, "cards/1/c.jpg", "cards/1/d.jpg", "cards/1/e.jpg"}) {
+            letterWriteService.addCard(sender.getId(), letterId, new LetterCardContent(ArchiveCategory.MUSIC, null, "내용",
+                    null, null, image, image == null ? null : "https://img.example.com/" + image));
+        }
+        letterWriteService.complete(sender.getId(), letterId);
+        letterInboxService.send(sender.getId(), letterId, recipient.getId());
+        Long noPhotoLetterId = completedLetter("티키");
+        letterInboxService.send(sender.getId(), noPhotoLetterId, recipient.getId());
+        em.flush();
+        em.clear();
+
+        List<String> expected = List.of("https://img.example.com/cards/1/a.jpg",
+                "https://img.example.com/cards/1/c.jpg", "https://img.example.com/cards/1/d.jpg");
+        ReceivedLetterResponse withPhotos = received(null, null, null).stream()
+                .filter(letter -> letter.letterId().equals(letterId)).findFirst().orElseThrow();
+        assertEquals(expected, withPhotos.thumbnailImageUrls());
+        assertEquals(5, withPhotos.heartCardCount());
+        assertEquals(List.of(), received(null, null, null).stream()
+                .filter(letter -> letter.letterId().equals(noPhotoLetterId)).findFirst().orElseThrow().thumbnailImageUrls());
+        assertEquals(expected, letterInboxService.getSentLetters(sender.getId(), 0, 20).letters().stream()
+                .filter(letter -> letter.letterId().equals(letterId)).findFirst().orElseThrow().thumbnailImageUrls());
     }
 
     @Test
