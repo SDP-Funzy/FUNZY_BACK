@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 public record SignUpRequest(
         @Schema(description = "인증번호 확인 API에서 받은 이메일 인증 완료 토큰", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
@@ -22,9 +21,9 @@ public record SignUpRequest(
         @NotBlank(message = "비밀번호 확인을 입력해주세요.")
         String passwordConfirm,
 
-        @Schema(description = "아이디로 사용할 닉네임 (2~20자, 중복 불가)", example = "닉네임")
-        @NotBlank(message = "닉네임을 입력해주세요.")
-        @Size(min = 2, max = 20, message = "닉네임은 2~20자 이내여야 합니다.")
+        @Schema(description = NicknamePolicy.DESCRIPTION, example = "tiki_kim")
+        @NotBlank(message = NicknamePolicy.REQUIRED_MESSAGE)
+        @Pattern(regexp = NicknamePolicy.REGEXP, message = NicknamePolicy.MESSAGE)
         String nickname,
 
         @Schema(description = "서비스 이용약관 및 개인정보 수집·이용(서비스 운영) 동의 여부 (true만 허용)", example = "true")

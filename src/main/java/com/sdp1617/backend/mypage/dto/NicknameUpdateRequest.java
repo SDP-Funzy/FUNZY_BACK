@@ -1,13 +1,14 @@
 package com.sdp1617.backend.mypage.dto;
 
+import com.sdp1617.backend.auth.dto.NicknamePolicy;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 public record NicknameUpdateRequest(
-        @Schema(description = "새 닉네임", example = "달콤한하루")
-        @NotBlank(message = "닉네임을 입력해주세요.")
-        @Size(min = 2, max = 20, message = "닉네임은 2~20자 이내여야 합니다.")
+        @Schema(description = "새 " + NicknamePolicy.DESCRIPTION, example = "sweet.day")
+        @NotBlank(message = NicknamePolicy.REQUIRED_MESSAGE)
+        @Pattern(regexp = NicknamePolicy.REGEXP, message = NicknamePolicy.MESSAGE)
         String nickname
 ) {
     public NicknameUpdateRequest {

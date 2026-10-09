@@ -37,7 +37,7 @@ public class ProfileService {
         if (request.nickname().equals(member.getNickname())) {
             return;
         }
-        if (memberRepository.isNicknameTaken(request.nickname())) {
+        if (memberRepository.isNicknameTakenByOthers(request.nickname(), memberId)) {
             throw new CustomException(ErrorCode.AUTH_007);
         }
         member.updateNickname(request.nickname());

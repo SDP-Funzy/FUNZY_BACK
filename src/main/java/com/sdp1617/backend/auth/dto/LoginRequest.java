@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-        @Schema(description = "아이디 (가입 시 등록한 닉네임)", example = "닉네임")
+        @Schema(description = "아이디", example = "tiki_kim")
         @NotBlank(message = "아이디를 입력해주세요.")
         String nickname,
 

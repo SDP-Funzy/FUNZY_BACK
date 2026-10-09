@@ -10,7 +10,7 @@ public record FollowRequestResponse(
         @Schema(description = "요청을 보낸 회원 ID", example = "2")
         Long requesterId,
 
-        @Schema(description = "요청을 보낸 회원 닉네임", example = "유저B")
+        @Schema(description = "요청을 보낸 회원 닉네임", example = "user_b")
         String requesterNickname,
 
         @Schema(description = "요청 생성 시각")

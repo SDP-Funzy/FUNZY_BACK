@@ -4,16 +4,16 @@ import com.sdp1617.backend.auth.entity.Consent;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 public record SocialSignUpCompleteRequest(
         @Schema(description = "소셜 로그인 응답으로 받은 signupToken", example = "e7a4e358-2b9b-40f2-ad19-cf85641806f9")
         @NotBlank(message = "signupToken은 필수입니다.")
         String signupToken,
 
-        @Schema(description = "닉네임 (2~20자, 중복 불가)", example = "닉네임")
-        @NotBlank(message = "닉네임을 입력해주세요.")
-        @Size(min = 2, max = 20, message = "닉네임은 2~20자 이내여야 합니다.")
+        @Schema(description = NicknamePolicy.DESCRIPTION, example = "tiki_kim")
+        @NotBlank(message = NicknamePolicy.REQUIRED_MESSAGE)
+        @Pattern(regexp = NicknamePolicy.REGEXP, message = NicknamePolicy.MESSAGE)
         String nickname,
 
         @Schema(description = "서비스 이용약관 및 개인정보 수집·이용(서비스 운영) 동의 여부 (true만 허용)", example = "true")

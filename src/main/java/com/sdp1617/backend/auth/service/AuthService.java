@@ -108,6 +108,17 @@ public class AuthService {
     }
 
     /**
+     * 로그인한 회원이 확인하면(아이디 변경 화면) 본인을 빼고 확인한다 — 아이디 변경 API와 같은 기준이라,
+     * 규칙 전 대문자 아이디 "Tiki"를 가진 회원이 "tiki"를 확인하면 사용 가능으로 나온다. 로그인 전(가입 화면)은 전체에서 확인.
+     */
+    public boolean isNicknameAvailable(String nickname, Long requesterId) {
+        if (requesterId == null) {
+            return isNicknameAvailable(nickname);
+        }
+        return !memberRepository.isNicknameTakenByOthers(nickname, requesterId);
+    }
+
+    /**
      * 시도 횟수는 비밀번호 검사 전에 예약해서 센다(동시 요청으로 한도를 넘기지 못하게). 잠금 단위와
      * 이유는 {@link LoginAttemptRecorder} 참고. 트랜잭션 없이 실행한다 — DB 접근은 닉네임 조회 한 번뿐인데
      * 트랜잭션을 잡으면 bcrypt 검사와 Redis 호출 동안 커넥션을 붙잡아, 대입 공격이 몰릴 때 커넥션 풀이 마른다.

@@ -140,7 +140,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
-        when(memberRepository.isNicknameTaken("새닉네임")).thenReturn(false);
+        when(memberRepository.isNicknameTakenByOthers("새닉네임", 1L)).thenReturn(false);
 
         profileService.updateNickname(1L, new NicknameUpdateRequest("새닉네임"));
 
@@ -164,7 +164,7 @@ class ProfileServiceTest {
         Member member = localMember();
         setId(member, 1L);
         when(memberRepository.findActiveByIdForUpdate(1L)).thenReturn(Optional.of(member));
-        when(memberRepository.isNicknameTaken("중복닉네임")).thenReturn(true);
+        when(memberRepository.isNicknameTakenByOthers("중복닉네임", 1L)).thenReturn(true);
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> profileService.updateNickname(1L, new NicknameUpdateRequest("중복닉네임")));

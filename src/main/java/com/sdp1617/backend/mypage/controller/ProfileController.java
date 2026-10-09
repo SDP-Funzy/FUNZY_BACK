@@ -24,12 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/mypage/profile")
-@Tag(name = "마이페이지 - 프로필", description = "프로필 조회, 닉네임 수정, 프로필 이미지 업로드/초기화 API")
+@Tag(name = "마이페이지 - 프로필", description = "프로필 조회, 아이디 변경, 프로필 이미지 업로드/초기화 API")
 public class ProfileController {
 
     private final ProfileService profileService;
 
-    @Operation(summary = "프로필 조회", description = "닉네임, 프로필 이미지 URL, 가입 방식을 조회합니다.")
+    @Operation(summary = "프로필 조회", description = "아이디(nickname), 프로필 이미지 URL, 가입 방식을 조회합니다.")
     @GetMapping
     public ApiResponse<ProfileResponse> getProfile(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
@@ -37,14 +37,14 @@ public class ProfileController {
         return ApiResponse.ok("프로필을 조회했습니다.", profileService.getProfile(memberId));
     }
 
-    @Operation(summary = "닉네임 수정", description = "2~20자 닉네임으로 변경합니다. 다른 회원이 사용 중인 닉네임이면 실패합니다.")
+    @Operation(summary = "아이디 변경", description = "아이디(nickname)를 변경합니다. 2~20자 영문 소문자·숫자·마침표(.)·밑줄(_)만, 마침표로 시작·끝·연속 불가(COMMON_002). 다른 회원이 사용 중인 아이디면 실패합니다(AUTH_007).")
     @PatchMapping("/nickname")
     public ApiResponse<Void> updateNickname(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody NicknameUpdateRequest request
     ) {
         profileService.updateNickname(memberId, request);
-        return ApiResponse.ok("닉네임이 변경되었습니다.", null);
+        return ApiResponse.ok("아이디가 변경되었습니다.", null);
     }
 
     @Operation(summary = "프로필 이미지 업로드용 Presigned URL 발급", description = """
