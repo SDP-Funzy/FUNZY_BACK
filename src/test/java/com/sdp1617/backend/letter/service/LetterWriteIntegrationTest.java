@@ -54,7 +54,7 @@ class LetterWriteIntegrationTest {
     }
 
     private LetterCardContent card(String content) {
-        return content(new LetterCardRequest(ArchiveCategory.MUSIC, null, null, content, null, null, null));
+        return content(new LetterCardRequest(ArchiveCategory.MUSIC, null, content, null, null, null));
     }
 
     /** 사진 없는 카드라 S3를 호출하지 않는다. */
@@ -82,7 +82,7 @@ class LetterWriteIntegrationTest {
 
         letterWriteService.addCard(writerId, letterId, card("첫 카드"));
         letterWriteService.addCard(writerId, letterId, content(new LetterCardRequest(
-                ArchiveCategory.ETC, "게임", "같이 할 게임", "둘째 카드", "https://game.example.com", "게임 링크", null)));
+                ArchiveCategory.ETC, "게임", "둘째 카드", "https://game.example.com", "게임 링크", null)));
         letterWriteService.replaceDoodlePick(writerId, letterId, new DoodlePickRequest("요즘 피곤해 보여서", List.of("향초", "목베개")));
         LetterResponse completed = letterWriteService.complete(writerId, letterId);
 
@@ -104,7 +104,7 @@ class LetterWriteIntegrationTest {
         Long letterId = newLetter().letterId();
 
         LetterResponse response = letterWriteService.addCard(writerId, letterId,
-                content(new LetterCardRequest(ArchiveCategory.MUSIC, "무시됨", null, "내용", null, null, null)));
+                content(new LetterCardRequest(ArchiveCategory.MUSIC, "무시됨", "내용", null, null, null)));
 
         assertNull(response.cards().get(0).customCategory());
     }

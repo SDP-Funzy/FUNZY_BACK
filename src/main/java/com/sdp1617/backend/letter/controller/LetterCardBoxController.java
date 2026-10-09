@@ -53,7 +53,7 @@ public class LetterCardBoxController {
     @Operation(summary = "마음카드 보관함 목록 조회", description = """
             보낸(SENT) 또는 받은(RECEIVED) 편지 속 카드를 주고받은 시각 최신순으로 조회합니다.
             - 받은함에는 받은 편지함에서 지운 편지의 카드가 나오지 않습니다.
-            - date를 주면 그날 주고받은 카드만, keyword를 주면 제목·내용 또는 상대방(받은함은 보낸 사람, 보낸함은 받은 사람)의 봉투 이름·닉네임에 포함된 카드만 조회합니다.
+            - date를 주면 그날 주고받은 카드만, keyword를 주면 내용 또는 상대방(받은함은 보낸 사람, 보낸함은 받은 사람)의 봉투 이름·닉네임에 포함된 카드만 조회합니다.
             - 커서 기반 페이지네이션: 응답의 nextCursor를 다음 요청의 cursor로 보내고, hasNext가 false면 마지막 페이지입니다.
             - size는 기본 20, 최대 50입니다. 잘못된 cursor는 COMMON_002입니다.
             """)

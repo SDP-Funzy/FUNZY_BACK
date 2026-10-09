@@ -6,7 +6,6 @@ import com.sdp1617.backend.archive.entity.ArchiveCategory;
 public record LetterCardContent(
         ArchiveCategory category,
         String customCategory,
-        String title,
         String content,
         String link,
         String linkTitle,

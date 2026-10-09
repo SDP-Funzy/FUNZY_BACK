@@ -84,7 +84,7 @@ class ReceivedLetterReactionIntegrationTest {
         letterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("은우", "티키", DesignType.DesignType_A)).letterId();
         cardId = letterWriteService.addCard(sender.getId(), letterId, contentResolver.resolve(sender.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, null, CONTENT, null, null, null))).cards().get(0).cardId();
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, CONTENT, null, null, null))).cards().get(0).cardId();
         LetterResponse withPick = letterWriteService.replaceDoodlePick(sender.getId(), letterId,
                 new DoodlePickRequest("이유", List.of("향초", "목베개")));
         giftItemIds = withPick.doodlePick().giftItems().stream().map(item -> item.giftItemId()).toList();

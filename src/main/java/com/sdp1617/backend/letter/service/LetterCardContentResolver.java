@@ -26,7 +26,7 @@ public class LetterCardContentResolver {
                     request.imageKey(), ErrorCode.CARD_002, ErrorCode.CARD_003, ErrorCode.CARD_004);
             imageUrl = s3ImageService.buildImageUrl(request.imageKey());
         }
-        return new LetterCardContent(request.category(), request.customCategory(), request.title(), request.content(),
+        return new LetterCardContent(request.category(), request.customCategory(), request.content(),
                 request.link(), request.linkTitle(), request.imageKey(), imageUrl);
     }
 }

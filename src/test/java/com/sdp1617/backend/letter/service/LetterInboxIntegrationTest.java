@@ -59,7 +59,7 @@ class LetterInboxIntegrationTest {
         Long letterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("받는이", fromName, DesignType.DesignType_A)).letterId();
         letterWriteService.addCard(sender.getId(), letterId, contentResolver.resolve(sender.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, null, "내용", null, null, null)));
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, "내용", null, null, null)));
         letterWriteService.complete(sender.getId(), letterId);
         return letterId;
     }

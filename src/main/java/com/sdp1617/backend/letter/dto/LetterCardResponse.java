@@ -12,7 +12,6 @@ public record LetterCardResponse(
         ArchiveCategory category,
         @Schema(description = "기타 직접 입력 카테고리. 기타가 아니면 null")
         String customCategory,
-        String title,
         String content,
         String link,
         String linkTitle,
@@ -20,6 +19,6 @@ public record LetterCardResponse(
 ) {
     public static LetterCardResponse from(LetterCard card) {
         return new LetterCardResponse(card.getId(), card.getCardOrder(), card.getCategory(), card.getCustomCategory(),
-                card.getTitle(), card.getContent(), card.getLink(), card.getLinkTitle(), card.getImageUrl());
+                card.getContent(), card.getLink(), card.getLinkTitle(), card.getImageUrl());
     }
 }

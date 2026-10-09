@@ -48,10 +48,6 @@ public class LetterCard {
     @Column(name = "custom_category", length = 10)
     private String customCategory;
 
-    /** 제목. 필수 여부는 기획 확인 중(#113)이라 선택값. */
-    @Column(length = 30)
-    private String title;
-
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -90,7 +86,6 @@ public class LetterCard {
     private void apply(LetterCardContent content) {
         this.category = content.category();
         this.customCategory = content.category() == ArchiveCategory.ETC ? content.customCategory() : null;
-        this.title = content.title();
         this.content = content.content();
         this.link = content.link();
         this.linkTitle = content.linkTitle();

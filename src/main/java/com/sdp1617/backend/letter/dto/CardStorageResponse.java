@@ -27,7 +27,6 @@ public record CardStorageResponse(
         ArchiveCategory category,
         @Schema(description = "기타 직접 입력 카테고리. 기타가 아니면 null")
         String customCategory,
-        String title,
         String link,
         String linkTitle,
         String content,
@@ -49,7 +48,6 @@ public record CardStorageResponse(
                 letter.getDesignType(),
                 card.getCategory(),
                 card.getCustomCategory(),
-                card.getTitle(),
                 card.getLink(),
                 card.getLinkTitle(),
                 card.getContent(),

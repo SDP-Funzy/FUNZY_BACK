@@ -79,7 +79,7 @@ class NotificationEventIntegrationTest {
         letterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("은우", "티키", DesignType.DesignType_A)).letterId();
         cardId = letterWriteService.addCard(sender.getId(), letterId, contentResolver.resolve(sender.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, null, "출근길마다 듣는 노래야", null, null, null)))
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, "출근길마다 듣는 노래야", null, null, null)))
                 .cards().get(0).cardId();
         LetterResponse withPick = letterWriteService.replaceDoodlePick(sender.getId(), letterId,
                 new DoodlePickRequest("이유", List.of("향초", "목베개")));
@@ -179,7 +179,7 @@ class NotificationEventIntegrationTest {
         Long otherLetterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("은우", "티키", DesignType.DesignType_A)).letterId();
         letterWriteService.addCard(sender.getId(), otherLetterId, contentResolver.resolve(sender.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, null, "다른 편지", null, null, null)));
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, "다른 편지", null, null, null)));
         letterWriteService.complete(sender.getId(), otherLetterId);
         letterInboxService.send(sender.getId(), otherLetterId, recipient.getId());
         letterInboxService.selectGift(recipient.getId(), letterId, giftItemIds.get(0));

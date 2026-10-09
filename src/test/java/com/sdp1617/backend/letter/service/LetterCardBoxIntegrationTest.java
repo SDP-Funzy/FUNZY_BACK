@@ -51,22 +51,22 @@ class LetterCardBoxIntegrationTest {
         return member;
     }
 
-    /** sender가 recipient에게 카드 제목들로 편지 한 통을 써서 보낸다. */
-    private Long sendLetter(Member sender, Member recipient, String... titles) {
+    /** sender가 recipient에게 카드 본문들로 편지 한 통을 써서 보낸다. */
+    private Long sendLetter(Member sender, Member recipient, String... contents) {
         Long letterId = letterWriteService.start(sender.getId(),
                 new LetterEnvelopeRequest("받는이", "보낸이", DesignType.DesignType_A)).letterId();
-        for (String title : titles) {
+        for (String content : contents) {
             letterWriteService.addCard(sender.getId(), letterId, contentResolver.resolve(sender.getId(),
-                    new LetterCardRequest(ArchiveCategory.MUSIC, null, title, "내용", null, null, null)));
+                    new LetterCardRequest(ArchiveCategory.MUSIC, null, content, null, null, null)));
         }
         letterWriteService.complete(sender.getId(), letterId);
         letterInboxService.send(sender.getId(), letterId, recipient.getId());
         return letterId;
     }
 
-    private List<String> receivedTitles(LocalDate date, String keyword) {
+    private List<String> receivedContents(LocalDate date, String keyword) {
         return cardBoxService.getCards(me.getId(), CardBoxType.RECEIVED, date, keyword, null, 20).items().stream()
-                .map(CardStorageResponse::title)
+                .map(CardStorageResponse::content)
                 .toList();
     }
 
@@ -94,13 +94,13 @@ class LetterCardBoxIntegrationTest {
 
     @Test
     void 날짜와_검색어로_거르고_밑줄은_글자_그대로_찾는다() {
-        assertEquals(3, receivedTitles(LocalDate.now(), null).size());
-        assertEquals(0, receivedTitles(LocalDate.now().minusDays(1), null).size());
-        assertEquals(List.of("두번째 카드"), receivedTitles(null, "두번째"));
-        assertEquals(2, receivedTitles(null, "boxfriendA").size());
-        assertEquals(List.of("세번째_카드"), receivedTitles(null, "째_"));
+        assertEquals(3, receivedContents(LocalDate.now(), null).size());
+        assertEquals(0, receivedContents(LocalDate.now().minusDays(1), null).size());
+        assertEquals(List.of("두번째 카드"), receivedContents(null, "두번째"));
+        assertEquals(2, receivedContents(null, "boxfriendA").size());
+        assertEquals(List.of("세번째_카드"), receivedContents(null, "째_"));
         // 받은함 검색은 상대방(보낸 사람) 기준이라, 내 닉네임으로는 걸리지 않는다
-        assertEquals(0, receivedTitles(null, "boxme").size());
+        assertEquals(0, receivedContents(null, "boxme").size());
         // 보낸함 검색은 받은 사람 기준: friendA가 보낸 카드는 받은 사람(boxme) 닉네임으로 찾고, 자기 닉네임으로는 안 걸린다
         assertEquals(2, cardBoxService.getCards(friendA.getId(), CardBoxType.SENT, null, "boxme", null, 20).items().size());
         assertEquals(0, cardBoxService.getCards(friendA.getId(), CardBoxType.SENT, null, "boxfriendA", null, 20).items().size());
@@ -132,9 +132,9 @@ class LetterCardBoxIntegrationTest {
         letterInboxService.deleteOrHide(me.getId(), letterId);
         em.flush();
 
-        assertFalse(receivedTitles(null, null).contains("지울 카드"));
+        assertFalse(receivedContents(null, null).contains("지울 카드"));
         assertTrue(cardBoxService.getCards(friendA.getId(), CardBoxType.SENT, null, null, null, 20).items().stream()
-                .anyMatch(card -> card.title().equals("지울 카드")));
+                .anyMatch(card -> card.content().equals("지울 카드")));
     }
 
     @Test
@@ -150,7 +150,7 @@ class LetterCardBoxIntegrationTest {
         LetterResponse draft = letterWriteService.start(friendA.getId(),
                 new LetterEnvelopeRequest("받는이", "보낸이", DesignType.DesignType_A));
         Long draftCardId = letterWriteService.addCard(friendA.getId(), draft.letterId(), contentResolver.resolve(friendA.getId(),
-                new LetterCardRequest(ArchiveCategory.MUSIC, null, "작성 중", "내용", null, null, null))).cards().get(0).cardId();
+                new LetterCardRequest(ArchiveCategory.MUSIC, null, "내용", null, null, null))).cards().get(0).cardId();
         assertEquals(ErrorCode.CARD_001,
                 assertThrows(CustomException.class, () -> cardBoxService.getCard(friendA.getId(), draftCardId)).getErrorCode());
     }
