@@ -40,6 +40,14 @@ app:
     privacy-policy-url: ${PRIVACY_POLICY_URL:https://sdp1617.example.com/privacy}
   social:
     max-follow-count: ${MAX_FOLLOW_COUNT:50}
+  # 매일 새벽 4시 정리 작업 (#122). 실제 운영 서버의 .env에서만 CLEANUP_ENABLED=true로 켠다.
+  # 로컬(docker compose의 prod 프로필 포함)도 기본값으로 운영과 같은 S3 버킷을 쓰므로, 로컬 DB 기준으로 정리하면
+  # 운영 사진을 "안 쓰는 사진"으로 보고 지울 수 있다. 그래서 프로필이 아니라 서버 환경변수로만 켠다.
+  cleanup:
+    enabled: ${CLEANUP_ENABLED:false}
+    image-grace-period: 1d          # 올린 지 1일이 안 된 사진은 지우지 않음 (사진을 올리고 카드를 저장하기 전 사이)
+    notification-retention: 30d     # 만든 지 30일이 지난 알림 삭제
+    unsent-letter-retention: 90d    # 마지막 수정 후 90일이 지난 보내지 않은 편지 삭제
 
 cloud:
   aws:

@@ -9,13 +9,20 @@ import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -29,12 +36,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 /**
  * 마음카드/프로필 등 여러 도메인이 공유하는 S3 이미지 업로드(presigned URL 발급 + 업로드 완료 검증) 로직.
@@ -157,6 +166,43 @@ public class S3ImageService {
                     log.warn("비동기 S3 이미지 삭제 중 예상치 못한 예외: key={}", imageKey, exception);
                     return null;
                 });
+    }
+
+    /**
+     * prefix 아래에서 before보다 먼저 올라간 객체의 key를 S3 목록 한 페이지(최대 1000개)씩 넘긴다 (#122 정리 작업용).
+     * 버킷 목록 조회 권한(s3:ListBucket)이 필요하다.
+     */
+    public void forEachPageOfImagesUploadedBefore(String prefix, Instant before, Consumer<List<String>> pageConsumer) {
+        ListObjectsV2Request request = ListObjectsV2Request.builder()
+                .bucket(s3Properties.bucket())
+                .prefix(prefix)
+                .build();
+        for (ListObjectsV2Response page : s3Client.listObjectsV2Paginator(request)) {
+            List<String> keys = page.contents().stream()
+                    .filter(object -> object.lastModified().isBefore(before))
+                    .map(S3Object::key)
+                    .toList();
+            if (!keys.isEmpty()) {
+                pageConsumer.accept(keys);
+            }
+        }
+    }
+
+    /** 여러 객체를 한 번에 지운다 (최대 1000개). 지우지 못한 key는 로그로 남기고, 지운 개수를 돌려준다. */
+    public int deleteImages(List<String> imageKeys) {
+        if (imageKeys.isEmpty()) {
+            return 0;
+        }
+        DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder()
+                .bucket(s3Properties.bucket())
+                .delete(Delete.builder()
+                        .objects(imageKeys.stream().map(key -> ObjectIdentifier.builder().key(key).build()).toList())
+                        .quiet(true)
+                        .build())
+                .build());
+        response.errors().forEach(error ->
+                log.warn("S3 이미지 삭제 실패: key={}, code={}, message={}", error.key(), error.code(), error.message()));
+        return imageKeys.size() - response.errors().size();
     }
 
     private HeadObjectResponse getImageObjectMetadata(String imageKey, ErrorCode notFoundError) {

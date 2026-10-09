@@ -39,6 +39,16 @@ public interface LetterRepository extends JpaRepository<Letter, Long>, JpaSpecif
     /** 아직 보내지 않은(작성 중·완료) 내 편지 — 이어쓰기 목록. 최근 수정 순. */
     List<Letter> findBySender_IdAndStatusInOrderByUpdatedAtDescIdDesc(Long senderId, Collection<LetterStatus> statuses);
 
+    /** 방치된 편지 정리용 (#122). 마지막 수정 후 오래 지난 보내지 않은(작성 중·완료) 편지의 id를 afterId 다음부터 id 순으로. */
+    @Query("""
+            select l.id from Letter l
+            where l.status in :statuses and l.updatedAt < :cutoff and l.id > :afterId
+            order by l.id
+            """)
+    List<Long> findIdsByStatusInAndUpdatedAtBefore(
+            @Param("statuses") Collection<LetterStatus> statuses, @Param("cutoff") LocalDateTime cutoff,
+            @Param("afterId") Long afterId, Pageable pageable);
+
     /** 탈퇴 정리용. 받은 편지함에서 아직 지우지 않은 받은 편지를 모두 숨긴다 (보낸 사람의 보낸 편지함에는 남음). */
     @Modifying
     @Query("""

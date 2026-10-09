@@ -2,6 +2,7 @@ package com.sdp1617.backend.letter.repository;
 
 import com.sdp1617.backend.letter.entity.LetterCard;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,12 @@ public interface LetterCardRepository extends JpaRepository<LetterCard, Long> {
     /** 소속 편지 ID만 읽는다 — 편지를 잠그기 전에 엔티티를 미리 읽어 두면 잠금 후에도 예전 상태를 보게 되므로. */
     @Query("select x.letter.id from LetterCard x where x.id = :id")
     Optional<Long> findLetterIdById(@Param("id") Long id);
+
+    /** 안 쓰는 사진 정리용 (#122). 주어진 key 중 카드가 쓰고 있는 것. */
+    @Query("select x.imageKey from LetterCard x where x.imageKey in :keys")
+    List<String> findImageKeysIn(@Param("keys") Collection<String> keys);
+
+    boolean existsByImageKeyIsNotNull();
 
     /*
      * 마음카드 보관함 (#82): 보낸 편지(SENT)의 카드. 보낸함은 내가 보낸 편지, 받은함은 내가 받고 숨기지 않은 편지.
