@@ -33,7 +33,11 @@ public class WebPushSender implements PushSender {
         this.vapidKeys = vapidKeys;
         this.subject = subject;
         this.ttl = ttl;
-        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        // 구독 주소의 도메인만 확인하므로, 푸시 서비스가 리다이렉트로 다른 곳(내부망 등)을 가리켜도 따라가지 않는다
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(10));
         this.restClient = restClientBuilder.requestFactory(requestFactory).build();

@@ -101,6 +101,8 @@ class WebPushSenderTest {
 
     @Test
     void 그_외_오류나_연결_실패는_FAILED() {
+        responseStatus.set(302); // 리다이렉트는 따라가지 않는다
+        assertEquals(PushSendResult.FAILED, sender.send(endpoint(), P256DH, AUTH, new byte[]{1}));
         responseStatus.set(429);
         assertEquals(PushSendResult.FAILED, sender.send(endpoint(), P256DH, AUTH, new byte[]{1}));
         responseStatus.set(500);

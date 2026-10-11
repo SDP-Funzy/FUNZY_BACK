@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -52,7 +53,7 @@ public class PushSubscription {
         this.endpoint = endpoint;
         this.p256dh = p256dh;
         this.auth = auth;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = now();
         this.updatedAt = this.createdAt;
     }
 
@@ -60,6 +61,11 @@ public class PushSubscription {
         this.memberId = memberId;
         this.p256dh = p256dh;
         this.auth = auth;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now();
+    }
+
+    /** DB(PostgreSQL timestamp)가 마이크로초까지 저장하므로 맞춰 둔다 — 만료 구독 삭제가 updatedAt을 그대로 비교한다. */
+    private static LocalDateTime now() {
+        return LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
     }
 }
