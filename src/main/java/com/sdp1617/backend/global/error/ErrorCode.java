@@ -76,6 +76,7 @@ public enum ErrorCode {
     SOCIAL_009(HttpStatus.TOO_MANY_REQUESTS, "SOCIAL_009", "검색 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     NOTIFICATION_001(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "존재하지 않는 알림입니다."),
+    NOTIFICATION_002(HttpStatus.BAD_REQUEST, "NOTIFICATION_002", "지원하지 않는 푸시 구독 정보입니다."),
 
     MYPAGE_001(HttpStatus.BAD_REQUEST, "MYPAGE_001", "이미지 업로드가 완료되지 않았습니다."),
     MYPAGE_002(HttpStatus.BAD_REQUEST, "MYPAGE_002", "지원하지 않는 이미지 형식입니다."),
