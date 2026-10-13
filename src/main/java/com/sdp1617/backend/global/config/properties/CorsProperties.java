@@ -40,7 +40,10 @@ public record CorsProperties(List<String> allowedOrigins) {
         boolean originOnly = uri.getHost() != null && uri.getUserInfo() == null
                 && (uri.getRawPath() == null || uri.getRawPath().isEmpty())
                 && uri.getRawQuery() == null && uri.getRawFragment() == null;
-        if (!httpScheme || !originOnly) {
+        // URI는 빈 포트("https://funzy.kr:")와 범위 밖 포트도 받아 주므로 따로 막는다
+        boolean validPort = uri.getRawAuthority() != null && !uri.getRawAuthority().endsWith(":")
+                && (uri.getPort() == -1 || (uri.getPort() >= 1 && uri.getPort() <= 65535));
+        if (!httpScheme || !originOnly || !validPort) {
             throw invalid(origin);
         }
         // 브라우저는 기본 포트(https 443, http 80)를 Origin에 적지 않으므로, 남겨 두면 문자열이 달라 모두 거절된다

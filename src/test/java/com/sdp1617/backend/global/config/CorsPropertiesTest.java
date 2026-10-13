@@ -43,7 +43,10 @@ class CorsPropertiesTest {
             "https://funzy.kr?x=1",
             "https://funzy.kr#top",
             "https://user@funzy.kr",
-            "https://funzy .kr"
+            "https://funzy .kr",
+            "https://funzy.kr:",
+            "https://funzy.kr:0",
+            "https://funzy.kr:65536"
     })
     void 주소가_아니거나_경로가_붙으면_기동하지_않는다(String origin) {
         assertThrows(IllegalStateException.class, () -> new CorsProperties(List.of(origin)));
