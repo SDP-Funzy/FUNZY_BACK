@@ -17,6 +17,10 @@ jwt:
 
 app:
   frontend-url: ${FRONTEND_URL}
+  cors:
+    # 설정하지 않으면 배포한 프론트(FRONTEND_URL) + 프론트 개발용 localhost (docker-compose는 빈 값도 같은 기본값으로 채움).
+    # 출시 전에 운영 .env의 CORS_ALLOWED_ORIGINS로 localhost를 빼서 좁힌다
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:${app.frontend-url},http://localhost:3000,http://localhost:8000}
 
 cloud:
   aws:
