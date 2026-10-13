@@ -2,6 +2,7 @@ package com.sdp1617.backend.global.config;
 
 import com.sdp1617.backend.auth.jwt.JwtProvider;
 import com.sdp1617.backend.auth.repository.MemberRepository;
+import com.sdp1617.backend.global.config.properties.CorsProperties;
 import com.sdp1617.backend.global.security.JwtAuthenticationEntryPoint;
 import com.sdp1617.backend.global.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final MemberRepository memberRepository;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,10 +65,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:8000"
-        ));
+        config.setAllowedOrigins(corsProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
