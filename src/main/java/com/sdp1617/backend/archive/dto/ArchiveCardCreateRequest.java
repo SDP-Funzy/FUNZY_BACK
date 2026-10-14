@@ -10,11 +10,14 @@ public record ArchiveCardCreateRequest(
         @NotNull Long letterCardId,
 
         @Schema(
-                description = "카드가 저장될 아카이브 카테고리. 미분류 카드는 ETC를 사용합니다.",
+                description = "카드가 저장될 아카이브 카테고리. 생략하면 카드의 카테고리로 저장합니다 (직접 입력 카테고리 카드는 ETC).",
                 example = "BOOK",
-                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {"BOOK", "MOVIE_TV", "MUSIC", "FASHION", "PLACE", "ETC"}
         )
-        @NotNull ArchiveCategory category
+        ArchiveCategory category
 ) {
+    /** 생략하면 카드 자기 카테고리 보드에 들어간다 (콕과 같은 기준, #156). */
+    public ArchiveCategory categoryOr(ArchiveCategory cardCategory) {
+        return category == null ? cardCategory : category;
+    }
 }
