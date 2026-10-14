@@ -85,7 +85,7 @@ public class ArchiveService {
             throw new CustomException(ErrorCode.ARCHIVE_001);
         }
 
-        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.category()));
+        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory())));
         return ArchiveCardDetailResponse.from(card, false, false);
     }
 

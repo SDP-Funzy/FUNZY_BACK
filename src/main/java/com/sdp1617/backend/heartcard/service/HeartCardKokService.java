@@ -46,7 +46,7 @@ public class HeartCardKokService {
 
     private HeartCardKokResponse createKok(Long memberId, LetterCard card, HeartCardKokRequest request) {
         ArchiveCard archiveCard = archiveCardRepository.save(
-                ArchiveCard.ofLetterCard(memberId, card, request.categoryOrDefault()));
+                ArchiveCard.ofLetterCard(memberId, card, request.categoryOr(card.getCategory())));
         return HeartCardKokResponse.active(card.getId(), archiveCard);
     }
 
