@@ -69,7 +69,8 @@ class LetterCardLinkValidationTest {
             "vbscript:msgbox(1)",
             "//evil.example.com",
             "https://",
-            "https://example.com/a b"
+            "https://example.com/a b",
+            "https://example.com/a\u2003b"
     })
     void http_https가_아닌_링크는_카드_추가와_수정_모두_거절한다(String link) throws Exception {
         mockMvc.perform(withCard(post("/api/letters/{letterId}/cards", letterId), link))
