@@ -13,6 +13,7 @@ public record LetterCardResponse(
         @Schema(description = "기타 직접 입력 카테고리. 기타가 아니면 null")
         String customCategory,
         String content,
+        @Schema(description = "링크 (없으면 null). http:// 또는 https://로 시작하는 주소만 저장됨. 화면에 <a href>로 그릴 때도 http(s)인지 한 번 더 확인해 주세요")
         String link,
         String linkTitle,
         String imageUrl
