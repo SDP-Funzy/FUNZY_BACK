@@ -37,8 +37,8 @@ public record LetterCardRequest(
         @Schema(description = "사진 (선택). 마음카드 이미지 presigned URL로 업로드를 마친 imageKey", example = "cards/1/abc.jpg")
         String imageKey
 ) {
-    /** javascript:·data: 등은 받는 사람 브라우저에서 스크립트로 실행될 수 있어 http(s)만 허용 (#155). 브라우저는 scheme 사이의 탭·줄바꿈을 지우므로 공백·제어 문자도 막는다. */
-    static final String LINK_REGEXP = "(?i)https?://[^\\s\\p{Cntrl}]+";
+    /** javascript:·data: 등은 받는 사람 브라우저에서 스크립트로 실행될 수 있어 http(s)만 허용 (#155). 브라우저는 scheme 사이의 탭·줄바꿈을 지우므로 공백·제어 문자도 막는다. (?U)로 전각 공백 등 유니코드 공백까지 포함. */
+    static final String LINK_REGEXP = "(?iU)https?://[^\\s\\p{Cntrl}]+";
 
     public LetterCardRequest {
         customCategory = blankToNull(customCategory);
