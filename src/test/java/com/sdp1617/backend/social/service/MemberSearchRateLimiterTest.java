@@ -54,4 +54,14 @@ class MemberSearchRateLimiterTest {
 
         assertTrue(rateLimiter.tryAcquire(1L));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void 프로필_조회는_검색과_따로_센다() {
+        when(redisTemplate.execute(any(RedisScript.class), eq(List.of("member-profile:1")), anyString()))
+                .thenReturn((long) MemberSearchRateLimiter.MAX_PROFILE_LOOKUPS, MemberSearchRateLimiter.MAX_PROFILE_LOOKUPS + 1L);
+
+        assertTrue(rateLimiter.tryAcquireProfileLookup(1L));
+        assertFalse(rateLimiter.tryAcquireProfileLookup(1L));
+    }
 }

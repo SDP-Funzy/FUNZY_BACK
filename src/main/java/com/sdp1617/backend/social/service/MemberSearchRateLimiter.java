@@ -11,7 +11,8 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 /**
- * 회원 검색 요청 수 제한. 닉네임은 로그인 아이디라, 검색을 자동으로 반복해 아이디 목록을 대량으로 모으는 것을 막는다.
+ * 회원 검색·프로필 조회 요청 수 제한. 닉네임은 로그인 아이디라, 검색이나 순번 회원 ID 조회를 자동으로 반복해
+ * 아이디 목록을 대량으로 모으는 것을 막는다. 검색과 프로필 조회(#153)는 따로 센다.
  * Redis 장애 시에는 제한 없이 허용한다 — 검색을 막는 것보다 서비스가 계속 동작하는 편이 낫고, 로그인은 별도로 잠긴다.
  */
 @Slf4j
@@ -20,8 +21,10 @@ import org.springframework.stereotype.Component;
 public class MemberSearchRateLimiter {
 
     static final int MAX_REQUESTS = 30;
+    static final int MAX_PROFILE_LOOKUPS = 60;
     static final Duration WINDOW = Duration.ofMinutes(1);
     private static final String KEY_PREFIX = "member-search:";
+    private static final String PROFILE_KEY_PREFIX = "member-profile:";
 
     // INCR과 EXPIRE를 따로 호출하면 그 사이 프로세스가 죽었을 때 TTL 없는 키가 남아 영구 차단될 수 있다
     private static final RedisScript<Long> INCREMENT_WITH_EXPIRE = new DefaultRedisScript<>("""
@@ -35,10 +38,19 @@ public class MemberSearchRateLimiter {
     private final StringRedisTemplate redisTemplate;
 
     public boolean tryAcquire(Long memberId) {
+        return tryAcquire(KEY_PREFIX + memberId, MAX_REQUESTS);
+    }
+
+    /** 친구가 아닌 회원의 프로필 조회 (#153). 나·친구 조회와 없는 회원은 세지 않는다. */
+    public boolean tryAcquireProfileLookup(Long memberId) {
+        return tryAcquire(PROFILE_KEY_PREFIX + memberId, MAX_PROFILE_LOOKUPS);
+    }
+
+    private boolean tryAcquire(String key, int maxRequests) {
         try {
             Long count = redisTemplate.execute(
-                    INCREMENT_WITH_EXPIRE, List.of(KEY_PREFIX + memberId), String.valueOf(WINDOW.toSeconds()));
-            return count == null || count <= MAX_REQUESTS;
+                    INCREMENT_WITH_EXPIRE, List.of(key), String.valueOf(WINDOW.toSeconds()));
+            return count == null || count <= maxRequests;
         } catch (DataAccessException exception) {
             log.warn("회원 검색 요청 수 제한 확인 실패 — 제한 없이 허용: {}", exception.getClass().getSimpleName());
             return true;
