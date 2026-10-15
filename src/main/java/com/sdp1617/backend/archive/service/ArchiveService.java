@@ -5,14 +5,11 @@ import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCategorySectionResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
-import com.sdp1617.backend.archive.dto.ArchiveLikeResponse;
 import com.sdp1617.backend.archive.dto.ArchiveVisibilityResponse;
 import com.sdp1617.backend.archive.dto.ArchiveVisibilityUpdateRequest;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.archive.entity.ArchiveVisibility;
-import com.sdp1617.backend.archive.entity.ArchiveCardLike;
-import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
@@ -36,7 +33,6 @@ public class ArchiveService {
     private static final String ARCHIVE_TITLE = "아카이브";
 
     private final ArchiveCardRepository archiveCardRepository;
-    private final ArchiveCardLikeRepository archiveCardLikeRepository;
     private final FollowRelationRepository followRelationRepository;
     private final MemberRepository memberRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
@@ -86,7 +82,7 @@ public class ArchiveService {
         }
 
         ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory())));
-        return ArchiveCardDetailResponse.from(card, false, false);
+        return ArchiveCardDetailResponse.from(card, false);
     }
 
     /**
@@ -99,16 +95,13 @@ public class ArchiveService {
         if (!owner && !isFriend(viewerMemberId, card)) {
             throw new CustomException(ErrorCode.ARCHIVE_002);
         }
-        boolean maskPrivateFields = !owner;
-        boolean liked = archiveCardLikeRepository.existsByArchiveCardIdAndMemberId(archiveCardId, viewerMemberId);
-        return ArchiveCardDetailResponse.from(card, maskPrivateFields, liked);
+        return ArchiveCardDetailResponse.from(card, !owner);
     }
 
     @Transactional
     public void deleteCard(Long memberId, Long archiveCardId) {
         ArchiveCard card = archiveCardRepository.findByIdAndOwnerMemberId(archiveCardId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
-        archiveCardLikeRepository.deleteByArchiveCardId(archiveCardId);
         archiveCardRepository.delete(card);
     }
 
@@ -130,38 +123,8 @@ public class ArchiveService {
         return ArchiveVisibilityResponse.from(card);
     }
 
-    @Transactional
-    public ArchiveLikeResponse toggleLike(Long memberId, Long archiveCardId) {
-        ArchiveCard card = findCard(archiveCardId);
-        if (card.isOwnedBy(memberId)) {
-            throw new CustomException(ErrorCode.ARCHIVE_003);
-        }
-
-        // 이미 누른 좋아요는 친구를 끊은 뒤에도 취소할 수 있게 하고, 새 좋아요만 친구에게 허용한다
-        return archiveCardLikeRepository.findByArchiveCardIdAndMemberId(archiveCardId, memberId)
-                .map(like -> unlike(card, like))
-                .orElseGet(() -> {
-                    if (!isFriend(memberId, card)) {
-                        throw new CustomException(ErrorCode.ARCHIVE_002);
-                    }
-                    return like(card, memberId);
-                });
-    }
-
     private boolean isFriend(Long memberId, ArchiveCard card) {
         return followRelationRepository.findBetween(memberId, card.getOwnerMemberId()).isPresent();
-    }
-
-    private ArchiveLikeResponse like(ArchiveCard card, Long memberId) {
-        archiveCardLikeRepository.save(new ArchiveCardLike(card.getId(), memberId));
-        card.increaseLikeCount();
-        return new ArchiveLikeResponse(card.getId(), card.getLikeCount(), true);
-    }
-
-    private ArchiveLikeResponse unlike(ArchiveCard card, ArchiveCardLike like) {
-        archiveCardLikeRepository.delete(like);
-        card.decreaseLikeCount();
-        return new ArchiveLikeResponse(card.getId(), card.getLikeCount(), false);
     }
 
     private ArchiveCard findCard(Long archiveCardId) {

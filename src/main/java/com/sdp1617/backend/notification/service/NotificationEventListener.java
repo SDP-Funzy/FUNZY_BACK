@@ -2,7 +2,6 @@ package com.sdp1617.backend.notification.service;
 
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.letter.service.GiftSelectedEvent;
-import com.sdp1617.backend.letter.service.LetterReactedEvent;
 import com.sdp1617.backend.letter.service.LetterSentEvent;
 import com.sdp1617.backend.letter.service.ReceivedLetterHiddenEvent;
 import com.sdp1617.backend.notification.entity.Notification;
@@ -37,20 +36,6 @@ public class NotificationEventListener {
     }
 
     @EventListener
-    public void onLetterReacted(LetterReactedEvent event) {
-        String name = event.recipientName();
-        boolean created = switch (event.kind()) {
-            case CARD_EMOJI -> notifyEmojiOnce(event, name + "님이 마음카드에 이모지를 남겼어요.", event.cardId());
-            case CARD_COMMENT -> notify(event.senderId(), NotificationType.COMMENT,
-                    name + "님이 마음카드에 코멘트를 남겼어요.", event.recipientId(), event.letterId(), event.cardId());
-            case GIFT_EMOJI -> notifyEmojiOnce(event, name + "님이 두들픽 선물에 이모지를 남겼어요.", null);
-        };
-        if (created) {
-            event.markNotificationCreated();
-        }
-    }
-
-    @EventListener
     public void onGiftSelected(GiftSelectedEvent event) {
         notify(event.senderId(), NotificationType.GIFT_SELECTED, event.recipientName() + "님이 선물을 골랐어요.",
                 event.recipientId(), event.letterId(), null);
@@ -76,27 +61,14 @@ public class NotificationEventListener {
                         accepter.getNickname() + "님과 친구가 되었어요.", accepter.getId(), null, null));
     }
 
-    /**
-     * 이모지 알림은 마음카드마다(두들픽 선물 이모지는 편지마다) 한 번만 만든다 (LR-114, LR-614).
-     * 같은 이모지를 다시 눌러 지웠다가 또 남기면 반응은 새로 생기지만, 그때마다 알림이 쌓이지 않게 한다.
-     */
-    private boolean notifyEmojiOnce(LetterReactedEvent event, String content, Long cardId) {
-        if (notificationRepository.existsByMemberIdAndActorMemberIdAndTypeAndLetterIdAndCardId(
-                event.senderId(), event.recipientId(), NotificationType.REACTION, event.letterId(), cardId)) {
-            return false;
-        }
-        return notify(event.senderId(), NotificationType.REACTION, content, event.recipientId(), event.letterId(), cardId);
-    }
-
-    /** 알림을 만들었으면 true. 알림 받을 회원이 탈퇴했으면 만들지 않고 false. */
-    private boolean notify(Long memberId, NotificationType type, String content, Long actorMemberId, Long letterId,
+    /** 알림 받을 회원이 탈퇴했으면 만들지 않는다. */
+    private void notify(Long memberId, NotificationType type, String content, Long actorMemberId, Long letterId,
                            Long cardId) {
         if (memberRepository.findActiveById(memberId).isEmpty()) {
-            return false;
+            return;
         }
         Notification notification = notificationRepository.save(
                 new Notification(memberId, type, content, actorMemberId, letterId, cardId));
         eventPublisher.publishEvent(NotificationCreatedEvent.from(notification));
-        return true;
     }
 }

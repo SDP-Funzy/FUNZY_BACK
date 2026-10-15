@@ -3,15 +3,8 @@ package com.sdp1617.backend.notification.service;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
-import com.sdp1617.backend.giftitem.dto.GiftItemEmojiRequest;
-import com.sdp1617.backend.giftitem.service.GiftItemEmojiService;
-import com.sdp1617.backend.heartcard.dto.HeartCardEmojiRequest;
 import com.sdp1617.backend.heartcard.dto.HeartCardKokRequest;
-import com.sdp1617.backend.heartcard.dto.HeartCardPhraseCommentCreateRequest;
-import com.sdp1617.backend.heartcard.entity.HeartCardEmojiType;
-import com.sdp1617.backend.heartcard.service.HeartCardEmojiService;
 import com.sdp1617.backend.heartcard.service.HeartCardKokService;
-import com.sdp1617.backend.heartcard.service.HeartCardPhraseCommentService;
 import com.sdp1617.backend.letter.dto.DoodlePickRequest;
 import com.sdp1617.backend.letter.dto.LetterCardRequest;
 import com.sdp1617.backend.letter.dto.LetterEnvelopeRequest;
@@ -33,7 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,10 +38,7 @@ class NotificationEventIntegrationTest {
     @Autowired private LetterWriteService letterWriteService;
     @Autowired private LetterInboxService letterInboxService;
     @Autowired private LetterCardContentResolver contentResolver;
-    @Autowired private HeartCardEmojiService heartCardEmojiService;
-    @Autowired private HeartCardPhraseCommentService phraseCommentService;
     @Autowired private HeartCardKokService kokService;
-    @Autowired private GiftItemEmojiService giftItemEmojiService;
     @Autowired private FollowService followService;
     @Autowired private FollowRequestRepository followRequestRepository;
     @Autowired private NotificationService notificationService;
@@ -103,58 +92,12 @@ class NotificationEventIntegrationTest {
     }
 
     @Test
-    void 카드_이모지는_바꾸거나_지웠다_다시_남겨도_카드마다_한_번만_알림이_간다() {
+    void 콕은_알림이_없다() {
         letterInboxService.send(sender.getId(), letterId, recipient.getId());
 
-        heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.HEART));
-        heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.LIKE));
-        heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.LIKE));
-        em.flush();
-        heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.HEART));
-
-        List<NotificationResponse> received = notifications(sender);
-        assertEquals(1, received.size());
-        assertEquals(NotificationType.REACTION, received.get(0).type());
-        assertEquals("은우님이 마음카드에 이모지를 남겼어요.", received.get(0).content());
-        assertEquals(recipient.getId(), received.get(0).actorMemberId());
-        assertEquals(letterId, received.get(0).letterId());
-        assertEquals(cardId, received.get(0).cardId());
-    }
-
-    @Test
-    void 문구_코멘트는_남길_때마다_알림이_가고_콕은_알림이_없다() {
-        letterInboxService.send(sender.getId(), letterId, recipient.getId());
-
-        phraseCommentService.createComment(recipient.getId(), cardId,
-                new HeartCardPhraseCommentCreateRequest(0, 3, "출근길", "나도!"));
-        phraseCommentService.createComment(recipient.getId(), cardId,
-                new HeartCardPhraseCommentCreateRequest(3, 5, "마다", "매일?"));
         kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, ArchiveCategory.MUSIC));
 
-        List<NotificationResponse> received = notifications(sender);
-        assertEquals(2, received.size());
-        assertTrue(received.stream().allMatch(n -> n.type() == NotificationType.COMMENT
-                && n.content().equals("은우님이 마음카드에 코멘트를 남겼어요.")
-                && cardId.equals(n.cardId())));
-    }
-
-    @Test
-    void 선물_이모지는_지웠다_다시_남기거나_다른_선물에_남겨도_편지마다_한_번만_알림이_간다() {
-        letterInboxService.send(sender.getId(), letterId, recipient.getId());
-
-        giftItemEmojiService.updateEmoji(recipient.getId(), giftItemIds.get(0), new GiftItemEmojiRequest(HeartCardEmojiType.HEART));
-        giftItemEmojiService.updateEmoji(recipient.getId(), giftItemIds.get(0), new GiftItemEmojiRequest(HeartCardEmojiType.SAD));
-        giftItemEmojiService.updateEmoji(recipient.getId(), giftItemIds.get(0), new GiftItemEmojiRequest(HeartCardEmojiType.SAD));
-        em.flush();
-        giftItemEmojiService.updateEmoji(recipient.getId(), giftItemIds.get(0), new GiftItemEmojiRequest(HeartCardEmojiType.HEART));
-        giftItemEmojiService.updateEmoji(recipient.getId(), giftItemIds.get(1), new GiftItemEmojiRequest(HeartCardEmojiType.HEART));
-
-        List<NotificationResponse> received = notifications(sender);
-        assertEquals(1, received.size());
-        assertEquals(NotificationType.REACTION, received.get(0).type());
-        assertEquals("은우님이 두들픽 선물에 이모지를 남겼어요.", received.get(0).content());
-        assertEquals(letterId, received.get(0).letterId());
-        assertNull(received.get(0).cardId());
+        assertTrue(notifications(sender).isEmpty());
     }
 
     @Test
@@ -195,50 +138,14 @@ class NotificationEventIntegrationTest {
     }
 
     @Test
-    void 보낸_사람이_탈퇴했으면_반응해도_알림을_만들지_않는다() {
+    void 보낸_사람이_탈퇴했으면_선물을_골라도_알림을_만들지_않는다() {
         letterInboxService.send(sender.getId(), letterId, recipient.getId());
         sender.withdraw();
         em.flush();
 
-        heartCardEmojiService.updateEmoji(recipient.getId(), cardId, new HeartCardEmojiRequest(HeartCardEmojiType.HEART));
+        letterInboxService.selectGift(recipient.getId(), letterId, giftItemIds.get(0));
 
         assertTrue(notifications(sender).isEmpty());
-    }
-
-    @Test
-    void 반응_응답의_notificationCreated는_실제로_알림을_만들었을_때만_true다() {
-        letterInboxService.send(sender.getId(), letterId, recipient.getId());
-        Long recipientId = recipient.getId();
-
-        assertTrue(heartCardEmojiService.updateEmoji(recipientId, cardId,
-                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
-        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
-                new HeartCardEmojiRequest(HeartCardEmojiType.LIKE)).notificationCreated()); // 수정
-        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
-                new HeartCardEmojiRequest(HeartCardEmojiType.LIKE)).notificationCreated()); // 삭제
-        em.flush();
-        assertFalse(heartCardEmojiService.updateEmoji(recipientId, cardId,
-                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated()); // 다시 남김: 이미 알림 있음
-
-        assertTrue(giftItemEmojiService.updateEmoji(recipientId, giftItemIds.get(0),
-                new GiftItemEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
-        assertFalse(giftItemEmojiService.updateEmoji(recipientId, giftItemIds.get(1),
-                new GiftItemEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated()); // 같은 편지의 다른 선물
-
-        assertTrue(phraseCommentService.createComment(recipientId, cardId,
-                new HeartCardPhraseCommentCreateRequest(0, 3, "출근길", "나도!")).notificationCreated());
-    }
-
-    @Test
-    void 보낸_사람이_탈퇴했으면_notificationCreated는_false다() {
-        letterInboxService.send(sender.getId(), letterId, recipient.getId());
-        sender.withdraw();
-        em.flush();
-
-        assertFalse(heartCardEmojiService.updateEmoji(recipient.getId(), cardId,
-                new HeartCardEmojiRequest(HeartCardEmojiType.HEART)).notificationCreated());
-        assertFalse(phraseCommentService.createComment(recipient.getId(), cardId,
-                new HeartCardPhraseCommentCreateRequest(0, 3, "출근길", "나도!")).notificationCreated());
     }
 
     @Test

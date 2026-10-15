@@ -15,10 +15,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     long countByMemberIdAndReadFalse(Long memberId);
 
-    /** 이모지 알림 중복 확인. cardId가 null이면 card_id is null로 찾는다 (두들픽 선물 이모지). */
-    boolean existsByMemberIdAndActorMemberIdAndTypeAndLetterIdAndCardId(
-            Long memberId, Long actorMemberId, NotificationType type, Long letterId, Long cardId);
-
     void deleteByMemberId(Long memberId);
 
     /** 보관 기간이 지난 알림 정리용 (#122). 읽음 여부와 관계없이 지운다. */

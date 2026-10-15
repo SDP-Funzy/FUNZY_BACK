@@ -44,7 +44,6 @@ public enum ErrorCode {
 
     ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "이미 저장된 카드입니다."),
     ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "존재하지 않는 아카이브 카드입니다."),
-    ARCHIVE_003(HttpStatus.BAD_REQUEST, "ARCHIVE_003", "내 카드에는 좋아요를 누를 수 없습니다."),
 
     CARD_001(HttpStatus.NOT_FOUND, "CARD_001", "존재하지 않는 마음카드입니다."),
     CARD_002(HttpStatus.BAD_REQUEST, "CARD_002", "이미지 업로드가 완료되지 않았습니다."),

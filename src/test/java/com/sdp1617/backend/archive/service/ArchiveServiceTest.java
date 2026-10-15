@@ -1,12 +1,9 @@
 package com.sdp1617.backend.archive.service;
 
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
-import com.sdp1617.backend.archive.dto.ArchiveLikeResponse;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
-import com.sdp1617.backend.archive.entity.ArchiveCardLike;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.archive.entity.ArchiveVisibility;
-import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
@@ -51,8 +48,6 @@ class ArchiveServiceTest {
     @Mock
     private ArchiveCardRepository archiveCardRepository;
 
-    @Mock
-    private ArchiveCardLikeRepository archiveCardLikeRepository;
 
     @Mock
     private FollowRelationRepository followRelationRepository;
@@ -107,50 +102,6 @@ class ArchiveServiceTest {
                 () -> archiveService.getCard(STRANGER_ID, CARD_ID));
 
         assertEquals(ErrorCode.ARCHIVE_002, exception.getErrorCode());
-    }
-
-    @Test
-    void 친구는_좋아요를_누를_수_있다() {
-        when(archiveCardLikeRepository.findByArchiveCardIdAndMemberId(CARD_ID, FRIEND_ID)).thenReturn(Optional.empty());
-
-        ArchiveLikeResponse response = archiveService.toggleLike(FRIEND_ID, CARD_ID);
-
-        assertTrue(response.liked());
-        assertEquals(1, card.getLikeCount());
-        verify(archiveCardLikeRepository).save(any(ArchiveCardLike.class));
-    }
-
-    @Test
-    void 친구가_아니면_좋아요를_누를_수_없다() {
-        when(archiveCardLikeRepository.findByArchiveCardIdAndMemberId(CARD_ID, STRANGER_ID)).thenReturn(Optional.empty());
-
-        CustomException exception = assertThrows(CustomException.class,
-                () -> archiveService.toggleLike(STRANGER_ID, CARD_ID));
-
-        assertEquals(ErrorCode.ARCHIVE_002, exception.getErrorCode());
-        verify(archiveCardLikeRepository, never()).save(any());
-        assertEquals(0, card.getLikeCount());
-    }
-
-    @Test
-    void 친구를_끊은_뒤에도_이미_누른_좋아요는_취소할_수_있다() {
-        card.increaseLikeCount();
-        ArchiveCardLike like = new ArchiveCardLike(CARD_ID, STRANGER_ID);
-        when(archiveCardLikeRepository.findByArchiveCardIdAndMemberId(CARD_ID, STRANGER_ID)).thenReturn(Optional.of(like));
-
-        ArchiveLikeResponse response = archiveService.toggleLike(STRANGER_ID, CARD_ID);
-
-        assertFalse(response.liked());
-        assertEquals(0, card.getLikeCount());
-        verify(archiveCardLikeRepository).delete(like);
-    }
-
-    @Test
-    void 본인_카드에는_좋아요를_누를_수_없다() {
-        CustomException exception = assertThrows(CustomException.class,
-                () -> archiveService.toggleLike(OWNER_ID, CARD_ID));
-
-        assertEquals(ErrorCode.ARCHIVE_003, exception.getErrorCode());
     }
 
     private Member owner() {

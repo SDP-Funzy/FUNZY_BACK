@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /** 마음카드 보관함의 카드 1장. 카드는 주고받은 편지 속 카드다 (#82). */
 public record CardStorageResponse(
-        @Schema(description = "카드 ID (받은 카드면 이모지·코멘트·콕 API에 사용)", example = "10")
+        @Schema(description = "카드 ID (받은 카드면 콕 API에 사용)", example = "10")
         Long cardId,
         @Schema(description = "카드가 들어 있는 편지 ID", example = "1")
         Long letterId,

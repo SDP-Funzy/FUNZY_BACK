@@ -13,7 +13,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** 두들픽 선물 후보 1개. 받는 쪽 선물 항목 이모지(gift_item_emoji_reactions.gift_item_id)가 이 ID를 가리킨다 (#82). */
+/** 두들픽 선물 후보 1개. 받는 사람이 고른 선물이 이 ID를 가리킨다 (#82). */
 @Getter
 @Entity
 @Table(name = "gift_items")

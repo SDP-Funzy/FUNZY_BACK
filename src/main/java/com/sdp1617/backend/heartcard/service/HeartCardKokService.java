@@ -1,7 +1,6 @@
 package com.sdp1617.backend.heartcard.service;
 
 import com.sdp1617.backend.archive.entity.ArchiveCard;
-import com.sdp1617.backend.archive.repository.ArchiveCardLikeRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class HeartCardKokService {
 
     private final ArchiveCardRepository archiveCardRepository;
-    private final ArchiveCardLikeRepository archiveCardLikeRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
 
     public HeartCardKokResponse getKok(Long memberId, Long heartCardId) {
@@ -51,7 +49,6 @@ public class HeartCardKokService {
     }
 
     private HeartCardKokResponse deleteKok(Long heartCardId, ArchiveCard archiveCard) {
-        archiveCardLikeRepository.deleteByArchiveCardId(archiveCard.getId());
         archiveCardRepository.delete(archiveCard);
         return HeartCardKokResponse.inactive(heartCardId);
     }
