@@ -7,6 +7,7 @@ import com.sdp1617.backend.archive.dto.ArchiveCategorySectionResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
+import com.sdp1617.backend.archive.repository.ArchiveCardCommentRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
@@ -30,6 +31,8 @@ public class ArchiveService {
     private static final String ARCHIVE_TITLE = "아카이브";
 
     private final ArchiveCardRepository archiveCardRepository;
+    private final ArchiveCardCommentRepository archiveCardCommentRepository;
+    private final ArchiveCardAccess archiveCardAccess;
     private final FollowRelationRepository followRelationRepository;
     private final MemberRepository memberRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
@@ -80,7 +83,7 @@ public class ArchiveService {
         }
 
         ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory()), false));
-        return ArchiveCardDetailResponse.from(card);
+        return ArchiveCardDetailResponse.from(card, 0);
     }
 
     /**
@@ -88,12 +91,8 @@ public class ArchiveService {
      * 친구가 아니거나 비공개 카드면 카드가 없는 것과 같은 응답을 준다 — 순번 ID로 남의 카드 존재 여부를 알아낼 수 없게.
      */
     public ArchiveCardDetailResponse getCard(Long viewerMemberId, Long archiveCardId) {
-        ArchiveCard card = findCard(archiveCardId);
-        boolean owner = card.isOwnedBy(viewerMemberId);
-        if (!owner && (card.isLocked() || !isFriend(viewerMemberId, card))) {
-            throw new CustomException(ErrorCode.ARCHIVE_002);
-        }
-        return ArchiveCardDetailResponse.from(card);
+        ArchiveCard card = archiveCardAccess.requireViewable(viewerMemberId, archiveCardId, ErrorCode.ARCHIVE_002);
+        return ArchiveCardDetailResponse.from(card, archiveCardCommentRepository.countByArchiveCard_Id(archiveCardId));
     }
 
     @Transactional
@@ -101,14 +100,5 @@ public class ArchiveService {
         ArchiveCard card = archiveCardRepository.findByIdAndOwnerMemberId(archiveCardId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
         archiveCardRepository.delete(card);
-    }
-
-    private boolean isFriend(Long memberId, ArchiveCard card) {
-        return followRelationRepository.findBetween(memberId, card.getOwnerMemberId()).isPresent();
-    }
-
-    private ArchiveCard findCard(Long archiveCardId) {
-        return archiveCardRepository.findById(archiveCardId)
-                .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
     }
 }

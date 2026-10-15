@@ -74,14 +74,14 @@ public class PushNotificationDispatcher {
 
     /**
      * 브라우저 Service Worker가 받는 내용. title·body로 알림을 띄우고, 누르면 알림함 응답과 같은 기준으로 이동한다
-     * (letterId가 있으면 편지, cardId가 있으면 그 마음카드, 친구 알림은 actorMemberId).
+     * (letterId가 있으면 편지, archiveCardId가 있으면 그 아카이브 카드, 친구 알림은 actorMemberId).
      */
     record PushPayload(String title, String body, Long notificationId, NotificationType type,
-                       Long actorMemberId, Long letterId, Long cardId) {
+                       Long actorMemberId, Long letterId, Long archiveCardId) {
 
         static PushPayload from(NotificationCreatedEvent event) {
             return new PushPayload(TITLE, event.content(), event.notificationId(), event.type(),
-                    event.actorMemberId(), event.letterId(), event.cardId());
+                    event.actorMemberId(), event.letterId(), event.archiveCardId());
         }
     }
 }

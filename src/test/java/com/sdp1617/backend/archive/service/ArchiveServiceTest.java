@@ -3,6 +3,7 @@ package com.sdp1617.backend.archive.service;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
+import com.sdp1617.backend.archive.repository.ArchiveCardCommentRepository;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
@@ -45,6 +46,9 @@ class ArchiveServiceTest {
     @Mock
     private ArchiveCardRepository archiveCardRepository;
 
+    @Mock
+    private ArchiveCardCommentRepository archiveCardCommentRepository;
+
 
     @Mock
     private FollowRelationRepository followRelationRepository;
@@ -67,6 +71,8 @@ class ArchiveServiceTest {
         ReflectionTestUtils.setField(card, "message", "카드 메시지");
         ReflectionTestUtils.setField(card, "senderName", "보낸 사람");
         ReflectionTestUtils.setField(card, "imageUrl", "https://example.test/card-image.jpg");
+        ReflectionTestUtils.setField(archiveService, "archiveCardAccess",
+                new ArchiveCardAccess(archiveCardRepository, followRelationRepository));
         lenient().when(archiveCardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
         lenient().when(followRelationRepository.findBetween(FRIEND_ID, OWNER_ID))
                 .thenReturn(Optional.of(FollowRelation.of(FRIEND_ID, OWNER_ID)));

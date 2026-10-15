@@ -11,11 +11,11 @@ public record NotificationCreatedEvent(
         String content,
         Long actorMemberId,
         Long letterId,
-        Long cardId
+        Long archiveCardId
 ) {
     public static NotificationCreatedEvent from(Notification notification) {
         return new NotificationCreatedEvent(notification.getId(), notification.getMemberId(), notification.getType(),
                 notification.getContent(), notification.getActorMemberId(), notification.getLetterId(),
-                notification.getCardId());
+                notification.getArchiveCardId());
     }
 }

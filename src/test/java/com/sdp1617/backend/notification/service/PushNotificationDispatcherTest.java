@@ -111,7 +111,7 @@ class PushNotificationDispatcherTest {
         assertEquals("LETTER", json.get("type").asString());
         assertEquals(1L, json.get("notificationId").asLong());
         assertEquals(12L, json.get("letterId").asLong());
-        assertTrue(json.get("cardId").isNull());
+        assertTrue(json.get("archiveCardId").isNull());
     }
 
     @Test

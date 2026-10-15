@@ -18,9 +18,11 @@ public record ArchiveCardDetailResponse(
         String message,
         @Schema(description = "비공개(잠금) 여부. 비공개 카드는 주인만 상세를 볼 수 있습니다", example = "false")
         boolean locked,
+        @Schema(description = "댓글 수 (답글 포함)", example = "3")
+        long commentCount,
         LocalDateTime archivedAt
 ) {
-    public static ArchiveCardDetailResponse from(ArchiveCard card) {
+    public static ArchiveCardDetailResponse from(ArchiveCard card, long commentCount) {
         return new ArchiveCardDetailResponse(
                 card.getId(),
                 card.getLetterCardId(),
@@ -31,6 +33,7 @@ public record ArchiveCardDetailResponse(
                 card.getImageUrl(),
                 card.getMessage(),
                 card.isLocked(),
+                commentCount,
                 card.getCreatedAt()
         );
     }

@@ -57,6 +57,7 @@ public class HeartCardKokService {
         return HeartCardKokResponse.active(heartCardId, archiveCard);
     }
 
+    /** 콕 취소: 아카이브 카드를 지운다 (댓글은 DB에서 함께 지워진다). */
     private HeartCardKokResponse deleteKok(Long heartCardId, ArchiveCard archiveCard) {
         archiveCardRepository.delete(archiveCard);
         return HeartCardKokResponse.inactive(heartCardId);
