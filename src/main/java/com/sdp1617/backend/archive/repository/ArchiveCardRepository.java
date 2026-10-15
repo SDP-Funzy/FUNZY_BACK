@@ -13,8 +13,6 @@ import java.util.Set;
 
 public interface ArchiveCardRepository extends JpaRepository<ArchiveCard, Long> {
 
-    boolean existsByOwnerMemberIdAndLetterCardId(Long ownerMemberId, Long letterCardId);
-
     Optional<ArchiveCard> findByOwnerMemberIdAndLetterCardId(Long ownerMemberId, Long letterCardId);
 
 
@@ -32,8 +30,6 @@ public interface ArchiveCardRepository extends JpaRepository<ArchiveCard, Long> 
             """)
     Set<Long> findLetterIdsWithLockedCards(@Param("ownerMemberId") Long ownerMemberId,
                                            @Param("letterIds") Collection<Long> letterIds);
-
-    Optional<ArchiveCard> findByIdAndOwnerMemberId(Long id, Long ownerMemberId);
 
     void deleteByOwnerMemberId(Long ownerMemberId);
 

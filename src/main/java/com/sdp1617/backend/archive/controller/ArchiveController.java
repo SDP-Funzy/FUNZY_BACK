@@ -1,6 +1,5 @@
 package com.sdp1617.backend.archive.controller;
 
-import com.sdp1617.backend.archive.dto.ArchiveCardCreateRequest;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
 import com.sdp1617.backend.archive.service.ArchiveService;
@@ -8,19 +7,15 @@ import com.sdp1617.backend.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "아카이브", description = "공개로 콕한 마음카드를 카테고리별 보드로 보는 아카이브 API. 친구도 볼 수 있습니다. 카드를 담는 방법은 콕(PUT /api/heart-cards/{cardId}/kok) 또는 아카이브 저장 API이며, letterCardId는 편지 열기 응답의 cards[].cardId입니다. 비공개(잠금) 카드는 아카이브에 나오지 않고, 공개/비공개 전환은 콕 API의 locked로 합니다.")
+@Tag(name = "아카이브", description = "공개로 콕한 마음카드를 카테고리별 보드로 보는 아카이브 API. 친구도 볼 수 있습니다. 카드를 담고 빼는 것은 콕 API(PUT /api/heart-cards/{heartCardId}/kok, heartCardId = letterCardId)로만 합니다. 비공개(잠금) 카드는 아카이브에 나오지 않고, 공개/비공개 전환도 콕 API의 locked로 합니다.")
 public class ArchiveController {
 
     private final ArchiveService archiveService;
@@ -52,18 +47,6 @@ public class ArchiveController {
         return ApiResponse.ok("친구 아카이브 홈을 조회했습니다.", archiveService.getFriendHome(memberId, friendMemberId));
     }
 
-    @PostMapping("/api/archive/cards")
-    @Operation(
-            summary = "받은 마음카드 아카이브에 담기",
-            description = "내가 받은 편지의 마음카드를 아카이브에 담습니다(콕과 같은 동작, 카드 내용이 함께 저장됨). 내가 받은 편지의 카드가 아니면 COMMON_001, 이미 담은 카드면 ARCHIVE_001입니다."
-    )
-    public ApiResponse<ArchiveCardDetailResponse> saveCard(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Valid @RequestBody ArchiveCardCreateRequest request
-    ) {
-        return ApiResponse.ok("아카이브에 카드를 저장했습니다.", archiveService.saveCard(memberId, request));
-    }
-
     @GetMapping("/api/archive/cards/{archiveCardId}")
     @Operation(
             summary = "아카이브 카드 상세 조회",
@@ -79,18 +62,5 @@ public class ArchiveController {
             @Parameter(description = "조회할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
     ) {
         return ApiResponse.ok("아카이브 카드를 조회했습니다.", archiveService.getCard(viewerMemberId, archiveCardId));
-    }
-
-    @DeleteMapping("/api/archive/cards/{archiveCardId}")
-    @Operation(
-            summary = "아카이브 카드 삭제",
-            description = "카드를 아카이브에서만 뺍니다. 받은 편지(펀지팩)의 원본 카드는 그대로 남습니다."
-    )
-    public ApiResponse<Void> deleteCard(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "삭제할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
-    ) {
-        archiveService.deleteCard(memberId, archiveCardId);
-        return ApiResponse.ok("아카이브 카드를 삭제했습니다.", null);
     }
 }

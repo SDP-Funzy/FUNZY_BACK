@@ -1,9 +1,7 @@
 package com.sdp1617.backend.heartcard.service;
 
-import com.sdp1617.backend.archive.dto.ArchiveCardCreateRequest;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
-import com.sdp1617.backend.archive.service.ArchiveService;
 import com.sdp1617.backend.auth.entity.Consent;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.heartcard.dto.HeartCardKokRequest;
@@ -32,7 +30,6 @@ class HeartCardKokCategoryIntegrationTest {
     @Autowired private LetterInboxService letterInboxService;
     @Autowired private LetterCardContentResolver contentResolver;
     @Autowired private HeartCardKokService kokService;
-    @Autowired private ArchiveService archiveService;
     @Autowired private ArchiveCardRepository archiveCardRepository;
 
     private Member recipient;
@@ -77,13 +74,6 @@ class HeartCardKokCategoryIntegrationTest {
         kokService.updateKok(recipient.getId(), customCardId, new HeartCardKokRequest(true, null));
 
         assertEquals(ArchiveCategory.ETC, archivedCategory(customCardId));
-    }
-
-    @Test
-    void 아카이브_담기도_카테고리를_생략하면_카드의_카테고리로_저장한다() {
-        archiveService.saveCard(recipient.getId(), new ArchiveCardCreateRequest(musicCardId, null));
-
-        assertEquals(ArchiveCategory.MUSIC, archivedCategory(musicCardId));
     }
 
     private Member member(String name) {
