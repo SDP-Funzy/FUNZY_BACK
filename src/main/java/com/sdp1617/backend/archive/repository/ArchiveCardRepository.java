@@ -24,7 +24,7 @@ public interface ArchiveCardRepository extends JpaRepository<ArchiveCard, Long> 
 
     void deleteByOwnerMemberId(Long ownerMemberId);
 
-    List<ArchiveCard> findByOwnerMemberIdAndLetterCardIdIn(Long ownerMemberId, Collection<Long> letterCardIds);
+    void deleteByOwnerMemberIdAndLetterCardIdIn(Long ownerMemberId, Collection<Long> letterCardIds);
 
     /** 안 쓰는 사진 정리용 (#122). 콕한 카드는 편지 카드 사진의 주소를 복사해 같은 S3 파일을 쓴다. */
     @Query("select a.imageUrl from ArchiveCard a where a.imageUrl is not null")

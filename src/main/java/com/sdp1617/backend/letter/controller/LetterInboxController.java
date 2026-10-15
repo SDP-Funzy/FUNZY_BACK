@@ -111,7 +111,7 @@ public class LetterInboxController {
     @GetMapping("/{letterId}")
     @Operation(summary = "편지 열기 (펀지팩 열기)", description = """
             편지를 마음카드(순서대로)·두들픽과 함께 조회합니다. 받는 사람에게는 펀지팩 열기(LR-020)이고, 카드를 넘겨보는 화면과 펀지팩 전체 저장(LR-511)에 이 응답을 씁니다.
-            - 응답의 cards[].cardId로 마음카드 반응(이모지·문구 코멘트·콕)을, doodlePick.giftItems[].giftItemId로 선물 이모지·선물 고르기를 호출합니다.
+            - 응답의 cards[].cardId로 콕을, doodlePick.giftItems[].giftItemId로 선물 고르기를 호출합니다.
             - 보낸 사람은 작성 중이든 보낸 뒤든 언제나 볼 수 있습니다 (LW-013 카드 목록 화면).
             - 받는 사람은 받은 편지함에서 지우지 않은 동안 볼 수 있고, 처음 열면 읽음(readAt)으로 표시됩니다 (LR-020).
             - 그 외에는 LETTER_001입니다.
@@ -140,7 +140,7 @@ public class LetterInboxController {
     @Operation(summary = "편지 삭제 (보낸 사람: 작성 취소 / 받는 사람: 펀지팩 삭제)", description = """
             - 보낸 사람: 아직 보내지 않은 편지를 카드·두들픽과 함께 삭제합니다 (작성 취소). 보낸 편지는 삭제할 수 없습니다(LETTER_003).
               단, 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 삭제할 수 있고 링크도 함께 무효가 됩니다.
-            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 공유 링크로 받은 편지는 링크로 다시 받으면 되돌릴 수 있고, 이 편지에 남긴 내 반응(콕으로 담은 아카이브, 이모지, 문구 코멘트, 선물 이모지, 리액션·댓글·찜)와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 반응 알림은 남습니다.
+            - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 공유 링크로 받은 편지는 링크로 다시 받으면 되돌릴 수 있고, 이 편지에서 콕으로 담은 아카이브 카드와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 선물 선택 알림은 남습니다.
             """)
     public ApiResponse<Void> deleteOrHide(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,

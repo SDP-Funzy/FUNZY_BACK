@@ -60,9 +60,6 @@ public class ArchiveCard {
     @Column(length = 2000)
     private String message;
 
-    @Column(nullable = false)
-    private int likeCount;
-
     @Embedded
     private ArchiveVisibility visibility = new ArchiveVisibility();
 
@@ -97,15 +94,5 @@ public class ArchiveCard {
 
     public void updateVisibility(ArchiveVisibility visibility) {
         this.visibility = visibility;
-    }
-
-    public void increaseLikeCount() {
-        this.likeCount++;
-    }
-
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount--;
-        }
     }
 }

@@ -1,5 +1,6 @@
 package com.sdp1617.backend.letter.service;
 
+import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
@@ -10,6 +11,7 @@ import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
 import com.sdp1617.backend.letter.dto.SentLetterResponse;
 import com.sdp1617.backend.letter.dto.UnreadLetterCountResponse;
 import com.sdp1617.backend.letter.entity.Letter;
+import com.sdp1617.backend.letter.entity.LetterCard;
 import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.entity.LetterStatus;
 import com.sdp1617.backend.letter.repository.LetterRepository;
@@ -42,7 +44,7 @@ public class LetterInboxService {
     private final LetterRepository letterRepository;
     private final MemberRepository memberRepository;
     private final ReceivedLetterAccess receivedLetterAccess;
-    private final ReceivedLetterReactionCleaner receivedLetterReactionCleaner;
+    private final ArchiveCardRepository archiveCardRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     /** 완료한 편지를 회원에게 보낸다. 탈퇴하지 않은 회원이면 누구에게나 보낼 수 있고, 본인에게는 보낼 수 없다. */
@@ -80,7 +82,7 @@ public class LetterInboxService {
 
     /**
      * 편지 지우기. 보낸 사람은 보내기 전 편지를 삭제(작성 취소)하고, 받는 사람은 받은 편지함에서 숨기며
-     * 그 편지에 남긴 내 반응(아카이브·이모지·코멘트 등)과 그 편지로 받은 알림도 함께 지운다 (LR-512).
+     * 그 편지에서 콕으로 담은 아카이브 카드와 그 편지로 받은 알림도 함께 지운다 (LR-512).
      * 보낸 편지는 보낸 사람이 지울 수 없다(LETTER_003) — 받는 사람의 편지함에 있는 편지이기 때문이다.
      * 단, 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 지울 수 있다 (링크도 함께 사라진다).
      */
@@ -89,7 +91,7 @@ public class LetterInboxService {
         Letter letter = letterRepository.findByIdForUpdate(letterId)
                 .orElseThrow(() -> new CustomException(ErrorCode.LETTER_001));
         if (letter.isVisibleToRecipient(memberId)) {
-            receivedLetterReactionCleaner.cleanMyReactions(memberId, letter);
+            deleteMyArchiveCards(memberId, letter);
             letter.hideForRecipient();
             eventPublisher.publishEvent(new ReceivedLetterHiddenEvent(letterId, memberId));
             return;
@@ -177,6 +179,14 @@ public class LetterInboxService {
 
     private static int normalizeSize(int size) {
         return size < 1 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /** 받은 편지를 지울 때 그 편지에서 콕으로 담은 내 아카이브 카드를 지운다. 편지를 잠근 뒤 호출한다 (콕 요청과 순서대로 처리되도록). */
+    private void deleteMyArchiveCards(Long memberId, Letter letter) {
+        List<Long> cardIds = letter.getCards().stream().map(LetterCard::getId).toList();
+        if (!cardIds.isEmpty()) {
+            archiveCardRepository.deleteByOwnerMemberIdAndLetterCardIdIn(memberId, cardIds);
+        }
     }
 
     private static String escapeLike(String value) {

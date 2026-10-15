@@ -20,8 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 편지 속 카드(마음카드) 1장. 받는 쪽의 이모지·문구 코멘트·콕(아카이브)은 이 카드의 ID를 가리킨다
- * (heart_card_emoji_reactions.heart_card_id 등 — #82).
+ * 편지 속 카드(마음카드) 1장. 받는 쪽의 콕(아카이브 카드의 letter_card_id)은 이 카드의 ID를 가리킨다 (#82).
  */
 @Getter
 @Entity

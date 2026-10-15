@@ -3,7 +3,6 @@ package com.sdp1617.backend.archive.controller;
 import com.sdp1617.backend.archive.dto.ArchiveCardCreateRequest;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
-import com.sdp1617.backend.archive.dto.ArchiveLikeResponse;
 import com.sdp1617.backend.archive.dto.ArchiveVisibilityResponse;
 import com.sdp1617.backend.archive.dto.ArchiveVisibilityUpdateRequest;
 import com.sdp1617.backend.archive.service.ArchiveService;
@@ -109,21 +108,5 @@ public class ArchiveController {
             @Valid @RequestBody ArchiveVisibilityUpdateRequest request
     ) {
         return ApiResponse.ok("카드 공개 범위를 수정했습니다.", archiveService.updateVisibility(memberId, archiveCardId, request));
-    }
-
-    @PostMapping("/api/archive/cards/{archiveCardId}/like")
-    @Operation(
-            summary = "친구 아카이브 카드 좋아요",
-            description = """
-                    친구의 아카이브 카드 좋아요를 토글합니다. 누르지 않은 카드면 좋아요, 이미 누른 카드면 취소합니다.
-                    - 본인 카드에는 좋아요를 누를 수 없습니다(ARCHIVE_003).
-                    - 친구가 아니면 좋아요를 누를 수 없습니다(ARCHIVE_002). 이미 누른 좋아요는 친구를 끊은 뒤에도 취소할 수 있습니다.
-                    """
-    )
-    public ApiResponse<ArchiveLikeResponse> toggleLike(
-            @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
-            @Parameter(description = "좋아요를 누를 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId
-    ) {
-        return ApiResponse.ok("좋아요 상태를 변경했습니다.", archiveService.toggleLike(memberId, archiveCardId));
     }
 }

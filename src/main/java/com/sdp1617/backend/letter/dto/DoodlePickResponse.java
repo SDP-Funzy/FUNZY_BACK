@@ -10,7 +10,7 @@ public record DoodlePickResponse(
         List<GiftItemResponse> giftItems
 ) {
     public record GiftItemResponse(
-            @Schema(description = "선물 후보 ID (받는 쪽 선물 고르기·선물 항목 이모지에 사용)", example = "3")
+            @Schema(description = "선물 후보 ID (받는 쪽 선물 고르기에 사용)", example = "3")
             Long giftItemId,
             int itemOrder,
             String name

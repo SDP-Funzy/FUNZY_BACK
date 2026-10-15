@@ -15,12 +15,10 @@ public record ArchiveCardDetailResponse(
         LocalDate letterDate,
         String imageUrl,
         String message,
-        int likeCount,
-        boolean liked,
         ArchiveVisibilityResponse visibility,
         LocalDateTime archivedAt
 ) {
-    public static ArchiveCardDetailResponse from(ArchiveCard card, boolean maskPrivateFields, boolean liked) {
+    public static ArchiveCardDetailResponse from(ArchiveCard card, boolean maskPrivateFields) {
         boolean showSender = !maskPrivateFields || card.getVisibility().isSenderVisible();
         boolean showReceiver = !maskPrivateFields || card.getVisibility().isReceiverVisible();
         boolean showDate = !maskPrivateFields || card.getVisibility().isDateVisible();
@@ -36,8 +34,6 @@ public record ArchiveCardDetailResponse(
                 showDate ? card.getLetterDate() : null,
                 showImage ? card.getImageUrl() : null,
                 showMessage ? card.getMessage() : null,
-                card.getLikeCount(),
-                liked,
                 ArchiveVisibilityResponse.from(card),
                 card.getCreatedAt()
         );
