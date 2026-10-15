@@ -37,7 +37,7 @@ public class Notification {
     @Column(nullable = false)
     private boolean read;
 
-    /** 알림을 일으킨 회원 (보낸 사람·반응한 사람·친구 요청한 사람). */
+    /** 알림을 일으킨 회원 (보낸 사람·선물 고른 사람·댓글 단 사람·친구 요청한 사람). */
     @Column(name = "actor_member_id")
     private Long actorMemberId;
 
@@ -45,9 +45,9 @@ public class Notification {
     @Column(name = "letter_id")
     private Long letterId;
 
-    /** 알림을 눌렀을 때 보여줄 마음카드. 마음카드 반응 알림에만 있다. */
-    @Column(name = "card_id")
-    private Long cardId;
+    /** 알림을 눌렀을 때 보여줄 아카이브 카드. 아카이브 카드 댓글 알림에만 있다 (#164). */
+    @Column(name = "archive_card_id")
+    private Long archiveCardId;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -57,14 +57,14 @@ public class Notification {
     }
 
     public Notification(Long memberId, NotificationType type, String content,
-                        Long actorMemberId, Long letterId, Long cardId) {
+                        Long actorMemberId, Long letterId, Long archiveCardId) {
         this.memberId = memberId;
         this.type = type;
         this.content = content;
         this.read = false;
         this.actorMemberId = actorMemberId;
         this.letterId = letterId;
-        this.cardId = cardId;
+        this.archiveCardId = archiveCardId;
         this.createdAt = LocalDateTime.now();
     }
 

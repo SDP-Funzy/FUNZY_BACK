@@ -1,5 +1,6 @@
 package com.sdp1617.backend.notification.service;
 
+import com.sdp1617.backend.archive.service.ArchiveCommentCreatedEvent;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.letter.service.GiftSelectedEvent;
 import com.sdp1617.backend.letter.service.LetterSentEvent;
@@ -41,6 +42,27 @@ public class NotificationEventListener {
                 event.recipientId(), event.letterId(), null);
     }
 
+    /**
+     * 아카이브 카드 댓글·답글 (#164). 남이 내 카드에 남기면 카드 주인에게, 내 댓글에 답글이 달리면 그 댓글 작성자에게.
+     * 카드 주인이 답한 댓글의 작성자면 한 번만 보낸다.
+     */
+    @EventListener
+    public void onArchiveCommentCreated(ArchiveCommentCreatedEvent event) {
+        Long authorId = event.authorId();
+        Long parentAuthorId = event.parentAuthorId();
+        String name = event.authorNickname();
+        if (!event.cardOwnerId().equals(authorId)) {
+            String content = event.cardOwnerId().equals(parentAuthorId)
+                    ? name + "님이 내 댓글에 답글을 남겼어요."
+                    : name + "님이 내 카드에 댓글을 남겼어요.";
+            notify(event.cardOwnerId(), NotificationType.COMMENT, content, authorId, null, event.archiveCardId());
+        }
+        if (parentAuthorId != null && !parentAuthorId.equals(authorId) && !parentAuthorId.equals(event.cardOwnerId())) {
+            notify(parentAuthorId, NotificationType.COMMENT, name + "님이 내 댓글에 답글을 남겼어요.",
+                    authorId, null, event.archiveCardId());
+        }
+    }
+
     /** 받은 편지함에서 지운 편지는 열 수 없으니, 그 편지로 받은 알림(편지 도착)도 지운다. */
     @EventListener
     public void onReceivedLetterHidden(ReceivedLetterHiddenEvent event) {
@@ -63,12 +85,12 @@ public class NotificationEventListener {
 
     /** 알림 받을 회원이 탈퇴했으면 만들지 않는다. */
     private void notify(Long memberId, NotificationType type, String content, Long actorMemberId, Long letterId,
-                           Long cardId) {
+                           Long archiveCardId) {
         if (memberRepository.findActiveById(memberId).isEmpty()) {
             return;
         }
         Notification notification = notificationRepository.save(
-                new Notification(memberId, type, content, actorMemberId, letterId, cardId));
+                new Notification(memberId, type, content, actorMemberId, letterId, archiveCardId));
         eventPublisher.publishEvent(NotificationCreatedEvent.from(notification));
     }
 }

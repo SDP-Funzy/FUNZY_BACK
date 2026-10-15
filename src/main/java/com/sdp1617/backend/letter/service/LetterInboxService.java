@@ -234,7 +234,7 @@ public class LetterInboxService {
         return size < 1 ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
     }
 
-    /** 받은 편지를 지울 때 그 편지에서 콕으로 담은 내 아카이브 카드를 지운다. 편지를 잠근 뒤 호출한다 (콕 요청과 순서대로 처리되도록). */
+    /** 받은 편지를 지울 때 그 편지에서 콕으로 담은 내 아카이브 카드를 지운다 (댓글은 DB에서 함께 지워진다). 편지를 잠근 뒤 호출한다 (콕 요청과 순서대로 처리되도록). */
     private void deleteMyArchiveCards(Long memberId, Letter letter) {
         List<Long> cardIds = letter.getCards().stream().map(LetterCard::getId).toList();
         if (!cardIds.isEmpty()) {

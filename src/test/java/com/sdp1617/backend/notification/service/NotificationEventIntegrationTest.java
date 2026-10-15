@@ -87,7 +87,7 @@ class NotificationEventIntegrationTest {
         assertEquals("티키님에게서 편지가 도착했어요.", notification.content());
         assertEquals(sender.getId(), notification.actorMemberId());
         assertEquals(letterId, notification.letterId());
-        assertNull(notification.cardId());
+        assertNull(notification.archiveCardId());
         assertTrue(notifications(sender).isEmpty());
     }
 
