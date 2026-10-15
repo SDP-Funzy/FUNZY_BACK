@@ -23,7 +23,7 @@ public class ArchiveController {
     @GetMapping("/api/archive/home")
     @Operation(
             summary = "아카이브 메인홈 조회",
-            description = "앱 진입 시 기본으로 노출할 아카이브 홈 데이터를 조회합니다. 닉네임, 프로필 이미지, '아카이브' 타이틀, 카테고리별 카드 목록과 전체 빈 상태 여부를 반환합니다. 비공개(잠금) 카드는 나오지 않습니다."
+            description = "앱 진입 시 기본으로 노출할 아카이브 홈 데이터를 조회합니다. 닉네임, 프로필 이미지, '아카이브' 타이틀, 카테고리별 카드 목록과 전체 빈 상태 여부를 반환합니다. 비공개(잠금) 카드는 나오지 않습니다. 카테고리 보드의 대표 사진은 sections[].thumbnailImageUrl(처음 저장된 카드 중 사진 있는 카드, 없으면 null)입니다."
     )
     public ApiResponse<ArchiveHomeResponse> getHome(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
