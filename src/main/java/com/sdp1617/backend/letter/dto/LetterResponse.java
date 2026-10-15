@@ -6,6 +6,7 @@ import com.sdp1617.backend.letter.entity.LetterStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public record LetterResponse(
         @Schema(description = "편지 ID", example = "1")
@@ -44,10 +45,16 @@ public record LetterResponse(
     }
 
     public static LetterResponse from(Letter letter) {
+        return from(letter, Map.of());
+    }
+
+    /** 받는 사람이 볼 때: 카드마다 내 콕 상태(카드 ID → 콕 상태)를 함께 내린다 (#147). */
+    public static LetterResponse from(Letter letter, Map<Long, LetterCardKokResponse> kokByCardId) {
         return new LetterResponse(letter.getId(), letter.getStatus(),
                 LetterMemberResponse.from(letter.getSender()), LetterMemberResponse.from(letter.getRecipient()),
                 letter.getToName(), letter.getFromName(),
-                letter.getDesignType(), letter.getCards().stream().map(LetterCardResponse::from).toList(),
+                letter.getDesignType(),
+                letter.getCards().stream().map(card -> LetterCardResponse.from(card, kokByCardId.get(card.getId()))).toList(),
                 DoodlePickResponse.from(letter), letter.getSelectedGiftItemId(), letter.getCreatedAt(), letter.getUpdatedAt(),
                 letter.getCompletedAt(), letter.getSentAt(), letter.getReadAt());
     }

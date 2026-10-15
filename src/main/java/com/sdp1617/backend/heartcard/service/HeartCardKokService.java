@@ -35,7 +35,7 @@ public class HeartCardKokService {
         LetterCard card = receivedLetterAccess.lockReceivedCard(memberId, heartCardId);
         return archiveCardRepository.findByOwnerMemberIdAndLetterCardId(memberId, heartCardId)
                 .map(archiveCard -> safeRequest.kokOrDefault()
-                        ? HeartCardKokResponse.active(heartCardId, archiveCard)
+                        ? keepKok(heartCardId, archiveCard, safeRequest)
                         : deleteKok(heartCardId, archiveCard))
                 .orElseGet(() -> safeRequest.kokOrDefault()
                         ? createKok(memberId, card, safeRequest)
@@ -44,8 +44,17 @@ public class HeartCardKokService {
 
     private HeartCardKokResponse createKok(Long memberId, LetterCard card, HeartCardKokRequest request) {
         ArchiveCard archiveCard = archiveCardRepository.save(
-                ArchiveCard.ofLetterCard(memberId, card, request.categoryOr(card.getCategory())));
+                ArchiveCard.ofLetterCard(memberId, card, request.categoryOr(card.getCategory()),
+                        Boolean.TRUE.equals(request.locked())));
         return HeartCardKokResponse.active(card.getId(), archiveCard);
+    }
+
+    /** 이미 콕한 카드는 그대로 두고, locked를 보냈으면 공개/비공개만 바꾼다 (편지 보관함·아카이브 양쪽에서 전환, #147). */
+    private HeartCardKokResponse keepKok(Long heartCardId, ArchiveCard archiveCard, HeartCardKokRequest request) {
+        if (request.locked() != null) {
+            archiveCard.updateLocked(request.locked());
+        }
+        return HeartCardKokResponse.active(heartCardId, archiveCard);
     }
 
     private HeartCardKokResponse deleteKok(Long heartCardId, ArchiveCard archiveCard) {

@@ -66,7 +66,7 @@ class LetterInboxIntegrationTest {
     }
 
     private List<ReceivedLetterResponse> received(String senderName, LocalDate from, LocalDate to) {
-        return letterInboxService.getReceivedLetters(recipient.getId(), LetterSortType.LATEST, senderName, from, to, 0, 20)
+        return letterInboxService.getReceivedLetters(recipient.getId(), LetterSortType.LATEST, senderName, from, to, false, 0, 20)
                 .letters();
     }
 

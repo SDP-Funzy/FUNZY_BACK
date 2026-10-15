@@ -1,10 +1,12 @@
 package com.sdp1617.backend.letter.service;
 
+import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.letter.dto.LetterCardKokResponse;
 import com.sdp1617.backend.letter.dto.LetterPageResponse;
 import com.sdp1617.backend.letter.dto.LetterResponse;
 import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
@@ -15,14 +17,22 @@ import com.sdp1617.backend.letter.entity.LetterCard;
 import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.entity.LetterStatus;
 import com.sdp1617.backend.letter.repository.LetterRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -74,7 +84,9 @@ public class LetterInboxService {
                 .orElseThrow(() -> new CustomException(ErrorCode.LETTER_001));
         if (letter.isVisibleToRecipient(memberId)) {
             letter.markReadByRecipient();
-        } else if (!letter.isWrittenBy(memberId)) {
+            return recipientView(memberId, letter);
+        }
+        if (!letter.isWrittenBy(memberId)) {
             throw new CustomException(ErrorCode.LETTER_001);
         }
         return LetterResponse.from(letter);
@@ -120,22 +132,24 @@ public class LetterInboxService {
             eventPublisher.publishEvent(new GiftSelectedEvent(
                     letter.getId(), letter.getSender().getId(), memberId, letter.getToName()));
         }
-        return LetterResponse.from(letter);
+        return recipientView(memberId, letter);
     }
 
-    /** 받은 편지함 (LR-011/012): 보낸 사람(봉투 이름·닉네임) 검색, 받은 날짜 범위, 정렬. */
+    /** 받은 편지함 (LR-011/012): 보낸 사람(봉투 이름·닉네임) 검색, 받은 날짜 범위, 정렬, 잠긴편지(비공개로 콕한 카드가 든 편지, #147). */
     public LetterPageResponse<ReceivedLetterResponse> getReceivedLetters(
             Long memberId, LetterSortType sortType, String senderName, LocalDate receivedFrom, LocalDate receivedTo,
-            int page, int size
+            boolean lockedOnly, int page, int size
     ) {
         Sort sort = switch (sortType) {
             case LATEST -> Sort.by(Sort.Direction.DESC, "sentAt", "id");
             case OLDEST -> Sort.by(Sort.Direction.ASC, "sentAt", "id");
         };
         PageRequest pageable = PageRequest.of(Math.max(page, 0), normalizeSize(size), sort);
-        return LetterPageResponse.of(
-                letterRepository.findAll(receivedBy(memberId, senderName, receivedFrom, receivedTo), pageable),
-                ReceivedLetterResponse::from);
+        Page<Letter> letters = letterRepository.findAll(
+                receivedBy(memberId, senderName, receivedFrom, receivedTo, lockedOnly), pageable);
+        Set<Long> lockedLetterIds = lockedLetterIds(memberId, letters, lockedOnly);
+        return LetterPageResponse.of(letters,
+                letter -> ReceivedLetterResponse.from(letter, lockedLetterIds.contains(letter.getId())));
     }
 
     /** 보낸 편지함 (LW-840). 최근에 보낸 순. */
@@ -154,7 +168,8 @@ public class LetterInboxService {
     }
 
     /** 조건이 비어 있으면 아예 넣지 않는다 — PostgreSQL에서 값 없는 파라미터의 타입을 추론하지 못하는 문제(#126)를 피한다. */
-    private Specification<Letter> receivedBy(Long memberId, String senderName, LocalDate from, LocalDate to) {
+    private Specification<Letter> receivedBy(Long memberId, String senderName, LocalDate from, LocalDate to,
+                                             boolean lockedOnly) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("recipient").get("id"), memberId));
@@ -173,8 +188,46 @@ public class LetterInboxService {
             if (to != null) {
                 predicates.add(cb.lessThan(root.get("sentAt"), to.plusDays(1).atStartOfDay()));
             }
+            if (lockedOnly) {
+                predicates.add(hasLockedCard(root, query, cb, memberId));
+            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    /** 목록의 편지별 🔒 표시. 잠긴편지 필터로 찾은 목록이면 모두 잠긴 편지라 다시 조회하지 않는다. */
+    private Set<Long> lockedLetterIds(Long memberId, Page<Letter> letters, boolean lockedOnly) {
+        if (letters.isEmpty()) {
+            return Set.of();
+        }
+        List<Long> letterIds = letters.map(Letter::getId).toList();
+        return lockedOnly ? Set.copyOf(letterIds)
+                : archiveCardRepository.findLetterIdsWithLockedCards(memberId, letterIds);
+    }
+
+    /**
+     * 이 편지의 카드 중 내가 비공개로 콕한 카드가 있다 ({@code ArchiveCardRepository.findLetterIdsWithLockedCards}와 같은 기준).
+     * 편지의 카드 컬렉션을 서브쿼리에서 correlate join하지 않고 LetterCard를 따로 두어, 페이지 count 쿼리에서도 단순하게 나오게 한다.
+     */
+    private static Predicate hasLockedCard(Root<Letter> root, CriteriaQuery<?> query, CriteriaBuilder cb, Long memberId) {
+        Subquery<Long> locked = query.subquery(Long.class);
+        Root<ArchiveCard> archiveCard = locked.from(ArchiveCard.class);
+        Root<LetterCard> card = locked.from(LetterCard.class);
+        locked.select(archiveCard.get("id")).where(
+                cb.equal(card.get("letter"), root),
+                cb.equal(archiveCard.get("letterCardId"), card.get("id")),
+                cb.equal(archiveCard.get("ownerMemberId"), memberId),
+                cb.isTrue(archiveCard.get("locked")));
+        return cb.exists(locked);
+    }
+
+    /** 받는 사람이 보는 편지: 카드마다 내 콕 상태를 붙인다 (#147). */
+    private LetterResponse recipientView(Long memberId, Letter letter) {
+        List<Long> cardIds = letter.getCards().stream().map(LetterCard::getId).toList();
+        Map<Long, LetterCardKokResponse> kokByCardId = cardIds.isEmpty() ? Map.of()
+                : archiveCardRepository.findByOwnerMemberIdAndLetterCardIdIn(memberId, cardIds).stream()
+                        .collect(Collectors.toMap(ArchiveCard::getLetterCardId, LetterCardKokResponse::from));
+        return LetterResponse.from(letter, kokByCardId);
     }
 
     private static int normalizeSize(int size) {

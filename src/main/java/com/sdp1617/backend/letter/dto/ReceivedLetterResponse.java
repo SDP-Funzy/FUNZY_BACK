@@ -21,13 +21,15 @@ public record ReceivedLetterResponse(
         @Schema(description = "목록 썸네일용 카드 사진 URL. 카드 순서대로 사진이 있는 카드 최대 3장, 사진이 없으면 빈 목록 (#147)")
         List<String> thumbnailImageUrls,
         @Schema(description = "읽었는지. false면 미읽음 표시")
-        boolean read
+        boolean read,
+        @Schema(description = "비공개로 콕한 카드가 들어 있는지 (잠긴편지 🔒, #147)")
+        boolean locked
 ) {
     private static final int THUMBNAIL_COUNT = 3;
 
-    public static ReceivedLetterResponse from(Letter letter) {
+    public static ReceivedLetterResponse from(Letter letter, boolean locked) {
         return new ReceivedLetterResponse(letter.getId(), LetterMemberResponse.from(letter.getSender()),
                 letter.getFromName(), letter.getToName(), letter.getSentAt(), letter.getCards().size(),
-                letter.thumbnailImageUrls(THUMBNAIL_COUNT), letter.getReadAt() != null);
+                letter.thumbnailImageUrls(THUMBNAIL_COUNT), letter.getReadAt() != null, locked);
     }
 }

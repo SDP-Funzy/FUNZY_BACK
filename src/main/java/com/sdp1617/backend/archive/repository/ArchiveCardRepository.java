@@ -4,10 +4,12 @@ import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ArchiveCardRepository extends JpaRepository<ArchiveCard, Long> {
 
@@ -18,7 +20,18 @@ public interface ArchiveCardRepository extends JpaRepository<ArchiveCard, Long> 
 
     List<ArchiveCard> findByOwnerMemberIdOrderByCreatedAtDesc(Long ownerMemberId);
 
-    List<ArchiveCard> findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(Long ownerMemberId, ArchiveCategory category);
+    List<ArchiveCard> findByOwnerMemberIdAndCategoryAndLockedFalseOrderByCreatedAtDesc(Long ownerMemberId, ArchiveCategory category);
+
+    List<ArchiveCard> findByOwnerMemberIdAndLetterCardIdIn(Long ownerMemberId, Collection<Long> letterCardIds);
+
+    /** 받은 편지함 목록에서 비공개로 콕한 카드가 든 편지 표시용 (#147). letterIds가 비어 있지 않을 때만 호출한다. */
+    @Query("""
+            select distinct c.letter.id from ArchiveCard a, LetterCard c
+            where c.id = a.letterCardId and a.ownerMemberId = :ownerMemberId and a.locked = true
+              and c.letter.id in :letterIds
+            """)
+    Set<Long> findLetterIdsWithLockedCards(@Param("ownerMemberId") Long ownerMemberId,
+                                           @Param("letterIds") Collection<Long> letterIds);
 
     Optional<ArchiveCard> findByIdAndOwnerMemberId(Long id, Long ownerMemberId);
 

@@ -2,6 +2,7 @@ package com.sdp1617.backend.archive.dto;
 
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,26 +16,21 @@ public record ArchiveCardDetailResponse(
         LocalDate letterDate,
         String imageUrl,
         String message,
-        ArchiveVisibilityResponse visibility,
+        @Schema(description = "비공개(잠금) 여부. 비공개 카드는 주인만 상세를 볼 수 있습니다", example = "false")
+        boolean locked,
         LocalDateTime archivedAt
 ) {
-    public static ArchiveCardDetailResponse from(ArchiveCard card, boolean maskPrivateFields) {
-        boolean showSender = !maskPrivateFields || card.getVisibility().isSenderVisible();
-        boolean showReceiver = !maskPrivateFields || card.getVisibility().isReceiverVisible();
-        boolean showDate = !maskPrivateFields || card.getVisibility().isDateVisible();
-        boolean showImage = !maskPrivateFields || card.getVisibility().isImageVisible();
-        boolean showMessage = !maskPrivateFields || card.getVisibility().isMessageVisible();
-
+    public static ArchiveCardDetailResponse from(ArchiveCard card) {
         return new ArchiveCardDetailResponse(
                 card.getId(),
                 card.getLetterCardId(),
                 card.getCategory(),
-                showSender ? card.getSenderName() : null,
-                showReceiver ? card.getReceiverName() : null,
-                showDate ? card.getLetterDate() : null,
-                showImage ? card.getImageUrl() : null,
-                showMessage ? card.getMessage() : null,
-                ArchiveVisibilityResponse.from(card),
+                card.getSenderName(),
+                card.getReceiverName(),
+                card.getLetterDate(),
+                card.getImageUrl(),
+                card.getMessage(),
+                card.isLocked(),
                 card.getCreatedAt()
         );
     }

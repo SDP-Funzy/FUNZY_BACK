@@ -3,7 +3,6 @@ package com.sdp1617.backend.archive.service;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
-import com.sdp1617.backend.archive.entity.ArchiveVisibility;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
@@ -26,8 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,11 +64,9 @@ class ArchiveServiceTest {
     void setUp() {
         card = new ArchiveCard(OWNER_ID, 100L, ArchiveCategory.values()[0]);
         ReflectionTestUtils.setField(card, "id", CARD_ID);
-        ReflectionTestUtils.setField(card, "message", "비밀 메시지");
+        ReflectionTestUtils.setField(card, "message", "카드 메시지");
         ReflectionTestUtils.setField(card, "senderName", "보낸 사람");
-        ReflectionTestUtils.setField(card, "imageUrl", "https://example.test/private-image.jpg");
-        // 이미지와 메시지 비공개
-        card.updateVisibility(new ArchiveVisibility(true, true, true, false, false));
+        ReflectionTestUtils.setField(card, "imageUrl", "https://example.test/card-image.jpg");
         lenient().when(archiveCardRepository.findById(CARD_ID)).thenReturn(Optional.of(card));
         lenient().when(followRelationRepository.findBetween(FRIEND_ID, OWNER_ID))
                 .thenReturn(Optional.of(FollowRelation.of(FRIEND_ID, OWNER_ID)));
@@ -79,21 +74,32 @@ class ArchiveServiceTest {
     }
 
     @Test
-    void 주인은_비공개_항목까지_모두_본다() {
+    void 주인은_비공개_카드도_상세를_본다() {
+        card.updateLocked(true);
+
         ArchiveCardDetailResponse response = archiveService.getCard(OWNER_ID, CARD_ID);
 
-        assertEquals("비밀 메시지", response.message());
-        assertEquals("보낸 사람", response.senderName());
-        assertEquals("https://example.test/private-image.jpg", response.imageUrl());
+        assertEquals("카드 메시지", response.message());
+        assertTrue(response.locked());
     }
 
     @Test
-    void 친구는_비공개_항목이_가려진_채로_본다() {
+    void 친구는_공개_카드의_모든_항목을_본다() {
         ArchiveCardDetailResponse response = archiveService.getCard(FRIEND_ID, CARD_ID);
 
-        assertNull(response.message());
-        assertNull(response.imageUrl());
+        assertEquals("카드 메시지", response.message());
+        assertEquals("https://example.test/card-image.jpg", response.imageUrl());
         assertEquals("보낸 사람", response.senderName());
+    }
+
+    @Test
+    void 친구는_비공개_카드를_볼_수_없고_없는_카드와_같은_에러를_받는다() {
+        card.updateLocked(true);
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> archiveService.getCard(FRIEND_ID, CARD_ID));
+
+        assertEquals(ErrorCode.ARCHIVE_002, exception.getErrorCode());
     }
 
     @Test
@@ -116,32 +122,31 @@ class ArchiveServiceTest {
 
     private void stubOwnerArchive() {
         when(memberRepository.findActiveById(OWNER_ID)).thenReturn(Optional.of(owner()));
-        when(archiveCardRepository.findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(eq(OWNER_ID), any()))
+        when(archiveCardRepository.findByOwnerMemberIdAndCategoryAndLockedFalseOrderByCreatedAtDesc(eq(OWNER_ID), any()))
                 .thenReturn(List.of());
-        when(archiveCardRepository.findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(OWNER_ID, card.getCategory()))
+        when(archiveCardRepository.findByOwnerMemberIdAndCategoryAndLockedFalseOrderByCreatedAtDesc(OWNER_ID, card.getCategory()))
                 .thenReturn(List.of(card));
     }
 
     @Test
-    void 내_아카이브_홈은_비공개_메시지도_보이고_닉네임을_함께_내린다() {
+    void 내_아카이브_홈은_공개_카드와_닉네임을_내린다() {
         stubOwnerArchive();
 
         ArchiveHomeResponse home = archiveService.getHome(OWNER_ID);
 
         assertEquals("카드주인", home.nickname());
-        assertEquals("비밀 메시지", onlyCard(home).messagePreview());
-        assertEquals("https://example.test/private-image.jpg", onlyCard(home).imageUrl());
+        assertEquals("카드 메시지", onlyCard(home).messagePreview());
     }
 
     @Test
-    void 친구_아카이브_홈은_비공개_메시지를_가린다() {
+    void 친구_아카이브_홈은_공개_카드를_그대로_보여준다() {
         stubOwnerArchive();
 
         ArchiveHomeResponse home = archiveService.getFriendHome(FRIEND_ID, OWNER_ID);
 
         assertEquals(OWNER_ID, home.memberId());
-        assertNull(onlyCard(home).messagePreview());
-        assertNull(onlyCard(home).imageUrl());
+        assertEquals("카드 메시지", onlyCard(home).messagePreview());
+        assertEquals("https://example.test/card-image.jpg", onlyCard(home).imageUrl());
     }
 
     @Test
@@ -150,6 +155,6 @@ class ArchiveServiceTest {
                 () -> archiveService.getFriendHome(STRANGER_ID, OWNER_ID));
 
         assertEquals(ErrorCode.SOCIAL_007, exception.getErrorCode());
-        verify(archiveCardRepository, never()).findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(any(), any());
+        verify(archiveCardRepository, never()).findByOwnerMemberIdAndCategoryAndLockedFalseOrderByCreatedAtDesc(any(), any());
     }
 }

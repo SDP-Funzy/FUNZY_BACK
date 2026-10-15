@@ -13,10 +13,23 @@ public record HeartCardKokRequest(
                 example = "BOOK",
                 allowableValues = {"BOOK", "MOVIE_TV", "MUSIC", "FASHION", "PLACE", "ETC"}
         )
-        ArchiveCategory category
+        ArchiveCategory category,
+
+        @Schema(
+                description = """
+                        비공개(잠금) 여부. true면 아카이브에 넣지 않고 편지 보관함의 잠긴편지 필터로만 보입니다(본인만).
+                        false면 공개로 아카이브에 보이고 친구도 봅니다. 생략하면 새로 콕할 때는 공개, 이미 콕한 카드는 그대로 둡니다.
+                        """,
+                example = "false"
+        )
+        Boolean locked
 ) {
     public HeartCardKokRequest(ArchiveCategory category) {
-        this(true, category);
+        this(true, category, null);
+    }
+
+    public HeartCardKokRequest(Boolean kok, ArchiveCategory category) {
+        this(kok, category, null);
     }
 
     public boolean kokOrDefault() {

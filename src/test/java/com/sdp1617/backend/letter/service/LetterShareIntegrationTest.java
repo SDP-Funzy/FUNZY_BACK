@@ -112,7 +112,7 @@ class LetterShareIntegrationTest {
         em.flush();
 
         assertEquals(first.getId(), letterShareService.view(token, first.getId()).letter().recipient().memberId());
-        assertEquals(1, letterInboxService.getReceivedLetters(first.getId(), LetterSortType.LATEST, null, null, null, 0, 20)
+        assertEquals(1, letterInboxService.getReceivedLetters(first.getId(), LetterSortType.LATEST, null, null, null, false, 0, 20)
                 .letters().size());
         assertEquals(first.getId(), letterInboxService.getLetter(first.getId(), letterId).recipient().memberId());
         assertEquals(Viewer.RECIPIENT, letterShareService.view(token, first.getId()).viewer());
@@ -197,7 +197,7 @@ class LetterShareIntegrationTest {
         em.clear();
 
         LocalDate today = LocalDate.now();
-        var received = letterInboxService.getReceivedLetters(first.getId(), LetterSortType.LATEST, null, today, today, 0, 20)
+        var received = letterInboxService.getReceivedLetters(first.getId(), LetterSortType.LATEST, null, today, today, false, 0, 20)
                 .letters();
         assertEquals(1, received.size());
         assertTrue(received.get(0).receivedAt().isAfter(LocalDateTime.now().minusMinutes(1)));
