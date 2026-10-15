@@ -16,12 +16,14 @@ import com.sdp1617.backend.letter.entity.LetterCard;
 import com.sdp1617.backend.letter.entity.LetterStatus;
 import com.sdp1617.backend.letter.repository.LetterCardRepository;
 import com.sdp1617.backend.letter.repository.LetterCardRepository.CalendarImageProjection;
+import com.sdp1617.backend.letter.repository.LetterCardRepository.FolderSummaryProjection;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -79,17 +81,18 @@ public class LetterCardBoxService {
     public CursorPageResponse<CardFolderResponse> getFolders(Long memberId, CardBoxType type, String cursor, int size) {
         CursorKey cursorKey = parseCursor(cursor);
         int pageSize = normalizePageSize(size);
-        List<CardFolderResponse> folders = letterCardRepository.findBoxFolders(
-                        asSender(type), memberId,
-                        cursorKey == null ? null : cursorKey.sentAt(),
-                        cursorKey == null ? null : cursorKey.id(),
-                        PageRequest.of(0, pageSize + 1))
-                .stream()
+        List<FolderSummaryProjection> summaries = letterCardRepository.findBoxFolders(
+                asSender(type), memberId,
+                cursorKey == null ? null : cursorKey.sentAt(),
+                cursorKey == null ? null : cursorKey.id(),
+                PageRequest.of(0, pageSize + 1));
+        Map<Long, String> latestImageUrls = latestFolderImageUrls(memberId, type, summaries);
+        List<CardFolderResponse> folders = summaries.stream()
                 .map(summary -> new CardFolderResponse(
                         summary.getMemberId(),
                         summary.getNickname(),
                         summary.getCardCount(),
-                        latestFolderImageUrl(memberId, type, summary.getMemberId()),
+                        latestImageUrls.get(summary.getMemberId()),
                         summary.getLatestSentAt()))
                 .toList();
         return toCursorPage(folders, pageSize, folder -> new CursorKey(folder.latestSentAt(), folder.memberId()));
@@ -130,10 +133,17 @@ public class LetterCardBoxService {
         return CardStorageResponse.from(card);
     }
 
-    private String latestFolderImageUrl(Long memberId, CardBoxType type, Long folderMemberId) {
-        List<String> imageUrls = letterCardRepository.findLatestFolderImageUrl(
-                asSender(type), memberId, folderMemberId, PageRequest.of(0, 1));
-        return imageUrls.isEmpty() ? null : imageUrls.get(0);
+    /** 폴더(상대 회원)별 가장 최근 카드 사진. 한 페이지 폴더를 쿼리 한 번으로 (#158, 전에는 폴더마다 1번). */
+    private Map<Long, String> latestFolderImageUrls(Long memberId, CardBoxType type,
+                                                    List<FolderSummaryProjection> summaries) {
+        if (summaries.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> latest = new HashMap<>();
+        letterCardRepository.findFolderImages(asSender(type), memberId,
+                        summaries.stream().map(FolderSummaryProjection::getMemberId).toList())
+                .forEach(image -> latest.putIfAbsent(image.getFolderMemberId(), image.getImageUrl()));
+        return latest;
     }
 
     private static boolean asSender(CardBoxType type) {

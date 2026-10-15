@@ -16,6 +16,10 @@ import com.sdp1617.backend.letter.entity.DesignType;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.List;
+import org.hibernate.stat.Statistics;
+import org.hibernate.SessionFactory;
+import java.util.Map;
+import java.util.HashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,6 +122,43 @@ class LetterCardBoxIntegrationTest {
         assertEquals(1, second.items().size());
         assertFalse(second.hasNext());
         assertEquals(3, first.items().get(0).cardCount() + second.items().get(0).cardCount());
+    }
+
+    private void setImage(String content, String imageUrl) {
+        em.createQuery("update LetterCard c set c.imageUrl = :imageUrl where c.content = :content")
+                .setParameter("imageUrl", imageUrl).setParameter("content", content).executeUpdate();
+    }
+
+    @Test
+    void 폴더마다_가장_최근_사진을_쿼리_두_번으로_조회한다() {
+        Member friendC = member("boxfriendC");
+        sendLetter(friendC, me, "사진 없는 카드");
+        sendLetter(friendA, me, "나중 카드_사진없음");
+        em.flush();
+        // friendA: 첫 편지의 두 카드 중 나중 카드(두번째)가 최근 사진, 더 나중 편지의 카드는 사진이 없어 건너뜀
+        setImage("첫번째 카드", "https://img/a1.jpg");
+        setImage("두번째 카드", "https://img/a2.jpg");
+        setImage("세번째_카드", "https://img/b.jpg");
+        em.clear();
+
+        Statistics statistics = em.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
+        Map<String, String> latestImageByNickname = cardBoxService.getFolders(me.getId(), CardBoxType.RECEIVED, null, 20)
+                .items().stream()
+                .collect(HashMap::new, (map, folder) -> map.put(folder.nickname(), folder.latestImageUrl()), Map::putAll);
+        long queries = statistics.getPrepareStatementCount();
+        statistics.setStatisticsEnabled(false);
+
+        assertEquals("https://img/a2.jpg", latestImageByNickname.get("boxfriendA"));
+        assertEquals("https://img/b.jpg", latestImageByNickname.get("boxfriendB"));
+        assertNull(latestImageByNickname.get("boxfriendC"));
+        assertEquals(3, latestImageByNickname.size());
+        assertEquals(2, queries); // 폴더 목록 1 + 사진 1 (폴더 수와 무관)
+
+        // 보낸함은 받은 사람 기준 폴더
+        assertEquals("https://img/a2.jpg",
+                cardBoxService.getFolders(friendA.getId(), CardBoxType.SENT, null, 20).items().get(0).latestImageUrl());
     }
 
     @Test
