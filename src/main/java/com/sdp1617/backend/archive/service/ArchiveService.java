@@ -1,6 +1,5 @@
 package com.sdp1617.backend.archive.service;
 
-import com.sdp1617.backend.archive.dto.ArchiveCardCreateRequest;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCategorySectionResponse;
@@ -13,8 +12,6 @@ import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
-import com.sdp1617.backend.letter.entity.LetterCard;
-import com.sdp1617.backend.letter.service.ReceivedLetterAccess;
 import com.sdp1617.backend.social.repository.FollowRelationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,7 +32,6 @@ public class ArchiveService {
     private final ArchiveCardAccess archiveCardAccess;
     private final FollowRelationRepository followRelationRepository;
     private final MemberRepository memberRepository;
-    private final ReceivedLetterAccess receivedLetterAccess;
 
     public ArchiveHomeResponse getHome(Long memberId) {
         return buildHome(findActiveMember(memberId));
@@ -74,18 +70,6 @@ public class ArchiveService {
                 .orElseThrow(() -> new CustomException(ErrorCode.AUTH_002));
     }
 
-    /** 내가 받은 편지의 카드만 담을 수 있다 (콕과 같은 기준, #82). 남의 카드 ID면 없는 카드와 같이 COMMON_001. */
-    @Transactional
-    public ArchiveCardDetailResponse saveCard(Long memberId, ArchiveCardCreateRequest request) {
-        LetterCard letterCard = receivedLetterAccess.lockReceivedCard(memberId, request.letterCardId());
-        if (archiveCardRepository.existsByOwnerMemberIdAndLetterCardId(memberId, request.letterCardId())) {
-            throw new CustomException(ErrorCode.ARCHIVE_001);
-        }
-
-        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory()), false));
-        return ArchiveCardDetailResponse.from(card, 0);
-    }
-
     /**
      * 주인은 공개·비공개 카드 모두, 친구(맞팔)는 공개 카드만 본다.
      * 친구가 아니거나 비공개 카드면 카드가 없는 것과 같은 응답을 준다 — 순번 ID로 남의 카드 존재 여부를 알아낼 수 없게.
@@ -93,12 +77,5 @@ public class ArchiveService {
     public ArchiveCardDetailResponse getCard(Long viewerMemberId, Long archiveCardId) {
         ArchiveCard card = archiveCardAccess.requireViewable(viewerMemberId, archiveCardId, ErrorCode.ARCHIVE_002);
         return ArchiveCardDetailResponse.from(card, archiveCardCommentRepository.countByArchiveCard_Id(archiveCardId));
-    }
-
-    @Transactional
-    public void deleteCard(Long memberId, Long archiveCardId) {
-        ArchiveCard card = archiveCardRepository.findByIdAndOwnerMemberId(archiveCardId, memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
-        archiveCardRepository.delete(card);
     }
 }

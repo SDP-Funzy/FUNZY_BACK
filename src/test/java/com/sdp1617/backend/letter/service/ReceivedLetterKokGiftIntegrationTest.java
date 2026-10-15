@@ -1,6 +1,5 @@
 package com.sdp1617.backend.letter.service;
 
-import com.sdp1617.backend.archive.dto.ArchiveCardCreateRequest;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
 import com.sdp1617.backend.archive.service.ArchiveService;
@@ -104,9 +103,6 @@ class ReceivedLetterKokGiftIntegrationTest {
         assertEquals(CONTENT, archived.getMessage());
         assertEquals("티키", archived.getSenderName());
         assertEquals("은우", archived.getReceiverName());
-
-        assertError(ErrorCode.COMMON_001, () ->
-                archiveService.saveCard(stranger.getId(), new ArchiveCardCreateRequest(cardId, ArchiveCategory.ETC)));
     }
 
     @Test

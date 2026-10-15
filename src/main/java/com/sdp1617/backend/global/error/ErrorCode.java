@@ -42,7 +42,6 @@ public enum ErrorCode {
     AUTH_027(HttpStatus.UNAUTHORIZED, "AUTH_027", "비밀번호 변경 등으로 로그인이 해제되었습니다. 다시 로그인해주세요."),
     AUTH_028(HttpStatus.BAD_REQUEST, "AUTH_028", "현재 비밀번호와 다른 비밀번호를 입력해주세요."),
 
-    ARCHIVE_001(HttpStatus.CONFLICT, "ARCHIVE_001", "이미 저장된 카드입니다."),
     ARCHIVE_002(HttpStatus.NOT_FOUND, "ARCHIVE_002", "존재하지 않는 아카이브 카드입니다."),
     ARCHIVE_004(HttpStatus.NOT_FOUND, "ARCHIVE_004", "존재하지 않는 댓글입니다."),
 
