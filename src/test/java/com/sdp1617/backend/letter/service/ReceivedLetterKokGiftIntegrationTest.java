@@ -10,11 +10,15 @@ import com.sdp1617.backend.letter.entity.DesignType;
 import com.sdp1617.backend.global.error.CustomException;
 import com.sdp1617.backend.global.error.ErrorCode;
 import com.sdp1617.backend.heartcard.dto.HeartCardKokRequest;
+import com.sdp1617.backend.heartcard.dto.HeartCardKokResponse;
 import com.sdp1617.backend.heartcard.service.HeartCardKokService;
 import com.sdp1617.backend.letter.dto.DoodlePickRequest;
 import com.sdp1617.backend.letter.dto.LetterCardRequest;
 import com.sdp1617.backend.letter.dto.LetterEnvelopeRequest;
+import com.sdp1617.backend.letter.dto.LetterCardKokResponse;
 import com.sdp1617.backend.letter.dto.LetterResponse;
+import com.sdp1617.backend.letter.dto.ReceivedLetterResponse;
+import com.sdp1617.backend.letter.entity.LetterSortType;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,10 +29,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** 받은 편지의 콕과 선물 고르기, 받은 편지 삭제 시 아카이브 카드 정리를 실제 DB로 검증한다 (#82 3단계, #163). */
+/** 받은 편지의 콕(공개/비공개)과 선물 고르기, 받은 편지 삭제 시 아카이브 카드 정리를 실제 DB로 검증한다 (#82 3단계, #147, #163). */
 @SpringBootTest
 @Transactional
 class ReceivedLetterKokGiftIntegrationTest {
@@ -129,5 +136,58 @@ class ReceivedLetterKokGiftIntegrationTest {
 
         assertError(ErrorCode.COMMON_001, () ->
                 kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, ArchiveCategory.MUSIC)));
+    }
+
+    @Test
+    void 비공개로_콕하면_아카이브에_안_나오고_잠긴편지_필터에만_나온다() {
+        HeartCardKokResponse kok = kokService.updateKok(recipient.getId(), cardId,
+                new HeartCardKokRequest(true, null, true));
+        em.flush();
+
+        assertTrue(kok.locked());
+        assertTrue(archiveService.getHome(recipient.getId()).empty());
+        LetterCardKokResponse cardKok = letterInboxService.getLetter(recipient.getId(), letterId).cards().get(0).kok();
+        assertEquals(kok.archiveCardId(), cardKok.archiveCardId());
+        assertTrue(cardKok.locked());
+
+        List<ReceivedLetterResponse> locked = receivedLetters(true);
+        assertEquals(List.of(letterId), locked.stream().map(ReceivedLetterResponse::letterId).toList());
+        assertTrue(locked.get(0).locked());
+    }
+
+    @Test
+    void 이미_콕한_카드는_locked만_보내_공개와_비공개를_바꿀_수_있다() {
+        kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, ArchiveCategory.MUSIC));
+        em.flush();
+        assertFalse(archiveService.getHome(recipient.getId()).empty());
+        assertTrue(receivedLetters(true).isEmpty());
+        assertFalse(receivedLetters(false).get(0).locked());
+
+        kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, null, true));
+        em.flush();
+        assertTrue(archiveService.getHome(recipient.getId()).empty());
+        assertEquals(1, receivedLetters(true).size());
+
+        // locked를 생략하면 그대로 둔다
+        assertTrue(kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, null)).locked());
+
+        kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, null, false));
+        em.flush();
+        assertFalse(archiveService.getHome(recipient.getId()).empty());
+        assertTrue(receivedLetters(true).isEmpty());
+    }
+
+    @Test
+    void 콕_상태는_받는_사람이_볼_때만_카드에_붙는다() {
+        kokService.updateKok(recipient.getId(), cardId, new HeartCardKokRequest(true, ArchiveCategory.MUSIC));
+        em.flush();
+
+        assertNotNull(letterInboxService.getLetter(recipient.getId(), letterId).cards().get(0).kok());
+        assertNull(letterInboxService.getLetter(sender.getId(), letterId).cards().get(0).kok());
+    }
+
+    private List<ReceivedLetterResponse> receivedLetters(boolean lockedOnly) {
+        return letterInboxService.getReceivedLetters(recipient.getId(), LetterSortType.LATEST, null, null, null,
+                lockedOnly, 0, 20).letters();
     }
 }

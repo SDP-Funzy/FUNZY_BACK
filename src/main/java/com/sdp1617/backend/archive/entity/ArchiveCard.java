@@ -4,7 +4,6 @@ import com.sdp1617.backend.letter.entity.Letter;
 import com.sdp1617.backend.letter.entity.LetterCard;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,6 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -60,8 +60,14 @@ public class ArchiveCard {
     @Column(length = 2000)
     private String message;
 
-    @Embedded
-    private ArchiveVisibility visibility = new ArchiveVisibility();
+    /**
+     * 비공개(잠금) 여부 (#147). 공개면 아카이브에 보이고 친구도 본다.
+     * 비공개면 내 아카이브·친구 아카이브 어디에도 안 보이고, 편지 보관함의 잠긴편지 필터로만 찾는다.
+     * 기존 행이 있는 표에 칸을 추가하므로 DB 기본값을 둔다 (기존 카드는 공개).
+     */
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean locked;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -77,8 +83,9 @@ public class ArchiveCard {
      * 받은 편지 카드를 아카이브에 담는다 (콕, LR-310). 보여줄 내용(보낸·받는 사람 이름, 날짜, 사진, 메시지)을 저장 시점에 복사해 둔다.
      * 아카이브는 내 보드라, 원본 편지를 받은 편지함에서 지워도 담아 둔 카드 내용은 따로 관리한다(편지 삭제 시 함께 정리 #82).
      */
-    public static ArchiveCard ofLetterCard(Long ownerMemberId, LetterCard card, ArchiveCategory category) {
+    public static ArchiveCard ofLetterCard(Long ownerMemberId, LetterCard card, ArchiveCategory category, boolean locked) {
         ArchiveCard archiveCard = new ArchiveCard(ownerMemberId, card.getId(), category);
+        archiveCard.locked = locked;
         Letter letter = card.getLetter();
         archiveCard.senderName = letter.getFromName();
         archiveCard.receiverName = letter.getToName();
@@ -92,7 +99,7 @@ public class ArchiveCard {
         return ownerMemberId.equals(memberId);
     }
 
-    public void updateVisibility(ArchiveVisibility visibility) {
-        this.visibility = visibility;
+    public void updateLocked(boolean locked) {
+        this.locked = locked;
     }
 }

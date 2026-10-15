@@ -5,11 +5,8 @@ import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCardResponse;
 import com.sdp1617.backend.archive.dto.ArchiveCategorySectionResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
-import com.sdp1617.backend.archive.dto.ArchiveVisibilityResponse;
-import com.sdp1617.backend.archive.dto.ArchiveVisibilityUpdateRequest;
 import com.sdp1617.backend.archive.entity.ArchiveCard;
 import com.sdp1617.backend.archive.entity.ArchiveCategory;
-import com.sdp1617.backend.archive.entity.ArchiveVisibility;
 import com.sdp1617.backend.archive.repository.ArchiveCardRepository;
 import com.sdp1617.backend.auth.entity.Member;
 import com.sdp1617.backend.auth.repository.MemberRepository;
@@ -38,27 +35,28 @@ public class ArchiveService {
     private final ReceivedLetterAccess receivedLetterAccess;
 
     public ArchiveHomeResponse getHome(Long memberId) {
-        return buildHome(findActiveMember(memberId), false);
+        return buildHome(findActiveMember(memberId));
     }
 
     /**
-     * 친구(맞팔)의 아카이브 홈. 탭 구조는 내 아카이브와 같고, 친구가 비공개로 설정한 이미지·메시지는 가려서 내린다.
+     * 친구(맞팔)의 아카이브 홈. 탭 구조는 내 아카이브와 같고, 비공개 카드는 내 아카이브와 마찬가지로 나오지 않는다.
      * 친구가 아니면(탈퇴로 관계가 정리된 경우 포함) SOCIAL_007.
      */
     public ArchiveHomeResponse getFriendHome(Long viewerMemberId, Long friendMemberId) {
         if (followRelationRepository.findBetween(viewerMemberId, friendMemberId).isEmpty()) {
             throw new CustomException(ErrorCode.SOCIAL_007);
         }
-        return buildHome(findActiveMember(friendMemberId), true);
+        return buildHome(findActiveMember(friendMemberId));
     }
 
-    private ArchiveHomeResponse buildHome(Member owner, boolean maskPrivateFields) {
+    /** 아카이브에는 공개 카드만 보인다. 비공개(잠금) 카드는 주인에게도 편지 보관함의 잠긴편지 필터로만 보인다 (#147). */
+    private ArchiveHomeResponse buildHome(Member owner) {
         List<ArchiveCategorySectionResponse> sections = Arrays.stream(ArchiveCategory.values())
                 .map(category -> ArchiveCategorySectionResponse.of(
                         category,
-                        archiveCardRepository.findByOwnerMemberIdAndCategoryOrderByCreatedAtDesc(owner.getId(), category)
+                        archiveCardRepository.findByOwnerMemberIdAndCategoryAndLockedFalseOrderByCreatedAtDesc(owner.getId(), category)
                                 .stream()
-                                .map(card -> ArchiveCardResponse.from(card, maskPrivateFields))
+                                .map(ArchiveCardResponse::from)
                                 .toList()
                 ))
                 .toList();
@@ -81,21 +79,21 @@ public class ArchiveService {
             throw new CustomException(ErrorCode.ARCHIVE_001);
         }
 
-        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory())));
-        return ArchiveCardDetailResponse.from(card, false);
+        ArchiveCard card = archiveCardRepository.save(ArchiveCard.ofLetterCard(memberId, letterCard, request.categoryOr(letterCard.getCategory()), false));
+        return ArchiveCardDetailResponse.from(card);
     }
 
     /**
-     * 주인은 전체 항목을, 친구(맞팔)는 공개 항목만 본다. 마스킹 여부는 클라이언트가 고르지 않고 서버가 정한다.
-     * 친구가 아니면 카드가 없는 것과 같은 응답을 준다 — 순번 ID로 남의 카드 존재 여부를 알아낼 수 없게.
+     * 주인은 공개·비공개 카드 모두, 친구(맞팔)는 공개 카드만 본다.
+     * 친구가 아니거나 비공개 카드면 카드가 없는 것과 같은 응답을 준다 — 순번 ID로 남의 카드 존재 여부를 알아낼 수 없게.
      */
     public ArchiveCardDetailResponse getCard(Long viewerMemberId, Long archiveCardId) {
         ArchiveCard card = findCard(archiveCardId);
         boolean owner = card.isOwnedBy(viewerMemberId);
-        if (!owner && !isFriend(viewerMemberId, card)) {
+        if (!owner && (card.isLocked() || !isFriend(viewerMemberId, card))) {
             throw new CustomException(ErrorCode.ARCHIVE_002);
         }
-        return ArchiveCardDetailResponse.from(card, !owner);
+        return ArchiveCardDetailResponse.from(card);
     }
 
     @Transactional
@@ -103,24 +101,6 @@ public class ArchiveService {
         ArchiveCard card = archiveCardRepository.findByIdAndOwnerMemberId(archiveCardId, memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
         archiveCardRepository.delete(card);
-    }
-
-    @Transactional
-    public ArchiveVisibilityResponse updateVisibility(
-            Long memberId,
-            Long archiveCardId,
-            ArchiveVisibilityUpdateRequest request
-    ) {
-        ArchiveCard card = archiveCardRepository.findByIdAndOwnerMemberId(archiveCardId, memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.ARCHIVE_002));
-        card.updateVisibility(new ArchiveVisibility(
-                request.senderVisible(),
-                request.receiverVisible(),
-                request.dateVisible(),
-                request.imageVisible(),
-                request.messageVisible()
-        ));
-        return ArchiveVisibilityResponse.from(card);
     }
 
     private boolean isFriend(Long memberId, ArchiveCard card) {

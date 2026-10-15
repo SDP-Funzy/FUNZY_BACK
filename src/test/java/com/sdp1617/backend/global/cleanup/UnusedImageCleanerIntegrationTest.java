@@ -76,7 +76,7 @@ class UnusedImageCleanerIntegrationTest {
         // 콕한 뒤 원래 카드의 사진이 바뀌어도, 아카이브는 복사한 주소로 계속 그 사진을 쓴다.
         // 이미지 기본 주소(CDN 등)가 바뀐 예전 주소여도 key를 알아본다.
         LetterCard archivedCard = addCard(sender, letterId, ARCHIVED_ONLY, "https://old-cdn.example.com/img/" + ARCHIVED_ONLY);
-        em.persist(ArchiveCard.ofLetterCard(sender.getId(), archivedCard, ArchiveCategory.MUSIC));
+        em.persist(ArchiveCard.ofLetterCard(sender.getId(), archivedCard, ArchiveCategory.MUSIC, false));
         em.flush();
         em.createQuery("update LetterCard c set c.imageKey = null, c.imageUrl = null where c.id = :id")
                 .setParameter("id", archivedCard.getId()).executeUpdate();

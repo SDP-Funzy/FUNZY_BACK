@@ -63,6 +63,7 @@ public class LetterInboxController {
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다. read가 false면 미읽음입니다.
             - 날짜를 고르면 그날 받은 편지만: receivedFrom과 receivedTo에 같은 날짜를 넣습니다.
             - thumbnailImageUrls: 목록에서 카드가 겹친 썸네일을 그릴 카드 사진 (카드 순서대로 사진 있는 카드 최대 3장)
+            - locked=true: 잠긴편지 필터. 비공개로 콕한 카드가 하나라도 든 편지만 (#147). 응답의 locked로 편지마다 🔒 표시
             """)
     public ApiResponse<LetterPageResponse<ReceivedLetterResponse>> getReceivedLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
@@ -74,11 +75,13 @@ public class LetterInboxController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate receivedFrom,
             @Parameter(description = "받은 날짜 종료일 (포함)", example = "2026-08-31")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @RequestParam(required = false) LocalDate receivedTo,
+            @Parameter(description = "true면 잠긴편지만 (비공개로 콕한 카드가 든 편지)", example = "false")
+            @RequestParam(defaultValue = "false") boolean locked,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기 (기본 20, 최대 100)", example = "20") @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.ok("받은 편지 목록을 조회했습니다.", letterInboxService.getReceivedLetters(
-                memberId, sort, senderName, receivedFrom, receivedTo, page, size));
+                memberId, sort, senderName, receivedFrom, receivedTo, locked, page, size));
     }
 
     @GetMapping("/sent")
@@ -112,6 +115,7 @@ public class LetterInboxController {
     @Operation(summary = "편지 열기 (펀지팩 열기)", description = """
             편지를 마음카드(순서대로)·두들픽과 함께 조회합니다. 받는 사람에게는 펀지팩 열기(LR-020)이고, 카드를 넘겨보는 화면과 펀지팩 전체 저장(LR-511)에 이 응답을 씁니다.
             - 응답의 cards[].cardId로 콕을, doodlePick.giftItems[].giftItemId로 선물 고르기를 호출합니다.
+            - 받는 사람이 열면 cards[].kok에 내 콕 상태(archiveCardId·category·locked)가 들어 있고, 콕하지 않은 카드는 null입니다.
             - 보낸 사람은 작성 중이든 보낸 뒤든 언제나 볼 수 있습니다 (LW-013 카드 목록 화면).
             - 받는 사람은 받은 편지함에서 지우지 않은 동안 볼 수 있고, 처음 열면 읽음(readAt)으로 표시됩니다 (LR-020).
             - 그 외에는 LETTER_001입니다.
