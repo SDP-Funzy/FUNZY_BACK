@@ -95,21 +95,25 @@ public interface LetterCardRepository extends JpaRepository<LetterCard, Long> {
             Pageable pageable
     );
 
+    /**
+     * 폴더 목록 한 페이지의 사진 있는 카드를 한 번에, 최근 순으로 (#158). 폴더마다 첫 번째가 최근 사진이다.
+     * 폴더 하나는 한 사람과 주고받은 카드뿐이라 한 페이지(최대 50폴더) 분량을 다 읽어도 많지 않다.
+     */
     @Query("""
-            select c.imageUrl from LetterCard c
+            select (case when :asSender = true then r.id else s.id end) as folderMemberId, c.imageUrl as imageUrl
+            from LetterCard c
             join c.letter l
             join l.sender s
             join l.recipient r
             where """ + BOX_CONDITION + """
               and c.imageUrl is not null
-              and ((:asSender = true and r.id = :folderMemberId) or (:asSender = false and s.id = :folderMemberId))
+              and ((:asSender = true and r.id in :folderMemberIds) or (:asSender = false and s.id in :folderMemberIds))
             order by l.sentAt desc, c.id desc
             """)
-    List<String> findLatestFolderImageUrl(
+    List<FolderImageProjection> findFolderImages(
             @Param("asSender") boolean asSender,
             @Param("memberId") Long memberId,
-            @Param("folderMemberId") Long folderMemberId,
-            Pageable pageable
+            @Param("folderMemberIds") Collection<Long> folderMemberIds
     );
 
     @Query("""
@@ -138,6 +142,12 @@ public interface LetterCardRepository extends JpaRepository<LetterCard, Long> {
         long getCardCount();
 
         LocalDateTime getLatestSentAt();
+    }
+
+    interface FolderImageProjection {
+        Long getFolderMemberId();
+
+        String getImageUrl();
     }
 
     interface CalendarImageProjection {
