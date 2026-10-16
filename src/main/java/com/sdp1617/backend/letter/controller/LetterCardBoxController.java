@@ -40,7 +40,7 @@ public class LetterCardBoxController {
     @Operation(summary = "카드 사진 업로드용 Presigned URL 발급", description = """
             편지 카드에 첨부할 사진을 S3에 직접 업로드할 수 있는 presigned URL을 발급합니다.
             - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003), 최대 5MB
-            - URL은 발급 후 10분 동안 유효합니다. 요청한 contentType과 같은 Content-Type 헤더로 uploadUrl에 PUT 업로드한 뒤,
+            - URL은 응답의 expiresAt까지 유효합니다(서버 설정, 기본 10분). 요청한 contentType과 같은 Content-Type 헤더로 uploadUrl에 PUT 업로드한 뒤,
               imageKey를 편지 카드 추가·수정 요청에 넣습니다.
             """)
     @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.CARD_003})

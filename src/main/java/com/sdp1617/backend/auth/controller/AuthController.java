@@ -162,9 +162,10 @@ public class AuthController {
               새 비밀번호 확인 불일치(AUTH_008)와 입력값 오류(COMMON_002)는 링크를 확인하기 전에 걸러지므로 같은 링크로 다시 시도할 수 있습니다.
             - 재설정 성공 시 계정 잠금이 함께 해제되고, 로그인되어 있던 기기의 세션도 모두 종료됩니다.
               이미 발급된 access token도 바로 쓸 수 없게 됩니다(AUTH_027) — 계정 탈취가 의심될 때 기존 로그인을 즉시 끊기 위함.
+            - 링크를 받은 뒤 탈퇴한 계정이면 AUTH_002입니다.
             """)
     @PostMapping("/password/reset")
-    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_008, ErrorCode.AUTH_011, ErrorCode.AUTH_028})
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_002, ErrorCode.AUTH_008, ErrorCode.AUTH_011, ErrorCode.AUTH_028})
     public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmRequest request) {
         authService.resetPassword(request.token(), request.newPassword(), request.newPasswordConfirm());
         return ApiResponse.ok("비밀번호가 재설정되었습니다.", null);
@@ -200,9 +201,10 @@ public class AuthController {
             이메일로 받은 토큰으로 계정 잠금을 해제합니다.
             - 해제 성공 시 모든 IP의 실패 횟수가 초기화되고, 로그인되어 있던 기기의 세션도 모두 종료됩니다.
               이미 발급된 access token도 바로 쓸 수 없게 됩니다(AUTH_027).
+            - 링크를 받은 뒤 탈퇴한 계정이면 AUTH_002입니다.
             """)
     @PostMapping("/account/unlock")
-    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_011})
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_002, ErrorCode.AUTH_011})
     public ApiResponse<Void> unlockAccount(@Valid @RequestBody AccountUnlockConfirmRequest request) {
         authService.unlockAccount(request.token());
         return ApiResponse.ok("계정 잠금이 해제되었습니다.", null);

@@ -57,12 +57,12 @@ public class NotificationController {
     }
 
     @Operation(summary = "알림 목록 조회", description = """
-            최신순으로 알림 목록을 조회합니다. 만든 지 30일이 지난 알림은 정기 정리로 지워집니다.
+            최신순으로 알림 목록을 조회합니다. 서버의 정기 정리가 켜져 있으면 만든 지 30일(기본값)이 지난 알림은 지워집니다.
             - 알림이 생기는 경우 (알림 받는 사람):
               LETTER 편지 도착(받는 사람) / GIFT_SELECTED 선물을 새로 고르거나 바꿈(보낸 사람) /
               COMMENT 내 아카이브 카드에 남이 댓글·답글(카드 주인), 내 댓글에 답글(그 댓글 작성자) /
-              FOLLOW_REQUEST 친구 요청(요청 받은 사람) / FOLLOW_ACCEPTED 친구 요청 수락(요청한 사람)
-            - 콕, 선물 선택 취소, 친구 요청 거절·끊기는 알림이 없습니다.
+              FOLLOW_REQUEST 팔로우 요청(요청 받은 사람) / FOLLOW_ACCEPTED 팔로우 요청 수락(요청한 사람)
+            - 콕, 선물 선택 취소, 팔로우 요청 거절·끊기는 알림이 없습니다.
             - 탭하면 이동: letterId가 있으면 편지 열기(GET /api/letters/{letterId}),
               archiveCardId가 있으면 아카이브 카드 상세(GET /api/archive/cards/{archiveCardId})와 댓글.
               친구 알림은 actorMemberId(상대 회원)로 받은 요청·친구 화면을 엽니다.

@@ -28,7 +28,7 @@ public class OpenApiConfig {
             tag(ApiTags.AUTH_SOCIAL, "카카오·네이버·구글 소셜 로그인과 소셜 회원가입"),
             tag(ApiTags.AUTH_TOKEN, "access token 재발급 (refresh token 교체)"),
             tag(ApiTags.FRIEND_SEARCH, "아이디로 회원 찾기, 회원 프로필과 나와의 친구 관계 조회"),
-            tag(ApiTags.FRIEND, "친구(맞팔) 요청·취소·수락·거절·끊기, 친구 목록·받은/보낸 요청·친구 수"),
+            tag(ApiTags.FRIEND, "팔로우 요청·취소·수락·거절·끊기(수락되면 서로 친구), 친구 목록·받은/보낸 팔로우 요청·친구 수"),
             tag(ApiTags.LETTER_WRITE, "펀지(편지) 작성: 봉투 → 마음카드 1~5장 → 두들픽(선택) → 완료. 보내기 전까지는 보낸 사람만 고칠 수 있음"),
             tag(ApiTags.LETTER_INBOX, "완료한 편지 보내기(회원에게·공유 링크로), 받은 편지함·보낸 편지함, 편지 열기·삭제, 두들픽 선물 고르기"),
             tag(ApiTags.LETTER_KOK, "받은 마음카드를 콕해서 아카이브(공개) 또는 잠긴편지(비공개)에 담기. 받은 사람만 사용"),
@@ -51,7 +51,7 @@ public class OpenApiConfig {
             | 성공 (조회·생성·수정·삭제 모두) | **200** | `true` | `"200"` |
             | 실패 | 4xx·5xx (에러 코드마다 정해짐) | `false` | 에러 코드 (예: `"LETTER_001"`) |
 
-            - 새로 만드는 API(회원가입, 친구 요청, 편지 만들기 등)도 201이 아니라 200입니다.
+            - 새로 만드는 API(회원가입, 팔로우 요청, 편지 만들기 등)도 201이 아니라 200입니다.
             - 오류 종류는 `code`로 분기하고 `message`는 화면 표시용입니다. 전체 목록과 HTTP 상태: [에러 코드 문서](/docs/error-codes)
             - API마다 돌려줄 수 있는 에러는 그 API의 **Responses** 칸에 HTTP 상태별로 있습니다 (코드·메시지 목록과 예시 본문).
               아래 인증 오류는 로그인이 필요한 모든 API 공통이라 각 API에는 적지 않습니다.

@@ -73,7 +73,7 @@ public class NotificationEventListener {
     public void onFollowRequested(FollowRequestedEvent event) {
         memberRepository.findActiveById(event.requesterId()).ifPresent(requester ->
                 notify(event.receiverId(), NotificationType.FOLLOW_REQUEST,
-                        requester.getNickname() + "님이 친구 요청을 보냈어요.", requester.getId(), null, null));
+                        requester.getNickname() + "님이 팔로우 요청을 보냈어요.", requester.getId(), null, null));
     }
 
     @EventListener

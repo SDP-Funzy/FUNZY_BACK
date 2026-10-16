@@ -55,7 +55,7 @@ public class ProfileController {
             S3에 이미지를 직접 업로드할 수 있는 presigned PUT URL을 발급합니다.
             발급받은 URL로 클라이언트가 직접 업로드한 뒤, /complete API로 업로드 완료를 알려야 프로필에 반영됩니다.
             - 지원 형식: image/jpeg, image/png, image/webp (그 외 MYPAGE_002)
-            - URL은 발급 후 10분 동안 유효합니다. 업로드할 때 요청한 contentType과 같은 Content-Type 헤더로 PUT 해야 합니다.
+            - URL은 응답의 expiresAt까지 유효합니다(서버 설정, 기본 10분). 업로드할 때 요청한 contentType과 같은 Content-Type 헤더로 PUT 해야 합니다.
             """)
     @PostMapping("/image/presigned-url")
     @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.MYPAGE_002})

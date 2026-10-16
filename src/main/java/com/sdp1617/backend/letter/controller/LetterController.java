@@ -52,7 +52,7 @@ public class LetterController {
     @GetMapping("/drafts")
     @Operation(summary = "보내지 않은 편지 목록 조회 (이어쓰기)", description = """
             아직 보내지 않은 내 편지(DRAFT 작성 중, COMPLETED 완료)를 최근 수정 순으로 조회합니다 (LW-012 이어쓰기).
-            - 마지막으로 고친 지 90일이 지난 보내지 않은 편지는 정기 정리로 지워집니다.
+            - 서버의 정기 정리가 켜져 있으면 마지막으로 고친 지 90일(기본값)이 지난 보내지 않은 편지는 지워집니다.
             """)
     public ApiResponse<List<LetterDraftResponse>> getUnsentLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
