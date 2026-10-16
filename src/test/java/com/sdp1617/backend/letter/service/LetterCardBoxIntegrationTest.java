@@ -169,6 +169,14 @@ class LetterCardBoxIntegrationTest {
     }
 
     @Test
+    void 캘린더의_없는_월은_입력값_오류다() {
+        assertEquals(ErrorCode.COMMON_002, assertThrows(CustomException.class,
+                () -> cardBoxService.getCalendar(me.getId(), CardBoxType.RECEIVED, 2026, 13)).getErrorCode());
+        assertEquals(ErrorCode.COMMON_002, assertThrows(CustomException.class,
+                () -> cardBoxService.getCalendar(me.getId(), CardBoxType.RECEIVED, 2026, 0)).getErrorCode());
+    }
+
+    @Test
     void 받은_편지함에서_지운_편지의_카드는_받은함에서만_빠진다() {
         Long letterId = sendLetter(friendA, me, "지울 카드");
         letterInboxService.deleteOrHide(me.getId(), letterId);
