@@ -1,19 +1,29 @@
 package com.sdp1617.backend.letter.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import java.util.function.Function;
 import org.springframework.data.domain.Page;
 
 /** 편지함 목록 페이지 (받은 편지함 응답과 같은 형식). */
 public record LetterPageResponse<T>(
+        @Schema(description = "이번 페이지가 비었는지", example = "false")
         boolean empty,
+        @Schema(description = "이번 페이지 항목 수", example = "20")
         int count,
+        @Schema(description = "편지 목록")
         List<T> letters,
+        @Schema(description = "페이지 번호 (0부터)", example = "0")
         int page,
+        @Schema(description = "페이지 크기", example = "20")
         int size,
+        @Schema(description = "전체 항목 수", example = "42")
         long totalElements,
+        @Schema(description = "전체 페이지 수", example = "3")
         int totalPages,
+        @Schema(description = "첫 페이지인지", example = "true")
         boolean first,
+        @Schema(description = "마지막 페이지인지", example = "false")
         boolean last
 ) {
     public static <E, T> LetterPageResponse<T> of(Page<E> page, Function<E, T> mapper) {

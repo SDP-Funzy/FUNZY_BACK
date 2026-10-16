@@ -155,7 +155,7 @@ class NotificationEventIntegrationTest {
         List<NotificationResponse> requested = notifications(recipient);
         assertEquals(1, requested.size());
         assertEquals(NotificationType.FOLLOW_REQUEST, requested.get(0).type());
-        assertEquals("notifysender님이 친구 요청을 보냈어요.", requested.get(0).content());
+        assertEquals("notifysender님이 팔로우 요청을 보냈어요.", requested.get(0).content());
         assertEquals(sender.getId(), requested.get(0).actorMemberId());
 
         Long requestId = followRequestRepository.findByRequesterIdAndReceiverId(sender.getId(), recipient.getId())

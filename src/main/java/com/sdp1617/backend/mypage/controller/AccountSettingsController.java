@@ -1,5 +1,7 @@
 package com.sdp1617.backend.mypage.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.auth.entity.AuthProvider;
 import com.sdp1617.backend.mypage.dto.ConnectedAccountResponse;
 import com.sdp1617.backend.mypage.dto.LogoutRequest;
@@ -9,10 +11,7 @@ import com.sdp1617.backend.mypage.service.AccountSettingsService;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/mypage/account")
-@Tag(name = "마이페이지 - 계정 설정", description = "비밀번호 변경, 연결 계정 조회, 로그아웃, 회원 탈퇴 API")
+@Tag(name = ApiTags.MYPAGE_ACCOUNT)
 public class AccountSettingsController {
 
     private final AccountSettingsService accountSettingsService;
@@ -39,29 +38,6 @@ public class AccountSettingsController {
             - 회원 1명이 로컬 비밀번호 + 소셜 여러 개를 동시에 가질 수 있습니다.
             - hasPassword가 false면 비밀번호 변경 메뉴를 노출하지 않아야 합니다.
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ConnectedAccountResponse.class),
-                            examples = {
-                            @ExampleObject(name = "이메일 가입 + 소셜 연결 없음", value = """
-                                    {
-                                      "success": true,
-                                      "code": "200",
-                                      "message": "연결 계정을 조회했습니다.",
-                                      "data": { "connectedProviders": [], "hasPassword": true }
-                                    }
-                                    """),
-                            @ExampleObject(name = "소셜 전용 계정 (연결 2개)", value = """
-                                    {
-                                      "success": true,
-                                      "code": "200",
-                                      "message": "연결 계정을 조회했습니다.",
-                                      "data": { "connectedProviders": ["KAKAO", "GOOGLE"], "hasPassword": false }
-                                    }
-                                    """)
-                    }))
-    })
     @GetMapping("/connected")
     public ApiResponse<ConnectedAccountResponse> getConnectedAccount(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
@@ -74,46 +50,8 @@ public class AccountSettingsController {
             - 연결 성공 시 이후 해당 provider로도 로그인할 수 있습니다.
             - 이메일이 같아도 자동으로 다른 계정과 병합하지 않으며, 항상 현재 로그인된 회원에 연결됩니다.
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "연결 성공",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "소셜 계정이 연결되었습니다.",
-                              "data": null
-                            }
-                            """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 연결됨 (본인 또는 다른 계정)",
-                    content = @Content(mediaType = "application/json", examples = {
-                            @ExampleObject(name = "본인 계정에 이미 연결된 provider", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_018",
-                                      "message": "이미 연결된 소셜 계정입니다.",
-                                      "data": null
-                                    }
-                                    """),
-                            @ExampleObject(name = "다른 계정에 이미 연결된 소셜 계정", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_017",
-                                      "message": "이미 다른 계정에 연결된 소셜 계정입니다.",
-                                      "data": null
-                                    }
-                                    """)
-                    })),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "소셜 인증 실패 (유효하지 않거나 만료된 토큰)",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": false,
-                              "code": "AUTH_013",
-                              "message": "소셜 인증에 실패했습니다.",
-                              "data": null
-                            }
-                            """)))
-    })
     @PostMapping("/connections")
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_013, ErrorCode.AUTH_017, ErrorCode.AUTH_018})
     public ApiResponse<Void> connectSocialAccount(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody SocialConnectionAddRequest request
@@ -126,36 +64,8 @@ public class AccountSettingsController {
             현재 로그인된 본인 계정에서 지정한 provider의 소셜 연결을 해제합니다.
             - 비밀번호가 없고(소셜 전용 계정) 연결된 소셜이 이것 하나뿐이면 해제할 수 없습니다(로그인 수단 소실 방지).
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "해제 성공",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "소셜 계정 연결이 해제되었습니다.",
-                              "data": null
-                            }
-                            """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "마지막 남은 로그인 수단",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": false,
-                              "code": "AUTH_020",
-                              "message": "마지막 남은 로그인 수단은 연결 해제할 수 없습니다.",
-                              "data": null
-                            }
-                            """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "연결되지 않은 소셜 계정",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": false,
-                              "code": "AUTH_019",
-                              "message": "연결되지 않은 소셜 계정입니다.",
-                              "data": null
-                            }
-                            """)))
-    })
     @DeleteMapping("/connections/{provider}")
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_019, ErrorCode.AUTH_020})
     public ApiResponse<Void> disconnectSocialAccount(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "해제할 소셜 provider", example = "KAKAO") @PathVariable AuthProvider provider
@@ -171,53 +81,8 @@ public class AccountSettingsController {
             - 변경 성공 시 이 기기를 포함해 로그인되어 있던 모든 기기의 세션이 종료됩니다.
               이미 발급된 access token도 바로 쓸 수 없게 되어(AUTH_027), 변경 후에는 새 비밀번호로 다시 로그인해야 합니다.
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "변경 성공",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "비밀번호가 변경되었습니다.",
-                              "data": null
-                            }
-                            """))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "소셜 전용 계정 / 현재 비밀번호 불일치 / 새 비밀번호 확인 불일치 / 현재와 같은 새 비밀번호",
-                    content = @Content(mediaType = "application/json", examples = {
-                            @ExampleObject(name = "소셜 전용 계정", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_014",
-                                      "message": "소셜 전용 계정은 비밀번호를 변경할 수 없습니다.",
-                                      "data": null
-                                    }
-                                    """),
-                            @ExampleObject(name = "현재 비밀번호 불일치", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_015",
-                                      "message": "현재 비밀번호가 일치하지 않습니다.",
-                                      "data": null
-                                    }
-                                    """),
-                            @ExampleObject(name = "새 비밀번호 확인 불일치", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_008",
-                                      "message": "비밀번호가 일치하지 않습니다.",
-                                      "data": null
-                                    }
-                                    """),
-                            @ExampleObject(name = "현재 비밀번호와 같은 새 비밀번호", value = """
-                                    {
-                                      "success": false,
-                                      "code": "AUTH_028",
-                                      "message": "현재 비밀번호와 다른 비밀번호를 입력해주세요.",
-                                      "data": null
-                                    }
-                                    """)
-                    }))
-    })
     @PatchMapping("/password")
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_008, ErrorCode.AUTH_014, ErrorCode.AUTH_015, ErrorCode.AUTH_028})
     public ApiResponse<Void> changePassword(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody PasswordChangeRequest request
@@ -230,19 +95,10 @@ public class AccountSettingsController {
     @Operation(summary = "로그아웃", description = """
             요청 바디로 전달한 refreshToken에 해당하는 세션만 종료합니다.
             - 다른 기기에서 로그인된 세션에는 영향을 주지 않습니다.
+            - refreshToken이 내 토큰이 아니거나 형식이 잘못됐으면 AUTH_003, 만료됐으면 AUTH_004입니다. 이때 세션은 이미 끝난 것이므로 앱은 저장된 토큰을 지우고 로그아웃 처리하면 됩니다.
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "로그아웃되었습니다.",
-                              "data": null
-                            }
-                            """)))
-    })
     @PostMapping("/logout")
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.AUTH_003, ErrorCode.AUTH_004})
     public ApiResponse<Void> logout(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody LogoutRequest request
@@ -254,20 +110,11 @@ public class AccountSettingsController {
     @Operation(summary = "회원 탈퇴", description = """
             계정을 삭제하고 서비스를 탈퇴합니다.
             - 삭제 후 데이터 복구가 불가능합니다.
-            - 현재는 회원 계정만 삭제하며, 아카이브 등 연관 도메인 데이터의 삭제 범위는 기획 확정 후 별도 처리됩니다.
+            - 지워지는 것: 소셜 연결(같은 소셜 계정으로 다시 가입 가능), 친구 관계·팔로우 요청, 내 아카이브와 거기 달린 댓글, 내 알림,
+              웹 푸시 구독, 보내지 않은 내 편지, 프로필 이미지. 받은 편지는 받은 편지함에서 빠지고, 내가 만든 공유 링크는 무효가 됩니다.
+            - 남는 것: 주고받은 편지(상대의 편지함·보관함에서 보임)와 남의 카드에 단 댓글. 작성자는 "탈퇴한회원N"으로 보입니다.
             - 탈퇴 성공 시 로그인되어 있던 모든 기기의 세션이 종료됩니다.
             """)
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "탈퇴 성공",
-                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
-                            {
-                              "success": true,
-                              "code": "200",
-                              "message": "회원 탈퇴가 완료되었습니다.",
-                              "data": null
-                            }
-                            """)))
-    })
     @DeleteMapping
     public ApiResponse<Void> withdraw(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId

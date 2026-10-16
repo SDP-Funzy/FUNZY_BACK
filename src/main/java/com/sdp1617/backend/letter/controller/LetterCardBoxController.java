@@ -1,5 +1,7 @@
 package com.sdp1617.backend.letter.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import com.sdp1617.backend.letter.dto.CardBoxType;
 import com.sdp1617.backend.letter.dto.CardCalendarResponse;
@@ -11,6 +13,7 @@ import com.sdp1617.backend.letter.dto.CursorPageResponse;
 import com.sdp1617.backend.letter.service.LetterCardBoxService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -28,10 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/cards")
 @RequiredArgsConstructor
-@Tag(name = "마음카드 보관함", description = """
-        주고받은 펀지 속 마음카드를 편지 단위가 아니라 카드 단위로, 보낸함·받은함으로 모아 보는 API (목록·상대방별 폴더·월별 캘린더).
-        카드 사진 업로드 URL 발급도 여기 있습니다. 카드 작성·수정·삭제는 "편지 ① 쓰기" API를 사용합니다.
-        """)
+@Tag(name = ApiTags.LETTER_CARD_BOX)
 public class LetterCardBoxController {
 
     private final LetterCardBoxService letterCardBoxService;
@@ -39,9 +39,11 @@ public class LetterCardBoxController {
     @PostMapping("/images/presigned-url")
     @Operation(summary = "카드 사진 업로드용 Presigned URL 발급", description = """
             편지 카드에 첨부할 사진을 S3에 직접 업로드할 수 있는 presigned URL을 발급합니다.
-            - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003)
-            - uploadUrl로 PUT 업로드한 뒤, imageKey를 편지 카드 추가·수정 요청에 넣습니다.
+            - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003), 최대 5MB
+            - URL은 응답의 expiresAt까지 유효합니다(서버 설정, 기본 10분). 요청한 contentType과 같은 Content-Type 헤더로 uploadUrl에 PUT 업로드한 뒤,
+              imageKey를 편지 카드 추가·수정 요청에 넣습니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.CARD_003})
     public ApiResponse<CardImagePresignedUrlResponse> issueImagePresignedUrl(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody CardImagePresignedUrlRequest request
@@ -53,10 +55,11 @@ public class LetterCardBoxController {
     @Operation(summary = "마음카드 보관함 목록 조회", description = """
             보낸(SENT) 또는 받은(RECEIVED) 편지 속 카드를 주고받은 시각 최신순으로 조회합니다.
             - 받은함에는 받은 편지함에서 지운 편지의 카드가 나오지 않습니다.
-            - date를 주면 그날 주고받은 카드만, keyword를 주면 내용 또는 상대방(받은함은 보낸 사람, 보낸함은 받은 사람)의 봉투 이름·닉네임에 포함된 카드만 조회합니다.
+            - date를 주면 그날 주고받은 카드만, keyword를 주면 내용 또는 상대방(받은함은 보낸 사람, 보낸함은 받은 사람)의 봉투 이름·아이디에 포함된 카드만 조회합니다.
             - 커서 기반 페이지네이션: 응답의 nextCursor를 다음 요청의 cursor로 보내고, hasNext가 false면 마지막 페이지입니다.
             - size는 기본 20, 최대 50입니다. 잘못된 cursor는 COMMON_002입니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<CursorPageResponse<CardStorageResponse>> getCards(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
@@ -74,9 +77,10 @@ public class LetterCardBoxController {
     @GetMapping("/folders")
     @Operation(summary = "마음카드 보관함 폴더 조회", description = """
             주고받은 상대방별로 묶은 폴더 목록을 최근에 주고받은 순으로 조회합니다.
-            - 폴더마다 상대 회원 ID·닉네임, 카드 수, 최근 카드 사진, 최근에 주고받은 시각을 반환합니다.
+            - 폴더마다 상대 회원 ID·아이디, 카드 수, 최근 카드 사진, 최근에 주고받은 시각을 반환합니다.
             - 페이지네이션 방식은 보관함 목록 조회와 같습니다 (size 기본 20, 최대 50).
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<CursorPageResponse<CardFolderResponse>> getFolders(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
@@ -91,7 +95,9 @@ public class LetterCardBoxController {
     @Operation(summary = "마음카드 보관함 월별 캘린더 요약 조회", description = """
             해당 월에 카드를 주고받은 날짜와, 날짜별 카드 사진 URL 목록을 조회합니다.
             - 카드가 없는 날짜는 days에 포함되지 않습니다. 사진이 없는 카드는 사진 목록에서 제외됩니다.
+            - year는 1~9999, month는 1~12입니다. 범위를 벗어나면 COMMON_002입니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<CardCalendarResponse> getCalendar(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "조회함 유형", example = "RECEIVED") @RequestParam(defaultValue = "RECEIVED") CardBoxType type,
@@ -106,6 +112,7 @@ public class LetterCardBoxController {
             내가 보냈거나 받은 편지 속 카드 1장을 조회합니다.
             - 보내기 전 편지의 카드, 받은 편지함에서 지운 편지의 카드, 남의 카드는 CARD_001입니다.
             """)
+    @ApiErrorCodes({ErrorCode.CARD_001})
     public ApiResponse<CardStorageResponse> getCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "카드 ID", example = "10") @PathVariable Long cardId

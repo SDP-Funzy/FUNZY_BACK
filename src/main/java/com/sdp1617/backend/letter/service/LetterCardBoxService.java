@@ -47,6 +47,8 @@ public class LetterCardBoxService {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
+    private static final int MIN_CALENDAR_YEAR = 1;
+    private static final int MAX_CALENDAR_YEAR = 9999;
     private static final String IMAGE_KEY_PREFIX = "cards/";
 
     private final LetterCardRepository letterCardRepository;
@@ -99,7 +101,7 @@ public class LetterCardBoxService {
     }
 
     public CardCalendarResponse getCalendar(Long memberId, CardBoxType type, int year, int month) {
-        YearMonth yearMonth = YearMonth.of(year, month);
+        YearMonth yearMonth = toYearMonth(year, month);
         Map<LocalDate, List<String>> imageUrlsByDate = letterCardRepository.findBoxCalendarImages(
                         asSender(type), memberId,
                         yearMonth.atDay(1).atStartOfDay(),
@@ -144,6 +146,14 @@ public class LetterCardBoxService {
                         summaries.stream().map(FolderSummaryProjection::getMemberId).toList())
                 .forEach(image -> latest.putIfAbsent(image.getFolderMemberId(), image.getImageUrl()));
         return latest;
+    }
+
+    /** 없는 월(0, 13 등)이 서버 오류(500)로 나가지 않게 한다. */
+    private static YearMonth toYearMonth(int year, int month) {
+        if (year < MIN_CALENDAR_YEAR || year > MAX_CALENDAR_YEAR || month < 1 || month > 12) {
+            throw new CustomException(ErrorCode.COMMON_002, "year·month 값이 올바르지 않습니다.");
+        }
+        return YearMonth.of(year, month);
     }
 
     private static boolean asSender(CardBoxType type) {

@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record LetterMemberResponse(
         @Schema(description = "회원 ID", example = "2")
         Long memberId,
-        @Schema(description = "닉네임(아이디)", example = "tiki")
+        @Schema(description = "아이디", example = "tiki")
         String nickname,
         @Schema(description = "프로필 이미지 URL. 기본 이미지면 null")
         String profileImageUrl

@@ -7,6 +7,7 @@ import java.util.List;
 
 /** 받은 편지함의 편지 요약. */
 public record ReceivedLetterResponse(
+        @Schema(description = "편지 ID", example = "1")
         Long letterId,
         @Schema(description = "보낸 회원")
         LetterMemberResponse sender,
@@ -18,11 +19,11 @@ public record ReceivedLetterResponse(
         LocalDateTime receivedAt,
         @Schema(description = "카드 수", example = "3")
         int heartCardCount,
-        @Schema(description = "목록 썸네일용 카드 사진 URL. 카드 순서대로 사진이 있는 카드 최대 3장, 사진이 없으면 빈 목록 (#147)")
+        @Schema(description = "목록 썸네일용 카드 사진 URL. 카드 순서대로 사진이 있는 카드 최대 3장, 사진이 없으면 빈 목록")
         List<String> thumbnailImageUrls,
         @Schema(description = "읽었는지. false면 미읽음 표시")
         boolean read,
-        @Schema(description = "비공개로 콕한 카드가 들어 있는지 (잠긴편지 🔒, #147)")
+        @Schema(description = "비공개로 콕한 카드가 들어 있는지 (잠긴편지 🔒)")
         boolean locked
 ) {
     private static final int THUMBNAIL_COUNT = 3;

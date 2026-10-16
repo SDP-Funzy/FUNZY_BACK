@@ -13,24 +13,31 @@ public record CardStorageResponse(
         Long cardId,
         @Schema(description = "카드가 들어 있는 편지 ID", example = "1")
         Long letterId,
+        @Schema(description = "보낸 회원 ID", example = "2")
         Long senderId,
-        @Schema(description = "보낸 회원 닉네임")
+        @Schema(description = "보낸 회원 아이디")
         String senderNickname,
+        @Schema(description = "받은 회원 ID", example = "1")
         Long receiverId,
-        @Schema(description = "받은 회원 닉네임")
+        @Schema(description = "받은 회원 아이디")
         String receiverNickname,
         @Schema(description = "봉투의 보내는 사람 이름", example = "티키")
         String fromName,
         @Schema(description = "봉투의 받는 사람 이름", example = "은우")
         String toName,
+        @Schema(description = "봉투 디자인", example = "DesignType_A")
         DesignType designType,
+        @Schema(description = "카드 카테고리", example = "MUSIC")
         ArchiveCategory category,
         @Schema(description = "기타 직접 입력 카테고리. 기타가 아니면 null")
         String customCategory,
         @Schema(description = "링크 (없으면 null). http:// 또는 https://로 시작하는 주소만 저장됨. 화면에 <a href>로 그릴 때도 http(s)인지 한 번 더 확인해 주세요")
         String link,
+        @Schema(description = "링크 제목. 없으면 null")
         String linkTitle,
+        @Schema(description = "카드 본문", example = "출근길마다 듣는데 네 생각이 났어")
         String content,
+        @Schema(description = "카드 사진 URL. 없으면 null")
         String imageUrl,
         @Schema(description = "편지를 보낸(받은) 시각")
         LocalDateTime sentAt

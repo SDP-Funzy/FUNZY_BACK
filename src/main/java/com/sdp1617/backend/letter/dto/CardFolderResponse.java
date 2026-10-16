@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record CardFolderResponse(
         @Schema(description = "상대 회원 ID", example = "2")
         Long memberId,
-        @Schema(description = "상대 닉네임")
+        @Schema(description = "상대 아이디")
         String nickname,
         @Schema(description = "주고받은 카드 수", example = "3")
         long cardCount,
