@@ -7,6 +7,7 @@ import java.util.List;
 
 /** 보낸 편지함의 편지 요약. */
 public record SentLetterResponse(
+        @Schema(description = "편지 ID", example = "1")
         Long letterId,
         @Schema(description = "받는 회원")
         LetterMemberResponse recipient,
@@ -16,8 +17,9 @@ public record SentLetterResponse(
         String fromName,
         @Schema(description = "카드 수", example = "3")
         int cardCount,
-        @Schema(description = "목록 썸네일용 카드 사진 URL. 카드 순서대로 사진이 있는 카드 최대 3장, 사진이 없으면 빈 목록 (#147)")
+        @Schema(description = "목록 썸네일용 카드 사진 URL. 카드 순서대로 사진이 있는 카드 최대 3장, 사진이 없으면 빈 목록")
         List<String> thumbnailImageUrls,
+        @Schema(description = "보낸 시각. 공유 링크로 보낸 편지는 받는 사람이 받은 시각 (아직 아무도 안 받았으면 링크를 만든 시각)")
         LocalDateTime sentAt,
         @Schema(description = "받는 사람이 읽었는지")
         boolean read

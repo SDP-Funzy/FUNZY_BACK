@@ -11,7 +11,7 @@ public record ArchiveCommentResponse(
         Long commentId,
         @Schema(description = "원댓글이면 null, 답글이면 원댓글 ID", example = "null")
         Long parentCommentId,
-        @Schema(description = "작성자. 탈퇴한 회원은 닉네임이 \"탈퇴한회원N\"")
+        @Schema(description = "작성자. 탈퇴한 회원은 아이디가 \"탈퇴한회원N\"")
         Author author,
         @Schema(description = "내용", example = "이 노래 나도 좋아해!")
         String content,
@@ -23,12 +23,13 @@ public record ArchiveCommentResponse(
         boolean deletable,
         @Schema(description = "수정한 적이 있는지", example = "false")
         boolean edited,
+        @Schema(description = "작성 시각")
         LocalDateTime createdAt
 ) {
     public record Author(
             @Schema(description = "회원 ID", example = "2")
             Long memberId,
-            @Schema(description = "닉네임(아이디)", example = "tiki")
+            @Schema(description = "아이디", example = "tiki")
             String nickname,
             @Schema(description = "프로필 이미지 URL. 기본 이미지면 null")
             String profileImageUrl

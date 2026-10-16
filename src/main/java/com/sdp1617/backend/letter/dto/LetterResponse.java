@@ -17,8 +17,11 @@ public record LetterResponse(
         LetterMemberResponse sender,
         @Schema(description = "받는 회원. 보내기 전이면 null")
         LetterMemberResponse recipient,
+        @Schema(description = "봉투의 받는 사람 이름", example = "은우")
         String toName,
+        @Schema(description = "봉투의 보내는 사람 이름", example = "티키")
         String fromName,
+        @Schema(description = "봉투 디자인", example = "DesignType_A")
         DesignType designType,
         @Schema(description = "카드 목록 (카드 순서대로, 최대 5장)")
         List<LetterCardResponse> cards,
@@ -26,9 +29,13 @@ public record LetterResponse(
         DoodlePickResponse doodlePick,
         @Schema(description = "받는 사람이 고른 선물 후보 ID. 안 골랐으면 null")
         Long selectedGiftItemId,
+        @Schema(description = "편지를 만든 시각")
         LocalDateTime createdAt,
+        @Schema(description = "마지막으로 고친 시각")
         LocalDateTime updatedAt,
+        @Schema(description = "완료한 시각. 완료 전이면 null")
         LocalDateTime completedAt,
+        @Schema(description = "보낸 시각. 보내기 전이면 null. 공유 링크로 보낸 편지는 받는 사람이 받은 시각")
         LocalDateTime sentAt,
         @Schema(description = "받는 사람이 처음 열어본 시각. 안 읽었으면 null")
         LocalDateTime readAt

@@ -14,6 +14,7 @@ public record PushSubscriptionRequest(
         String endpoint,
         @NotNull(message = "keys는 필수입니다.")
         @Valid
+        @Schema(description = "PushSubscription.toJSON()의 keys")
         Keys keys
 ) {
     public record Keys(

@@ -1,6 +1,9 @@
 package com.sdp1617.backend.social.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /** 나와 상대 회원의 친구 관계 상태 (#153). 친구 아카이브 블러 화면·검색 결과 버튼에 쓴다. */
+@Schema(description = "나와의 친구 관계: NONE(관계 없음) / REQUESTED(내가 요청함) / RECEIVED(상대가 요청함) / FRIEND(친구) / SELF(나)")
 public enum FollowStatus {
     /** 아무 관계 없음 — 친구 요청 가능 */
     NONE,
