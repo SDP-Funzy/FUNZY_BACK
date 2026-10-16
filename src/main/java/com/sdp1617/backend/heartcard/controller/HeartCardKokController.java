@@ -1,11 +1,14 @@
 package com.sdp1617.backend.heartcard.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import com.sdp1617.backend.heartcard.dto.HeartCardKokRequest;
 import com.sdp1617.backend.heartcard.dto.HeartCardKokResponse;
 import com.sdp1617.backend.heartcard.service.HeartCardKokService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "편지 ③ 마음카드 콕", description = "받은 펀지의 마음카드를 콕하는 API. 공개로 콕하면 아카이브에, 비공개로 콕하면 편지 보관함의 잠긴편지에만 보입니다. 받은 사람만 사용할 수 있습니다. heartCardId는 편지 열기 응답의 cards[].cardId(아카이브에서는 letterCardId)입니다.")
+@Tag(name = ApiTags.LETTER_KOK)
 public class HeartCardKokController {
 
     private final HeartCardKokService heartCardKokService;
@@ -27,6 +30,7 @@ public class HeartCardKokController {
             summary = "마음카드 콕 상태 조회",
             description = "카드 열람 시 현재 로그인 사용자의 콕 상태를 조회합니다. 콕한 카드는 archiveCardId와 공개/비공개(locked)가 함께 반환됩니다."
     )
+    @ApiErrorCodes({ErrorCode.COMMON_001})
     public ApiResponse<HeartCardKokResponse> getKok(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId
@@ -49,6 +53,7 @@ public class HeartCardKokController {
                       아카이브에서는 카드의 letterCardId를 heartCardId로 씁니다.
                     """
     )
+    @ApiErrorCodes({ErrorCode.COMMON_001, ErrorCode.COMMON_002})
     public ApiResponse<HeartCardKokResponse> updateKok(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "받은 편지의 카드 ID (편지 열기 응답의 cards[].cardId). 받은 편지가 아니면 COMMON_001", example = "10") @PathVariable Long heartCardId,

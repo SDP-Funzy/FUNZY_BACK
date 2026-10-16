@@ -1,11 +1,14 @@
 package com.sdp1617.backend.archive.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.archive.dto.ArchiveCardDetailResponse;
 import com.sdp1617.backend.archive.dto.ArchiveHomeResponse;
 import com.sdp1617.backend.archive.service.ArchiveService;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "아카이브", description = "공개로 콕한 마음카드를 카테고리별 보드로 보는 아카이브 API. 친구도 볼 수 있습니다. 카드를 담고 빼는 것은 콕 API(PUT /api/heart-cards/{heartCardId}/kok, heartCardId = letterCardId)로만 합니다. 비공개(잠금) 카드는 아카이브에 나오지 않고, 공개/비공개 전환도 콕 API의 locked로 합니다.")
+@Tag(name = ApiTags.ARCHIVE)
 public class ArchiveController {
 
     private final ArchiveService archiveService;
@@ -23,7 +26,7 @@ public class ArchiveController {
     @GetMapping("/api/archive/home")
     @Operation(
             summary = "아카이브 메인홈 조회",
-            description = "앱 진입 시 기본으로 노출할 아카이브 홈 데이터를 조회합니다. 닉네임, 프로필 이미지, '아카이브' 타이틀, 카테고리별 카드 목록과 전체 빈 상태 여부를 반환합니다. 비공개(잠금) 카드는 나오지 않습니다. 카테고리 보드의 대표 사진은 sections[].thumbnailImageUrl(처음 저장된 카드 중 사진 있는 카드, 없으면 null)입니다."
+            description = "앱 진입 시 기본으로 노출할 아카이브 홈 데이터를 조회합니다. 아이디, 프로필 이미지, '아카이브' 타이틀, 카테고리별 카드 목록과 전체 빈 상태 여부를 반환합니다. 비공개(잠금) 카드는 나오지 않습니다. 카테고리 보드의 대표 사진은 sections[].thumbnailImageUrl(처음 저장된 카드 중 사진 있는 카드, 없으면 null)입니다. 카드를 담고 빼기와 공개/비공개 전환은 콕 API(PUT /api/heart-cards/{heartCardId}/kok)로 합니다."
     )
     public ApiResponse<ArchiveHomeResponse> getHome(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId
@@ -40,6 +43,7 @@ public class ArchiveController {
                     - 친구가 아니면 SOCIAL_007입니다. friendMemberId는 친구 목록 API의 memberId입니다.
                     """
     )
+    @ApiErrorCodes({ErrorCode.SOCIAL_007})
     public ApiResponse<ArchiveHomeResponse> getFriendHome(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "아카이브를 볼 친구의 회원 ID", example = "2") @PathVariable Long friendMemberId
@@ -57,6 +61,7 @@ public class ArchiveController {
                     - 내 카드도 친구의 카드도 아니면 ARCHIVE_002입니다.
                     """
     )
+    @ApiErrorCodes({ErrorCode.ARCHIVE_002})
     public ApiResponse<ArchiveCardDetailResponse> getCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long viewerMemberId,
             @Parameter(description = "조회할 아카이브 카드 ID", example = "1") @PathVariable Long archiveCardId

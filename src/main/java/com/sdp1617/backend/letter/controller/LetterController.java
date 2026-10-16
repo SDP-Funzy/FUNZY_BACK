@@ -1,5 +1,7 @@
 package com.sdp1617.backend.letter.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import com.sdp1617.backend.letter.dto.DoodlePickRequest;
 import com.sdp1617.backend.letter.dto.LetterCardRequest;
@@ -10,6 +12,7 @@ import com.sdp1617.backend.letter.service.LetterCardContentResolver;
 import com.sdp1617.backend.letter.service.LetterWriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -27,11 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/letters")
 @RequiredArgsConstructor
-@Tag(name = "편지 ① 쓰기", description = """
-        펀지(편지) 작성: 봉투 구성 → 마음카드 1~5장 → 두들픽(선택) → 완료. 보내기 전까지는 보낸 사람만 수정할 수 있습니다.
-        없거나 내가 쓴 편지가 아니면 LETTER_001, 이미 보낸 편지를 고치면 LETTER_003입니다 (아래 수정 API 공통).
-        작성 중인 편지 조회·삭제와 보내기는 "편지 ② 보내기·편지함" API를 사용합니다.
-        """)
+@Tag(name = ApiTags.LETTER_WRITE)
 public class LetterController {
 
     private final LetterWriteService letterWriteService;
@@ -42,6 +41,7 @@ public class LetterController {
             받는 사람·보내는 사람 이름(각 10자 이내)과 봉투 디자인으로 새 편지를 만듭니다 (LW-111/112). 상태는 DRAFT(작성 중)입니다.
             - 이어서 카드 추가 API로 카드를 1~5장 작성합니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<LetterResponse> start(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Valid @RequestBody LetterEnvelopeRequest request
@@ -50,7 +50,7 @@ public class LetterController {
     }
 
     @GetMapping("/drafts")
-    @Operation(summary = "보내지 않은 편지 목록 (이어쓰기)", description = """
+    @Operation(summary = "보내지 않은 편지 목록 조회 (이어쓰기)", description = """
             아직 보내지 않은 내 편지(DRAFT 작성 중, COMPLETED 완료)를 최근 수정 순으로 조회합니다 (LW-012 이어쓰기).
             - 마지막으로 고친 지 90일이 지난 보내지 않은 편지는 정기 정리로 지워집니다.
             """)
@@ -64,6 +64,7 @@ public class LetterController {
     @Operation(summary = "봉투 수정", description = """
             받는 사람·보내는 사람 이름과 봉투 디자인을 수정합니다. 전송된 편지는 수정할 수 없습니다(LETTER_003).
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.LETTER_001, ErrorCode.LETTER_003})
     public ApiResponse<LetterResponse> updateEnvelope(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -79,6 +80,7 @@ public class LetterController {
               업로드가 끝나지 않았으면 CARD_002, 지원하지 않는 형식이면 CARD_003, 5MB 초과면 CARD_004, 내 imageKey가 아니면 COMMON_004입니다.
             - 전송된 편지에는 추가할 수 없습니다(LETTER_003).
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.COMMON_004, ErrorCode.CARD_002, ErrorCode.CARD_003, ErrorCode.CARD_004, ErrorCode.LETTER_001, ErrorCode.LETTER_002, ErrorCode.LETTER_003})
     public ApiResponse<LetterResponse> addCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -92,6 +94,7 @@ public class LetterController {
             카드 내용을 통째로 바꿉니다 (LW-020). 사진을 유지하려면 기존 imageKey를 다시 보내고, 빼려면 비워서 보냅니다.
             - 편지에 없는 카드면 LETTER_005, 전송된 편지면 LETTER_003입니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.COMMON_004, ErrorCode.CARD_002, ErrorCode.CARD_003, ErrorCode.CARD_004, ErrorCode.LETTER_001, ErrorCode.LETTER_003, ErrorCode.LETTER_005})
     public ApiResponse<LetterResponse> updateCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -107,6 +110,7 @@ public class LetterController {
             카드를 삭제하고 남은 카드의 순서를 1부터 다시 매깁니다 (LW-019).
             - 완료된 편지의 마지막 카드를 지우면 편지는 다시 DRAFT(작성 중)가 됩니다.
             """)
+    @ApiErrorCodes({ErrorCode.LETTER_001, ErrorCode.LETTER_003, ErrorCode.LETTER_005})
     public ApiResponse<LetterResponse> removeCard(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -119,6 +123,7 @@ public class LetterController {
     @Operation(summary = "두들픽 저장", description = """
             선물 후보 2~3개(각 30자 이내)와 선정 이유(150자 이내)를 저장합니다 (LW-610~621). 편지당 1개이며, 다시 저장하면 통째로 바뀝니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.LETTER_001, ErrorCode.LETTER_003})
     public ApiResponse<LetterResponse> replaceDoodlePick(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -129,6 +134,7 @@ public class LetterController {
 
     @DeleteMapping("/{letterId}/doodle-pick")
     @Operation(summary = "두들픽 삭제", description = "편지에서 두들픽을 뺍니다. 두들픽은 선택 항목입니다.")
+    @ApiErrorCodes({ErrorCode.LETTER_001, ErrorCode.LETTER_003})
     public ApiResponse<LetterResponse> removeDoodlePick(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId
@@ -141,6 +147,7 @@ public class LetterController {
             작성을 마치고 편지를 COMPLETED(완료) 상태로 만듭니다 (LW-710). 카드가 1장 이상 있어야 합니다(LETTER_004, LW-711).
             - 완료 후에도 보내기 전까지는 수정할 수 있습니다. 보내기는 별도 API로 합니다.
             """)
+    @ApiErrorCodes({ErrorCode.LETTER_001, ErrorCode.LETTER_003, ErrorCode.LETTER_004})
     public ApiResponse<LetterResponse> complete(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId

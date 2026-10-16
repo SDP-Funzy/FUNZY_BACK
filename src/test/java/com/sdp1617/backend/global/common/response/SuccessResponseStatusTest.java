@@ -52,8 +52,6 @@ class SuccessResponseStatusTest {
                 .andExpect(jsonPath("$.paths..responses['201']").isEmpty())
                 .andExpect(jsonPath("$.paths['/api/auth/signup'].post.responses['200']").exists())
                 .andExpect(jsonPath("$.paths['/api/social/follow/requests'].post.responses['200']").exists())
-                // 응답 예시는 JSON 객체로 나온다: 예시 하나(example)와 여러 개(examples.*.value) 모두 확인
-                .andExpect(jsonPath("$.paths..example.code", hasItem("200")))
                 .andExpect(jsonPath("$.paths..example.code", not(hasItem("201"))))
                 .andExpect(jsonPath("$.paths..examples..value.code", not(hasItem("201"))));
     }

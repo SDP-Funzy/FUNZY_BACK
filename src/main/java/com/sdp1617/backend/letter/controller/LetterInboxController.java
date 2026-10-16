@@ -1,5 +1,7 @@
 package com.sdp1617.backend.letter.controller;
 
+import com.sdp1617.backend.global.error.ErrorCode;
+import com.sdp1617.backend.global.error.ApiErrorCodes;
 import com.sdp1617.backend.global.common.response.ApiResponse;
 import com.sdp1617.backend.letter.dto.GiftSelectRequest;
 import com.sdp1617.backend.letter.dto.LetterPageResponse;
@@ -12,6 +14,7 @@ import com.sdp1617.backend.letter.entity.LetterSortType;
 import com.sdp1617.backend.letter.service.LetterInboxService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import com.sdp1617.backend.global.config.ApiTags;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -31,10 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/letters")
 @RequiredArgsConstructor
-@Tag(name = "편지 ② 보내기·편지함", description = """
-        완료한 편지 보내기, 받은 편지함(= 받은 펀지팩 목록)·보낸 편지함, 편지 열기(= 펀지팩 열기)·삭제, 두들픽 선물 고르기.
-        받는 사람에게 도착한 편지가 펀지팩이며, 보낸 사람과 같은 letterId를 씁니다.
-        """)
+@Tag(name = ApiTags.LETTER_INBOX)
 public class LetterInboxController {
 
     private final LetterInboxService letterInboxService;
@@ -43,10 +43,11 @@ public class LetterInboxController {
     @Operation(summary = "편지 보내기", description = """
             완료한 편지를 회원에게 보냅니다 (LW-822). 보내면 받는 사람의 받은 편지함에 도착하고, 더 이상 수정할 수 없습니다.
             - 받는 사람은 친구 목록 또는 회원 검색 결과의 memberId입니다. 친구가 아니어도 보낼 수 있습니다.
-            - 공유 링크로 보냈지만 아직 아무도 받지 않은 편지도 보낼 수 있고, 이 회원이 받는 사람이 됩니다 (#114).
+            - 공유 링크로 보냈지만 아직 아무도 받지 않은 편지도 보낼 수 있고, 이 회원이 받는 사람이 됩니다.
             - 완료하지 않은 편지는 LETTER_006, 이미 받는 사람이 정해진 편지는 LETTER_009, 본인에게 보내면 LETTER_007,
               없거나 탈퇴한 회원이면 LETTER_008, 내가 쓴 편지가 아니면 LETTER_001입니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002, ErrorCode.LETTER_001, ErrorCode.LETTER_006, ErrorCode.LETTER_007, ErrorCode.LETTER_008, ErrorCode.LETTER_009})
     public ApiResponse<LetterResponse> send(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -56,15 +57,16 @@ public class LetterInboxController {
     }
 
     @GetMapping("/received")
-    @Operation(summary = "받은 편지함 (받은 펀지팩 목록)", description = """
+    @Operation(summary = "받은 편지함 조회 (받은 펀지팩 목록)", description = """
             받은 편지 목록을 조회합니다 (LR-011/012). 받은 편지함에서 지운 편지는 나오지 않습니다.
-            - senderName: 봉투의 보내는 사람 이름 또는 보낸 회원 닉네임에 포함된 편지만 (대소문자 무시)
+            - senderName: 봉투의 보내는 사람 이름 또는 보낸 회원 아이디에 포함된 편지만 (대소문자 무시)
             - receivedFrom/receivedTo: 받은 날짜 범위 (시작일·종료일 포함)
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다. read가 false면 미읽음입니다.
             - 날짜를 고르면 그날 받은 편지만: receivedFrom과 receivedTo에 같은 날짜를 넣습니다.
             - thumbnailImageUrls: 목록에서 카드가 겹친 썸네일을 그릴 카드 사진 (카드 순서대로 사진 있는 카드 최대 3장)
-            - locked=true: 잠긴편지 필터. 비공개로 콕한 카드가 하나라도 든 편지만 (#147). 응답의 locked로 편지마다 🔒 표시
+            - locked=true: 잠긴편지 필터. 비공개로 콕한 카드가 하나라도 든 편지만. 응답의 locked로 편지마다 🔒 표시
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<LetterPageResponse<ReceivedLetterResponse>> getReceivedLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "정렬 기준. LATEST(최신순) 또는 OLDEST(오래된순)", example = "LATEST")
@@ -85,12 +87,13 @@ public class LetterInboxController {
     }
 
     @GetMapping("/sent")
-    @Operation(summary = "보낸 편지함", description = """
+    @Operation(summary = "보낸 편지함 조회", description = """
             내가 보낸 편지 목록을 최근에 보낸 순으로 조회합니다 (LW-840). read로 받는 사람이 읽었는지 알 수 있습니다.
             - 공유 링크로 보내고 아직 아무도 받지 않은 편지는 recipient가 null입니다 ("아직 받는 사람 없음").
             - 페이지 번호는 0부터, size는 기본 20, 최대 100입니다.
             - thumbnailImageUrls: 목록 썸네일용 카드 사진 (카드 순서대로 사진 있는 카드 최대 3장)
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_002})
     public ApiResponse<LetterPageResponse<SentLetterResponse>> getSentLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
@@ -100,7 +103,7 @@ public class LetterInboxController {
     }
 
     @GetMapping("/received/unread-count")
-    @Operation(summary = "미읽음 편지 수", description = """
+    @Operation(summary = "읽지 않은 편지 수 조회", description = """
             받은 편지함에서 아직 열지 않은 편지 수를 조회합니다 (LB-221). 홈·편지함의 미읽음 뱃지에 씁니다.
             - 받는 사람이 편지를 처음 열면(편지 열기 API) 읽음이 되어 개수에서 빠집니다.
             - 받은 편지함에서 지운 편지는 세지 않습니다.
@@ -120,6 +123,7 @@ public class LetterInboxController {
             - 받는 사람은 받은 편지함에서 지우지 않은 동안 볼 수 있고, 처음 열면 읽음(readAt)으로 표시됩니다 (LR-020).
             - 그 외에는 LETTER_001입니다.
             """)
+    @ApiErrorCodes({ErrorCode.LETTER_001})
     public ApiResponse<LetterResponse> getLetter(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId
@@ -132,6 +136,7 @@ public class LetterInboxController {
             받은 편지의 두들픽 선물 후보 중 하나를 고릅니다 (LR-022). 다시 고르면 바뀌고, giftItemId를 비우면 선택을 취소합니다.
             - 편지에 없는 선물 후보면 LETTER_010, 내가 받은 편지가 아니면 COMMON_001입니다.
             """)
+    @ApiErrorCodes({ErrorCode.COMMON_001, ErrorCode.COMMON_002, ErrorCode.LETTER_010})
     public ApiResponse<LetterResponse> selectGift(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId,
@@ -146,6 +151,7 @@ public class LetterInboxController {
               단, 공유 링크로 보냈지만 아직 아무도 받지 않은 편지는 삭제할 수 있고 링크도 함께 무효가 됩니다.
             - 받는 사람: 받은 편지함에서 지웁니다 (LR-512). 공유 링크로 받은 편지는 링크로 다시 받으면 되돌릴 수 있고, 이 편지에서 콕으로 담은 아카이브 카드와 이 편지로 받은 알림(편지 도착)도 함께 지워집니다. 보낸 사람의 보낸 편지함과 보낸 사람이 받은 선물 선택 알림은 남습니다.
             """)
+    @ApiErrorCodes({ErrorCode.LETTER_001, ErrorCode.LETTER_003})
     public ApiResponse<Void> deleteOrHide(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
             @Parameter(description = "편지 ID", example = "1") @PathVariable Long letterId

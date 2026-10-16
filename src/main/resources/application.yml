@@ -84,5 +84,5 @@ google:
 
 # Swagger UI 태그를 가나다순으로 정렬한다 — "편지 ① 쓰기 → ② 보내기·편지함 → ③ 반응"이 흐름 순서대로 붙어 보이게
 springdoc:
-  swagger-ui:
-    tags-sorter: alpha
+  default-produces-media-type: application/json
+  # swagger-ui의 tags-sorter는 두지 않는다 — 태그는 OpenApiConfig에 적은 순서(가입 → 친구 → 편지 → 아카이브 → 마이페이지)대로 보여준다
