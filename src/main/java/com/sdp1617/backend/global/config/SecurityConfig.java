@@ -30,7 +30,6 @@ public class SecurityConfig {
     private static final String[] PERMIT_ALL_PATHS = {
             "/health",
             "/api/auth/**",
-            "/api/mypage/support/**",
             "/docs/error-codes",
             "/swagger-ui.html",
             "/swagger-ui/**",

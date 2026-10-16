@@ -36,8 +36,6 @@ services:
       MAIL_ENABLED: ${MAIL_ENABLED:-true}
       # 아래처럼 application.yml에 기본값이 있는 항목도 비어 있으면 빈 값으로 덮어쓰므로 같은 기본값을 적는다
       MAIL_LOGO_URL: ${MAIL_LOGO_URL:-https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png}
-      TERMS_OF_SERVICE_URL: ${TERMS_OF_SERVICE_URL:-https://sdp1617.example.com/terms}
-      PRIVACY_POLICY_URL: ${PRIVACY_POLICY_URL:-https://sdp1617.example.com/privacy}
       MAX_FOLLOW_COUNT: ${MAX_FOLLOW_COUNT:-50}
       # 웹 푸시(#89). PUSH_ENABLED=true면 VAPID 키 두 개가 있어야 기동한다
       PUSH_ENABLED: ${PUSH_ENABLED:-false}
