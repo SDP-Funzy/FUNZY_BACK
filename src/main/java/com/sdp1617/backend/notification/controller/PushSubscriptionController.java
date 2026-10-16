@@ -49,6 +49,8 @@ public class PushSubscriptionController {
             - 푸시는 알림함에 알림이 생길 때, 푸시 알림 수신 설정이 켜져 있으면 보냅니다. Service Worker가 받는 내용:
               `{ "title": "Funzy", "body": "티키님에게서 편지가 도착했어요.", "notificationId": 1, "type": "LETTER",
               "actorMemberId": 7, "letterId": 12, "archiveCardId": null }` — 누르면 이동할 곳은 알림 목록과 같습니다.
+              - `title`은 항상 "Funzy", `body`는 알림 목록의 `content`와 같은 문구입니다.
+              - `notificationId`·`type`·`actorMemberId`·`letterId`·`archiveCardId`는 알림 목록 응답의 `id`·`type`·`actorMemberId`·`letterId`·`archiveCardId`와 같은 값입니다.
             - 크롬·엣지·파이어폭스·사파리의 푸시 서비스 주소만 받습니다. iOS는 홈 화면에 추가한 웹앱(iOS 16.4+)에서만 구독할 수 있습니다.
             """)
     @PutMapping("/subscriptions")
