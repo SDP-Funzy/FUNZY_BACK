@@ -35,7 +35,7 @@ public record LetterResponse(
         LocalDateTime updatedAt,
         @Schema(description = "완료한 시각. 완료 전이면 null")
         LocalDateTime completedAt,
-        @Schema(description = "보낸 시각. 보내기 전이면 null. 공유 링크로 보낸 편지는 받는 사람이 받은 시각")
+        @Schema(description = "보낸 시각. 보내기 전이면 null. 공유 링크로 보낸 편지는 받는 사람이 받은 시각 (아직 아무도 안 받았으면 링크를 만든 시각)")
         LocalDateTime sentAt,
         @Schema(description = "받는 사람이 처음 열어본 시각. 안 읽었으면 null")
         LocalDateTime readAt
