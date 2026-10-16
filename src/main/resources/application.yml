@@ -38,9 +38,6 @@ app:
   mail:
     enabled: ${MAIL_ENABLED:false}
     logo-url: ${MAIL_LOGO_URL:https://sdp-funzy.s3.ap-northeast-2.amazonaws.com/static/funzy-logo.png}
-  support:
-    terms-of-service-url: ${TERMS_OF_SERVICE_URL:https://sdp1617.example.com/terms}
-    privacy-policy-url: ${PRIVACY_POLICY_URL:https://sdp1617.example.com/privacy}
   # 웹 푸시 (#89). 운영 .env에 VAPID 키를 넣고 PUSH_ENABLED=true로 켠다. 꺼져 있으면 구독은 저장하되 발송하지 않는다.
   # 키 만들기: npx web-push generate-vapid-keys (공개키·비밀키 모두 base64url). 키를 바꾸면 기존 구독은 모두 다시 해야 한다.
   push:

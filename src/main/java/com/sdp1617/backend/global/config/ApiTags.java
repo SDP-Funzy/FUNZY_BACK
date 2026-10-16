@@ -20,7 +20,6 @@ public final class ApiTags {
     public static final String MYPAGE_PROFILE = "마이페이지 - 프로필";
     public static final String MYPAGE_ACCOUNT = "마이페이지 - 계정 설정";
     public static final String MYPAGE_NOTIFICATION = "마이페이지 - 알림";
-    public static final String MYPAGE_SUPPORT = "마이페이지 - 고객 지원";
 
     private ApiTags() {
     }

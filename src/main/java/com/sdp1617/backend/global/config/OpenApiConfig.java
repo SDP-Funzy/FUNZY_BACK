@@ -37,8 +37,7 @@ public class OpenApiConfig {
             tag(ApiTags.ARCHIVE_COMMENT, "아카이브 카드에 다는 인스타식 댓글·답글. 카드 주인과 주인의 친구가 쓰고 볼 수 있음"),
             tag(ApiTags.MYPAGE_PROFILE, "프로필 조회, 아이디 변경, 프로필 이미지 업로드·초기화"),
             tag(ApiTags.MYPAGE_ACCOUNT, "연결 계정 조회·추가·해제, 비밀번호 변경, 로그아웃, 회원 탈퇴"),
-            tag(ApiTags.MYPAGE_NOTIFICATION, "푸시 알림 수신 설정, 알림함 조회·읽음 처리, 웹 푸시 구독"),
-            tag(ApiTags.MYPAGE_SUPPORT, "이용약관·개인정보처리방침 링크"));
+            tag(ApiTags.MYPAGE_NOTIFICATION, "푸시 알림 수신 설정, 알림함 조회·읽음 처리, 웹 푸시 구독"));
 
     /** 문서 맨 위에 보이는 설명. 기획서 용어와 API·ID의 대응을 함께 적어 팀원이 헷갈리지 않게 한다 (#82). */
     private static final String DESCRIPTION = """
