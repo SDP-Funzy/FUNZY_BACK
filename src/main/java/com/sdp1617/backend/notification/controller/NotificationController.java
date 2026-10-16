@@ -45,6 +45,8 @@ public class NotificationController {
     @Operation(summary = "푸시 알림 수신 설정 변경", description = """
             푸시 알림 수신 여부를 켜거나 끕니다.
             - OS 알림 권한과는 별개의 앱 내부 설정입니다. OS 권한이 거부되어 있으면 이 설정과 무관하게 알림이 수신되지 않습니다.
+            - 끄면 서버가 웹 푸시를 보내지 않습니다. 브라우저 구독은 해제하지 않고 그대로 둬도 되고, 다시 켜면 바로 다시 받습니다.
+            - 알림함(알림 목록)에는 이 설정과 상관없이 알림이 쌓입니다.
             """)
     @PatchMapping("/settings")
     @ApiErrorCodes({ErrorCode.COMMON_002})
