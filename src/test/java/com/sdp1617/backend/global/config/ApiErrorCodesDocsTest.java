@@ -1,13 +1,18 @@
 package com.sdp1617.backend.global.config;
 
 import com.sdp1617.backend.global.error.ErrorCode;
+import io.swagger.v3.oas.models.tags.Tag;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.in;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -34,11 +39,18 @@ class ApiErrorCodesDocsTest {
                 .andExpect(jsonPath(ADD_CARD + "['400'].content['application/json'].examples.CARD_003").exists());
     }
 
+    /** 컨트롤러가 OpenApiConfig.TAGS에 없는 태그를 쓰면 맨 뒤에 설명 없이 붙으므로 전체 목록이 같아야 한다. */
     @Test
-    void 태그는_정한_순서대로_나온다() throws Exception {
+    void 태그는_정한_목록과_순서대로만_나온다() throws Exception {
+        List<String> expected = OpenApiConfig.TAGS.stream().map(Tag::getName).toList();
         mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(jsonPath("$.tags[0].name").value(ApiTags.AUTH))
-                .andExpect(jsonPath("$.tags[5].name").value(ApiTags.LETTER_WRITE))
-                .andExpect(jsonPath("$.tags[14].name").value(ApiTags.MYPAGE_SUPPORT));
+                .andExpect(jsonPath("$.tags[*].name").value(contains(expected.toArray())))
+                .andExpect(jsonPath("$.paths.*.*.tags[*]").value(everyItem(in(expected))));
+    }
+
+    @Test
+    void COMMON_002에는_message가_구체적으로_바뀐다는_안내가_붙는다() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(jsonPath(ADD_CARD + "['400'].description").value(containsString("message는 잘못된 값에 따라")));
     }
 }

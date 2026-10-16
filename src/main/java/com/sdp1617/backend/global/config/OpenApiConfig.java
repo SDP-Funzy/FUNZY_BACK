@@ -23,7 +23,7 @@ public class OpenApiConfig {
     static final String ERROR_RESPONSE_SCHEMA_NAME = "ErrorResponse";
 
     /** Swagger 화면의 태그 순서와 설명 (가입 → 친구 → 편지 → 아카이브 → 마이페이지). */
-    private static final List<Tag> TAGS = List.of(
+    static final List<Tag> TAGS = List.of(
             tag(ApiTags.AUTH, "이메일 인증번호로 회원가입, 아이디 로그인, 아이디·비밀번호 찾기, 계정 잠금 해제"),
             tag(ApiTags.AUTH_SOCIAL, "카카오·네이버·구글 소셜 로그인과 소셜 회원가입"),
             tag(ApiTags.AUTH_TOKEN, "access token 재발급 (refresh token 교체)"),
@@ -55,13 +55,15 @@ public class OpenApiConfig {
             - 오류 종류는 `code`로 분기하고 `message`는 화면 표시용입니다. 전체 목록과 HTTP 상태: [에러 코드 문서](/docs/error-codes)
             - API마다 돌려줄 수 있는 에러는 그 API의 **Responses** 칸에 HTTP 상태별로 있습니다 (코드·메시지 목록과 예시 본문).
               아래 인증 오류는 로그인이 필요한 모든 API 공통이라 각 API에는 적지 않습니다.
+            - 경로 값 형식이 잘못되면(예: `/api/letters/abc`) 모든 API가 400 `COMMON_002`입니다. 이것도 각 API에는 적지 않습니다.
+            - `COMMON_002`의 `message`는 잘못된 값에 따라 구체적인 안내로 바뀝니다 (예: "아이디를 입력해주세요."). 분기는 `code`로 하세요.
 
             ### 용어: 아이디와 이름
             - **아이디** = 응답·요청의 `nickname` 필드. 인스타 아이디처럼 다른 회원에게 보이는 공개 아이디이자 로그인 아이디입니다
               (2~20자 영문 소문자·숫자·마침표·밑줄). 문서·메시지에서는 "아이디"라고 부릅니다.
             - **이름** = 편지 봉투의 `toName`·`fromName`. 편지마다 자유롭게 적는 이름으로, 아이디와 별개입니다.
 
-            ### 인증 오류 (로그인이 필요한 모든 API 공통, HTTP 401)
+            ### 인증 오류 (로그인이 필요한 모든 API 공통, HTTP 401 — Authorization 헤더의 access token 기준)
             | code | 뜻 | 앱 처리 |
             |---|---|---|
             | `AUTH_004` | access token 만료 | 토큰 재발급(`POST /api/auth/token/reissue`) 후 다시 요청 |

@@ -53,11 +53,16 @@ public class ApiErrorCodesCustomizer implements OperationCustomizer {
                 .summary(code.getCode() + " " + code.getMessage())
                 .value(body(code))));
         String description = codes.stream()
-                .map(code -> "- `" + code.getCode() + "` " + code.getMessage())
+                .map(code -> "- `" + code.getCode() + "` " + code.getMessage() + note(code))
                 .collect(Collectors.joining("\n"));
         return new ApiResponse()
                 .description(description)
                 .content(new Content().addMediaType(org.springframework.http.MediaType.APPLICATION_JSON_VALUE, mediaType));
+    }
+
+    /** COMMON_002는 어떤 값이 잘못됐는지에 따라 message가 달라진다 (예: "아이디를 입력해주세요."). */
+    private static String note(ErrorCode code) {
+        return code == ErrorCode.COMMON_002 ? " (message는 잘못된 값에 따라 구체적인 안내로 바뀜)" : "";
     }
 
     private static Map<String, Object> body(ErrorCode code) {
