@@ -50,6 +50,8 @@ public class ProfileController {
     @Operation(summary = "프로필 이미지 업로드용 Presigned URL 발급", description = """
             S3에 이미지를 직접 업로드할 수 있는 presigned PUT URL을 발급합니다.
             발급받은 URL로 클라이언트가 직접 업로드한 뒤, /complete API로 업로드 완료를 알려야 프로필에 반영됩니다.
+            - 지원 형식: image/jpeg, image/png, image/webp (그 외 MYPAGE_002)
+            - URL은 발급 후 10분 동안 유효합니다. 업로드할 때 요청한 contentType과 같은 Content-Type 헤더로 PUT 해야 합니다.
             """)
     @PostMapping("/image/presigned-url")
     public ApiResponse<ProfileImagePresignedUrlResponse> issueImagePresignedUrl(
@@ -62,7 +64,11 @@ public class ProfileController {
         );
     }
 
-    @Operation(summary = "프로필 이미지 업로드 완료 처리", description = "S3 업로드가 끝난 이미지를 검증한 뒤 프로필 이미지로 반영합니다.")
+    @Operation(summary = "프로필 이미지 업로드 완료 처리", description = """
+            S3 업로드가 끝난 이미지를 검증한 뒤 프로필 이미지로 반영합니다. 이전 프로필 이미지는 지워집니다.
+            - 업로드가 끝나지 않았으면 MYPAGE_001, 실제 파일이 jpeg·png·webp 이미지가 아니면 MYPAGE_002, 5MB를 넘으면 MYPAGE_003입니다.
+            - 내 presigned URL로 받은 imageKey가 아니면 COMMON_004입니다.
+            """)
     @PostMapping("/image/complete")
     public ApiResponse<ProfileResponse> completeImageUpload(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,

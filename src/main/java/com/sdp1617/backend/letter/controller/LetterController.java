@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "편지 ① 쓰기", description = """
         펀지(편지) 작성: 봉투 구성 → 마음카드 1~5장 → 두들픽(선택) → 완료. 보내기 전까지는 보낸 사람만 수정할 수 있습니다.
+        없거나 내가 쓴 편지가 아니면 LETTER_001, 이미 보낸 편지를 고치면 LETTER_003입니다 (아래 수정 API 공통).
         작성 중인 편지 조회·삭제와 보내기는 "편지 ② 보내기·편지함" API를 사용합니다.
         """)
 public class LetterController {
@@ -51,6 +52,7 @@ public class LetterController {
     @GetMapping("/drafts")
     @Operation(summary = "보내지 않은 편지 목록 (이어쓰기)", description = """
             아직 보내지 않은 내 편지(DRAFT 작성 중, COMPLETED 완료)를 최근 수정 순으로 조회합니다 (LW-012 이어쓰기).
+            - 마지막으로 고친 지 90일이 지난 보내지 않은 편지는 정기 정리로 지워집니다.
             """)
     public ApiResponse<List<LetterDraftResponse>> getUnsentLetters(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId

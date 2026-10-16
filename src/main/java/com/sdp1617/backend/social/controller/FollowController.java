@@ -356,7 +356,7 @@ public class FollowController {
 
     @Operation(summary = "친구 수 조회", description = """
             현재 친구(맞팔) 수와 상한을 함께 반환합니다.
-            - 상한값은 기획 확정 전까지 임시값(기본 50명)입니다.
+            - 상한은 50명입니다 (FR-130).
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공",

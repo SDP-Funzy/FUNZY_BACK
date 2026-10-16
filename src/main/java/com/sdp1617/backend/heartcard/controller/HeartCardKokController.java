@@ -39,7 +39,7 @@ public class HeartCardKokController {
             summary = "마음카드 콕 상태 변경",
             description = """
                     요청한 kok 값으로 콕 상태를 맞춥니다. 같은 요청을 반복해도 결과가 같습니다.
-                    - kok=true(생략 시 기본값): 콕합니다. 이미 콕한 카드면 그대로 둡니다.
+                    - kok=true(생략 시 기본값): 콕합니다. 이미 콕한 카드면 그대로 둡니다 (보낸 category는 무시, 카테고리는 바뀌지 않음).
                     - kok=false: 콕을 취소합니다(아카이브에서 즉시 제거). 콕하지 않은 카드면 그대로 둡니다.
                     - category를 생략하면 카드의 카테고리로 저장합니다 (직접 입력 카테고리 카드는 ETC).
                     - locked: 공개(false)면 아카이브에 보이고 친구도 봅니다. 비공개(true)면 아카이브에 보이지 않고

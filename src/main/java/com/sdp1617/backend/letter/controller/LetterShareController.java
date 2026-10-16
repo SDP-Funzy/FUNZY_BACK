@@ -48,6 +48,7 @@ public class LetterShareController {
     @DeleteMapping("/{letterId}/share-link")
     @Operation(summary = "공유 링크 취소", description = """
             공유 링크를 무효로 만듭니다. 이미 받은 사람은 받은 편지함에서 계속 볼 수 있습니다. 필요하면 다시 만들 수 있습니다.
+            - 링크가 없어도 성공합니다. 내가 쓴 편지가 아니면 LETTER_001입니다.
             """)
     public ApiResponse<Void> revoke(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
@@ -65,7 +66,9 @@ public class LetterShareController {
               - ANONYMOUS: 내용만 보여주고, 반응·선물 고르기를 누르면 로그인 유도 (LR-032)
               - OTHER + receivable=true: 로그인한 회원이 처음 연 것 → 바로 '받기'(POST .../receive) 호출
               - OTHER + receivable=false: 이미 다른 사람이 받은 편지 → 읽기만
-              - RECIPIENT: 받는 사람 → 반응·선물 고르기 가능 / SENDER: 보낸 사람 미리보기
+              - RECIPIENT + receivable=false: 받는 사람 → 반응·선물 고르기 가능
+              - RECIPIENT + receivable=true: 받은 편지함에서 지운 받는 사람 → '받기'로 다시 받은 편지함에 되돌릴 수 있음
+              - SENDER: 보낸 사람 미리보기
             - 보낸 사람·받는 사람이 아니면 받는 사람 정보·읽은 시각·고른 선물(letter.recipient·readAt·selectedGiftItemId)은 null로 가립니다.
             - access token을 보냈는데 만료·무효면 401(AUTH_004 만료 → 재발급 후 다시 요청, AUTH_003·AUTH_027 → 로그인)입니다.
               토큰을 보내지 않으면 로그인하지 않은 사람으로 봅니다.

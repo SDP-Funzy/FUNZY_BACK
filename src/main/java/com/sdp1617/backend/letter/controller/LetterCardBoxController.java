@@ -39,8 +39,9 @@ public class LetterCardBoxController {
     @PostMapping("/images/presigned-url")
     @Operation(summary = "카드 사진 업로드용 Presigned URL 발급", description = """
             편지 카드에 첨부할 사진을 S3에 직접 업로드할 수 있는 presigned URL을 발급합니다.
-            - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003)
-            - uploadUrl로 PUT 업로드한 뒤, imageKey를 편지 카드 추가·수정 요청에 넣습니다.
+            - 지원 형식: image/jpeg, image/png, image/webp (그 외 CARD_003), 최대 5MB
+            - URL은 발급 후 10분 동안 유효합니다. 요청한 contentType과 같은 Content-Type 헤더로 uploadUrl에 PUT 업로드한 뒤,
+              imageKey를 편지 카드 추가·수정 요청에 넣습니다.
             """)
     public ApiResponse<CardImagePresignedUrlResponse> issueImagePresignedUrl(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,
@@ -91,6 +92,7 @@ public class LetterCardBoxController {
     @Operation(summary = "마음카드 보관함 월별 캘린더 요약 조회", description = """
             해당 월에 카드를 주고받은 날짜와, 날짜별 카드 사진 URL 목록을 조회합니다.
             - 카드가 없는 날짜는 days에 포함되지 않습니다. 사진이 없는 카드는 사진 목록에서 제외됩니다.
+            - year는 1~9999, month는 1~12입니다. 범위를 벗어나면 COMMON_002입니다.
             """)
     public ApiResponse<CardCalendarResponse> getCalendar(
             @Parameter(hidden = true) @AuthenticationPrincipal Long memberId,

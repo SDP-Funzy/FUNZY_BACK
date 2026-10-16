@@ -17,7 +17,7 @@ public record LetterCardRequest(
         @Size(max = 10, message = "직접 입력 카테고리는 10자 이내여야 합니다.")
         String customCategory,
 
-        @Schema(description = "본문 (500자 이내 — 정의서 300/500자 충돌 확인 중 #95)", example = "출근길마다 듣는데 네 생각이 났어")
+        @Schema(description = "본문 (500자 이내)", example = "출근길마다 듣는데 네 생각이 났어")
         @NotBlank(message = "본문은 필수입니다.")
         @Size(max = 500, message = "본문은 500자 이내여야 합니다.")
         String content,

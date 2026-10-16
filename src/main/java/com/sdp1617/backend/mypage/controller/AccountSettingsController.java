@@ -230,6 +230,7 @@ public class AccountSettingsController {
     @Operation(summary = "로그아웃", description = """
             요청 바디로 전달한 refreshToken에 해당하는 세션만 종료합니다.
             - 다른 기기에서 로그인된 세션에는 영향을 주지 않습니다.
+            - refreshToken이 내 토큰이 아니거나 형식이 잘못됐으면 AUTH_003, 만료됐으면 AUTH_004입니다. 이때 세션은 이미 끝난 것이므로 앱은 저장된 토큰을 지우고 로그아웃 처리하면 됩니다.
             """)
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그아웃 성공",
@@ -254,7 +255,9 @@ public class AccountSettingsController {
     @Operation(summary = "회원 탈퇴", description = """
             계정을 삭제하고 서비스를 탈퇴합니다.
             - 삭제 후 데이터 복구가 불가능합니다.
-            - 현재는 회원 계정만 삭제하며, 아카이브 등 연관 도메인 데이터의 삭제 범위는 기획 확정 후 별도 처리됩니다.
+            - 지워지는 것: 소셜 연결(같은 소셜 계정으로 다시 가입 가능), 친구 관계·친구 요청, 내 아카이브와 거기 달린 댓글, 내 알림,
+              웹 푸시 구독, 보내지 않은 내 편지, 프로필 이미지. 받은 편지는 받은 편지함에서 빠지고, 내가 만든 공유 링크는 무효가 됩니다.
+            - 남는 것: 주고받은 편지(상대의 편지함·보관함에서 보임)와 남의 카드에 단 댓글. 작성자는 "탈퇴한회원N"으로 보입니다.
             - 탈퇴 성공 시 로그인되어 있던 모든 기기의 세션이 종료됩니다.
             """)
     @ApiResponses(value = {

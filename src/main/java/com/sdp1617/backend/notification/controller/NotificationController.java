@@ -91,7 +91,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "알림 목록 조회", description = """
-            최신순으로 알림 목록을 조회합니다.
+            최신순으로 알림 목록을 조회합니다. 만든 지 30일이 지난 알림은 정기 정리로 지워집니다.
             - 알림이 생기는 경우 (알림 받는 사람):
               LETTER 편지 도착(받는 사람) / GIFT_SELECTED 선물을 새로 고르거나 바꿈(보낸 사람) /
               COMMENT 내 아카이브 카드에 남이 댓글·답글(카드 주인), 내 댓글에 답글(그 댓글 작성자) /
